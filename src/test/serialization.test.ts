@@ -11,5 +11,35 @@ describe("project serialization", () => {
     expect(parsed.id).toBe(project.id);
     expect(parsed.name).toBe("Workbench");
     expect(parsed.parts[0].size.x).toBe(project.parts[0].size.x);
+    expect(parsed.parts[0].objectType).toBe("sheet");
+  });
+
+  it("migrates legacy thickness-based projects into sheet objects", () => {
+    const payload = JSON.stringify({
+      id: "legacy-project",
+      name: "Legacy",
+      version: 1,
+      unitPreference: "metric-cm",
+      snapSettings: { enabled: true, moveIncrement: 10, resizeIncrement: 5, rotateIncrementDeg: 15 },
+      cameraState: { position: { x: 1, y: 2, z: 3 }, target: { x: 0, y: 0, z: 0 } },
+      parts: [
+        {
+          id: "legacy-part",
+          name: "OSB Panel",
+          size: { x: 1200, y: 600, z: 18 },
+          position: { x: 0, y: 150, z: 0 },
+          rotation: { x: 0, y: 0, z: 0 },
+          thicknessPreset: "sheet-18mm",
+        },
+      ],
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(2);
+    expect(parsed.parts[0].objectType).toBe("sheet");
+    expect(parsed.parts[0].profileId).toBe("osb3-18");
   });
 });

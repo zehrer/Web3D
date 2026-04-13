@@ -1,15 +1,15 @@
-import { MATERIAL_COLORS } from "./materials";
 import { getDefaultUnitPreference } from "./locale";
+import { createObjectName, createSizeFromProfile, getDefaultProfileId, getProfileById } from "./profiles";
 import type {
-  MaterialKind,
+  ObjectProfileId,
+  ObjectType,
   PartNode,
   ProjectDocument,
   ProjectSummary,
-  ThicknessPreset,
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 1;
+export const PROJECT_SCHEMA_VERSION = 2;
 
 function randomId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`;
@@ -23,27 +23,28 @@ export function cloneProject(project: ProjectDocument): ProjectDocument {
   return JSON.parse(JSON.stringify(project)) as ProjectDocument;
 }
 
-export function createBoxPart(
+export function createObjectPart(
   index: number,
   options?: {
-    material?: MaterialKind;
-    thicknessPreset?: ThicknessPreset;
+    objectType?: ObjectType;
+    profileId?: ObjectProfileId;
     size?: Vector3Like;
     position?: Vector3Like;
   },
 ): PartNode {
-  const material = options?.material ?? "plywood";
-  const thicknessPreset = options?.thicknessPreset ?? "board-18mm";
+  const objectType = options?.objectType ?? "sheet";
+  const profileId = options?.profileId ?? getDefaultProfileId(objectType);
+  const profile = getProfileById(profileId);
 
   return {
     id: randomId(),
-    name: `Part ${index + 1}`,
-    size: options?.size ?? makeVector3(600, 300, 18),
-    position: options?.position ?? makeVector3(index * 90, 150, 0),
+    name: createObjectName(objectType, index),
+    objectType,
+    profileId,
+    size: options?.size ?? createSizeFromProfile(profile),
+    position: options?.position ?? makeVector3(0, 0, 0),
     rotation: makeVector3(0, 0, 0),
-    material,
-    thicknessPreset,
-    color: MATERIAL_COLORS[material],
+    color: profile.color,
   };
 }
 
@@ -65,7 +66,7 @@ export function createProject(name = "Untitled Project"): ProjectDocument {
       position: makeVector3(1200, 900, 1200),
       target: makeVector3(0, 150, 0),
     },
-    parts: [createBoxPart(0)],
+    parts: [createObjectPart(0, { objectType: "sheet", profileId: "osb3-18" })],
     createdAt: now,
     updatedAt: now,
   };

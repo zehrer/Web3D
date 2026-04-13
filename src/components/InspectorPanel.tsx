@@ -1,7 +1,7 @@
-import { THICKNESS_PRESETS, MATERIAL_LABELS } from "../lib/materials";
+import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
 import { fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
-import type { MaterialKind, ThicknessPreset, UnitPreference, Vector3Like } from "../types/model";
+import type { ObjectProfileId, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
   const parsed = Number(value);
@@ -82,76 +82,51 @@ export function InspectorPanel() {
   const state = useEditorStore((store) => store);
   const selectedPart = getSelectedPart(state);
   const unitPreference = state.project.unitPreference;
-  const updateUnitPreference = state.updateUnitPreference;
-  const updateSnapSettings = state.updateSnapSettings;
   const setPartGeometry = state.setPartGeometry;
-  const setPartMaterial = state.setPartMaterial;
-  const setPartThicknessPreset = state.setPartThicknessPreset;
+  const setPartProfile = state.setPartProfile;
 
   return (
     <aside className="inspector">
       <section className="panel-card">
         <div className="panel-card__header">
-          <span className="panel-card__title">Units</span>
-          <span className="panel-card__meta">Locale aware</span>
-        </div>
-
-        <label className="field">
-          <span>Display units</span>
-          <select
-            className="field__input"
-            value={unitPreference}
-            onChange={(event) => updateUnitPreference(event.target.value as UnitPreference)}
-          >
-            {Object.values(UNIT_DEFINITIONS).map((definition) => (
-              <option key={definition.id} value={definition.id}>
-                {definition.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
-      <section className="panel-card">
-        <div className="panel-card__header">
-          <span className="panel-card__title">Snap</span>
-          <span className="panel-card__meta">{state.project.snapSettings.enabled ? "On" : "Off"}</span>
-        </div>
-
-        <label className="field field--checkbox">
-          <input
-            type="checkbox"
-            checked={state.project.snapSettings.enabled}
-            onChange={(event) => updateSnapSettings({ enabled: event.target.checked })}
-          />
-          <span>Enable snap</span>
-        </label>
-
-        <FieldRow
-          label="Move"
-          value={toDisplayUnits(state.project.snapSettings.moveIncrement, unitPreference)}
-          onChange={(value) => updateSnapSettings({ moveIncrement: fromDisplayUnits(value, unitPreference) })}
-        />
-        <FieldRow
-          label="Resize"
-          value={toDisplayUnits(state.project.snapSettings.resizeIncrement, unitPreference)}
-          onChange={(value) => updateSnapSettings({ resizeIncrement: fromDisplayUnits(value, unitPreference) })}
-        />
-        <FieldRow
-          label="Rotate"
-          value={state.project.snapSettings.rotateIncrementDeg}
-          onChange={(value) => updateSnapSettings({ rotateIncrementDeg: value })}
-        />
-      </section>
-
-      <section className="panel-card">
-        <div className="panel-card__header">
-          <span className="panel-card__title">Selection</span>
-          <span className="panel-card__meta">{selectedPart ? selectedPart.material : "None"}</span>
+          <span className="panel-card__title">Object</span>
+          <span className="panel-card__meta">{selectedPart ? getObjectTypeLabel(selectedPart.objectType) : "None"}</span>
         </div>
 
         {selectedPart ? (
           <>
+            {selectedPart.objectType === "sheet" ? (
+              <label className="field">
+                <span>Sheet profile</span>
+                <select
+                  className="field__input"
+                  value={selectedPart.profileId}
+                  onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
+                >
+                  {getProfilesForType("sheet").map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label className="field">
+                <span>Timber profile</span>
+                <select
+                  className="field__input"
+                  value={selectedPart.profileId}
+                  onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
+                >
+                  {getProfilesForType("timber").map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             <label className="field">
               <span>Name</span>
               <input
@@ -167,12 +142,38 @@ export function InspectorPanel() {
               />
             </label>
 
-            <VectorFields
-              label="Size"
-              vector={selectedPart.size}
-              unitPreference={unitPreference}
-              onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
-            />
+            {selectedPart.objectType === "sheet" ? (
+              <VectorFields
+                label="Size"
+                vector={selectedPart.size}
+                unitPreference={unitPreference}
+                onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
+              />
+            ) : (
+              <>
+                <FieldRow
+                  label={`Length (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                  value={toDisplayUnits(selectedPart.size.x, unitPreference)}
+                  onChange={(value) =>
+                    setPartGeometry(selectedPart.id, {
+                      size: {
+                        ...selectedPart.size,
+                        x: fromDisplayUnits(value, unitPreference),
+                      },
+                    })
+                  }
+                />
+                <label className="field">
+                  <span>Cross-section</span>
+                  <div className="field__input field__input--readonly">
+                    {(() => {
+                      const profile = getProfileById(selectedPart.profileId);
+                      return `${profile.label}`;
+                    })()}
+                  </div>
+                </label>
+              </>
+            )}
 
             <VectorFields
               label="Position"
@@ -201,38 +202,17 @@ export function InspectorPanel() {
               }
             />
 
-            <label className="field">
-              <span>Material</span>
-              <select
-                className="field__input"
-                value={selectedPart.material}
-                onChange={(event) => setPartMaterial(selectedPart.id, event.target.value as MaterialKind)}
-              >
-                {Object.entries(MATERIAL_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Thickness preset</span>
-              <select
-                className="field__input"
-                value={selectedPart.thicknessPreset}
-                onChange={(event) => setPartThicknessPreset(selectedPart.id, event.target.value as ThicknessPreset)}
-              >
-                {THICKNESS_PRESETS.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {selectedPart.objectType === "sheet" ? (
+              <label className="field">
+                <span>Thickness</span>
+                <div className="field__input field__input--readonly">
+                  {getProfileById(selectedPart.profileId).label}
+                </div>
+              </label>
+            ) : null}
           </>
         ) : (
-          <p className="panel-card__empty">Select a part to inspect its dimensions and material.</p>
+          <p className="panel-card__empty">Select an object to inspect its dimensions.</p>
         )}
       </section>
     </aside>

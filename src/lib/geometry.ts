@@ -17,8 +17,7 @@ export function applyResizeFromHandle(
 
   const axisVector = new Vector3(axis === "x" ? 1 : 0, axis === "y" ? 1 : 0, axis === "z" ? 1 : 0)
     .applyEuler(new Euler(part.rotation.x, part.rotation.y, part.rotation.z))
-    .normalize()
-    .multiplyScalar((actualDelta / 2) * direction);
+    .normalize();
 
   return {
     size: {
@@ -26,9 +25,9 @@ export function applyResizeFromHandle(
       [axis]: snappedSize,
     },
     position: {
-      x: part.position.x + axisVector.x,
-      y: part.position.y + axisVector.y,
-      z: part.position.z + axisVector.z,
+      x: part.position.x + (direction === -1 ? axisVector.x * -actualDelta : 0),
+      y: part.position.y + (direction === -1 ? axisVector.y * -actualDelta : 0),
+      z: part.position.z + (direction === -1 ? axisVector.z * -actualDelta : 0),
     },
   };
 }

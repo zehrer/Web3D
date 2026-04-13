@@ -4,13 +4,14 @@ A lightweight browser-based 3D editor for simple box-based design, with woodwork
 
 ## Features
 
-- Box-only scene model for fast rectangular part design
+- Box-only scene model for fast rectangular object design
 - Direct manipulation with move, rotate, and resize tools
 - Grid snapping for translation, rotation, and face-handle resizing
 - Locale-based default units with metric and imperial switching
-- Wood material labels and common board thickness presets
+- Object families for sheet goods and structural timber profiles
 - IndexedDB-backed local project autosave and recent-project loading
 - Undo/redo for editor actions and transient drag commits
+- Lower-corner object origin so new objects start on the floor at `0 / 0 / 0`
 
 ## Stack
 
@@ -34,3 +35,7 @@ Run the test suite with:
 ```bash
 npm test
 ```
+
+## Next Release
+
+- STL export for sharing and fabrication workflows

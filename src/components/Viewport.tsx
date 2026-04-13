@@ -1,7 +1,23 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { Edges, Html, OrbitControls, TransformControls } from "@react-three/drei";
-import { Vector3, type Mesh } from "three";
+import { Vector3, type Object3D } from "three";
+import {
+  BeamIcon,
+  DuplicateIcon,
+  HelpIcon,
+  MoveIcon,
+  PerspectiveIcon,
+  PlusIcon,
+  RedoIcon,
+  ResizeIcon,
+  RotateIcon,
+  SheetIcon,
+  TopViewIcon,
+  TrashIcon,
+  UndoIcon,
+} from "./Icons";
+import { getObjectTypeLabel } from "../lib/profiles";
 import { applyResizeFromHandle } from "../lib/geometry";
 import { cloneProject } from "../lib/project";
 import { snapValue, toRadians } from "../lib/snap";
@@ -54,7 +70,7 @@ function CameraController({
 
   return (
     <OrbitControls
-      ref={orbitRef}
+      ref={orbitRef as never}
       makeDefault
       enableDamping
       dampingFactor={0.08}
@@ -84,7 +100,7 @@ function SelectedBadge({ part }: { part: PartNode }) {
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
 
   return (
-    <Html position={[0, part.size.y / 2 + 45, 0]} center>
+    <Html position={[part.size.x / 2, part.size.y + 45, part.size.z / 2]} center>
       <div className="dimension-chip">
         <strong>{part.name}</strong>
         <span>
@@ -104,14 +120,14 @@ function Scene() {
   const selectPart = useEditorStore((state) => state.selectPart);
   const previewPartGeometry = useEditorStore((state) => state.previewPartGeometry);
   const finalizeTransientChange = useEditorStore((state) => state.finalizeTransientChange);
-  const meshRefs = useRef<Record<string, Mesh | null>>({});
+  const objectRefs = useRef<Record<string, Object3D | null>>({});
   const orbitRef = useRef<{ target: Vector3; update: () => void; enabled: boolean } | null>(null);
   const transformSnapshotRef = useRef<ProjectDocument | null>(null);
   const resizeDragRef = useRef<ResizeDragState | null>(null);
   const handleMoveRef = useRef<((event: PointerEvent) => void) | null>(null);
   const handleUpRef = useRef<(() => void) | null>(null);
   const selectedPart = parts.find((part) => part.id === selectedPartId) ?? null;
-  const selectedMesh = selectedPart ? meshRefs.current[selectedPart.id] : null;
+  const selectedObject = selectedPart ? objectRefs.current[selectedPart.id] : null;
 
   useEffect(() => {
     return () => {
@@ -197,12 +213,12 @@ function Scene() {
 
   const handleDefinitions: HandleDefinition[] = selectedPart
     ? [
-        { axis: "x", direction: 1, position: [selectedPart.size.x / 2, 0, 0] },
-        { axis: "x", direction: -1, position: [-selectedPart.size.x / 2, 0, 0] },
-        { axis: "y", direction: 1, position: [0, selectedPart.size.y / 2, 0] },
-        { axis: "y", direction: -1, position: [0, -selectedPart.size.y / 2, 0] },
-        { axis: "z", direction: 1, position: [0, 0, selectedPart.size.z / 2] },
-        { axis: "z", direction: -1, position: [0, 0, -selectedPart.size.z / 2] },
+        { axis: "x", direction: 1, position: [selectedPart.size.x, selectedPart.size.y / 2, selectedPart.size.z / 2] },
+        { axis: "x", direction: -1, position: [0, selectedPart.size.y / 2, selectedPart.size.z / 2] },
+        { axis: "y", direction: 1, position: [selectedPart.size.x / 2, selectedPart.size.y, selectedPart.size.z / 2] },
+        { axis: "y", direction: -1, position: [selectedPart.size.x / 2, 0, selectedPart.size.z / 2] },
+        { axis: "z", direction: 1, position: [selectedPart.size.x / 2, selectedPart.size.y / 2, selectedPart.size.z] },
+        { axis: "z", direction: -1, position: [selectedPart.size.x / 2, selectedPart.size.y / 2, 0] },
       ]
     : [];
 
@@ -232,10 +248,10 @@ function Scene() {
         const isSelected = part.id === selectedPartId;
 
         return (
-          <mesh
+          <group
             key={part.id}
             ref={(node) => {
-              meshRefs.current[part.id] = node;
+              objectRefs.current[part.id] = node;
             }}
             position={vectorToTuple(part.position)}
             rotation={vectorToTuple(part.rotation)}
@@ -243,12 +259,12 @@ function Scene() {
               event.stopPropagation();
               selectPart(part.id);
             }}
-            castShadow
-            receiveShadow
           >
-            <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
-            <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />
-            <Edges color={isSelected ? "#fff5d7" : "#1b2329"} />
+            <mesh position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]} castShadow receiveShadow>
+              <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
+              <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />
+              <Edges color={isSelected ? "#fff5d7" : "#1b2329"} />
+            </mesh>
             {isSelected ? <SelectedBadge part={part} /> : null}
 
             {isSelected && activeTool === "resize"
@@ -263,13 +279,13 @@ function Scene() {
                   </mesh>
                 ))
               : null}
-          </mesh>
+          </group>
         );
       })}
 
-      {selectedMesh && selectedPart && activeTool !== "resize" ? (
+      {selectedObject && selectedPart && activeTool !== "resize" ? (
         <TransformControls
-          object={selectedMesh}
+          object={selectedObject}
           mode={activeTool === "move" ? "translate" : "rotate"}
           translationSnap={snapSettings.enabled ? snapSettings.moveIncrement : undefined}
           rotationSnap={snapSettings.enabled ? toRadians(snapSettings.rotateIncrementDeg) : undefined}
@@ -282,14 +298,14 @@ function Scene() {
           onObjectChange={() => {
             previewPartGeometry(selectedPart.id, {
               position: {
-                x: snapValue(selectedMesh.position.x, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
-                y: snapValue(selectedMesh.position.y, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
-                z: snapValue(selectedMesh.position.z, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
+                x: snapValue(selectedObject.position.x, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
+                y: snapValue(selectedObject.position.y, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
+                z: snapValue(selectedObject.position.z, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
               },
               rotation: {
-                x: selectedMesh.rotation.x,
-                y: selectedMesh.rotation.y,
-                z: selectedMesh.rotation.z,
+                x: selectedObject.rotation.x,
+                y: selectedObject.rotation.y,
+                z: selectedObject.rotation.z,
               },
             });
           }}
@@ -310,32 +326,117 @@ function Scene() {
 }
 
 export function Viewport() {
+  const [showHelp, setShowHelp] = useState(false);
+  const activeTool = useEditorStore((state) => state.activeTool);
+  const setActiveTool = useEditorStore((state) => state.setActiveTool);
+  const addObject = useEditorStore((state) => state.addObject);
+  const duplicateSelectedPart = useEditorStore((state) => state.duplicateSelectedPart);
+  const deleteSelectedPart = useEditorStore((state) => state.deleteSelectedPart);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  const commitCameraState = useEditorStore((state) => state.commitCameraState);
   const selectedPart = useEditorStore((state) =>
     state.project.parts.find((part) => part.id === state.selectedPartId) ?? null,
   );
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
 
+  function setCameraPreset(preset: "perspective" | "top" | "front" | "right") {
+    const target = { x: 0, y: 150, z: 0 };
+
+    const position =
+      preset === "top"
+        ? { x: 0, y: 1600, z: 0.01 }
+        : preset === "front"
+          ? { x: 0, y: 500, z: 1600 }
+          : preset === "right"
+            ? { x: 1600, y: 500, z: 0 }
+            : { x: 1200, y: 900, z: 1200 };
+
+    commitCameraState({ position, target });
+  }
+
   return (
     <section className="viewport-panel">
-      <div className="viewport-panel__header">
-        <div>
-          <span className="panel-card__title">Viewport</span>
-          <p className="viewport-panel__meta">
-            Drag with orbit controls. Use gizmos for move and rotate, then switch to resize for face handles.
-          </p>
+      <div className="viewport-canvas">
+        <div className="viewport-rail viewport-rail--left">
+          <button className="viewport-rail__button" onClick={() => addObject("sheet")} title="Add sheet" type="button">
+            <SheetIcon width={18} height={18} />
+          </button>
+          <button className="viewport-rail__button" onClick={() => addObject("timber")} title="Add timber" type="button">
+            <BeamIcon width={18} height={18} />
+          </button>
+          <button className="viewport-rail__button" onClick={() => addObject(selectedPart?.objectType ?? "sheet")} title="Add same type" type="button">
+            <PlusIcon width={18} height={18} />
+          </button>
+          {([
+            ["move", MoveIcon, "Move"],
+            ["rotate", RotateIcon, "Rotate"],
+            ["resize", ResizeIcon, "Resize"],
+          ] as const).map(([tool, Icon, label]) => (
+            <button
+              key={tool}
+              className={`viewport-rail__button ${activeTool === tool ? "viewport-rail__button--active" : ""}`}
+              onClick={() => setActiveTool(tool)}
+              title={label}
+              type="button"
+            >
+              <Icon width={18} height={18} />
+            </button>
+          ))}
+          <div className="viewport-rail__divider" />
+          <button className="viewport-rail__button" onClick={undo} title="Undo" type="button">
+            <UndoIcon width={18} height={18} />
+          </button>
+          <button className="viewport-rail__button" onClick={redo} title="Redo" type="button">
+            <RedoIcon width={18} height={18} />
+          </button>
         </div>
+
+        <div className="viewport-rail viewport-rail--right">
+          <button className="viewport-rail__button" onClick={() => setCameraPreset("perspective")} title="Perspective view" type="button">
+            <PerspectiveIcon width={18} height={18} />
+          </button>
+          <button className="viewport-rail__button" onClick={() => setCameraPreset("top")} title="Top view" type="button">
+            <TopViewIcon width={18} height={18} />
+          </button>
+          <button className={`viewport-rail__button ${showHelp ? "viewport-rail__button--active" : ""}`} onClick={() => setShowHelp((value) => !value)} title="Help" type="button">
+            <HelpIcon width={18} height={18} />
+          </button>
+        </div>
+
+        {showHelp ? (
+          <div className="viewport-help">
+            <strong>Help</strong>
+            <span>Drag to orbit the camera.</span>
+            <span>Use move and rotate for gizmos.</span>
+            <span>Use resize to drag the yellow handles.</span>
+            <span>Units and snap live in the project settings.</span>
+          </div>
+        ) : null}
+
         {selectedPart ? (
-          <div className="viewport-panel__selection">
+          <div className="viewport-selection-chip">
             <strong>{selectedPart.name}</strong>
             <span>
-              {formatLength(selectedPart.size.x, unitPreference)} / {formatLength(selectedPart.size.y, unitPreference)} /{" "}
-              {formatLength(selectedPart.size.z, unitPreference)}
+              {getObjectTypeLabel(selectedPart.objectType)} · {formatLength(selectedPart.size.x, unitPreference)} /{" "}
+              {formatLength(selectedPart.size.y, unitPreference)} / {formatLength(selectedPart.size.z, unitPreference)}
             </span>
           </div>
         ) : null}
-      </div>
 
-      <div className="viewport-canvas">
+        {selectedPart ? (
+          <div className="viewport-context-bar">
+            <button className="viewport-context-bar__button" onClick={duplicateSelectedPart} type="button">
+              <DuplicateIcon width={16} height={16} />
+              <span>Duplicate</span>
+            </button>
+            <button className="viewport-context-bar__button viewport-context-bar__button--danger" onClick={deleteSelectedPart} type="button">
+              <TrashIcon width={16} height={16} />
+              <span>Delete</span>
+            </button>
+          </div>
+        ) : null}
+
         <Canvas shadows camera={{ fov: 38, near: 1, far: 12000 }}>
           <Scene />
         </Canvas>

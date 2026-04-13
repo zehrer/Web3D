@@ -1,17 +1,17 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
-import { createBoxPart, cloneProject, createProject, touchProject } from "../lib/project";
-import { getThicknessPresetValue, MATERIAL_COLORS } from "../lib/materials";
+import { cloneProject, createObjectPart, createProject, touchProject } from "../lib/project";
+import { applyProfileToSize, getDefaultProfileId, getProfileById } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
   CameraState,
-  MaterialKind,
+  ObjectProfileId,
+  ObjectType,
   PartNode,
   ProjectDocument,
   ProjectSummary,
   SnapSettings,
-  ThicknessPreset,
   UnitPreference,
   Vector3Like,
 } from "../types/model";
@@ -39,14 +39,13 @@ export interface EditorActions {
   renameProject: (name: string) => void;
   updateUnitPreference: (unitPreference: UnitPreference) => void;
   updateSnapSettings: (partial: Partial<SnapSettings>) => void;
-  addBoxPart: (preset?: ThicknessPreset) => void;
+  addObject: (objectType: ObjectType, profileId?: ObjectProfileId) => void;
   duplicateSelectedPart: () => void;
   deleteSelectedPart: () => void;
   updatePart: (partId: string, updater: (part: PartNode) => PartNode) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
-  setPartMaterial: (partId: string, material: MaterialKind) => void;
-  setPartThicknessPreset: (partId: string, preset: ThicknessPreset) => void;
+  setPartProfile: (partId: string, profileId: ObjectProfileId) => void;
   commitCameraState: (cameraState: CameraState) => void;
   finalizeTransientChange: (previousProject: ProjectDocument) => void;
   undo: () => void;
@@ -141,15 +140,14 @@ export function createEditorStore() {
         })),
       })),
 
-    addBoxPart: (preset = "board-18mm") =>
+    addObject: (objectType, profileId = getDefaultProfileId(objectType)) =>
       set((state) => {
         const nextIndex = state.project.parts.length;
-        const thickness = getThicknessPresetValue(preset);
 
-        const nextPart = createBoxPart(nextIndex, {
-          thicknessPreset: preset,
-          size: { x: 600, y: 300, z: thickness },
-          position: { x: nextIndex * 120, y: 150, z: nextIndex * 60 },
+        const nextPart = createObjectPart(nextIndex, {
+          objectType,
+          profileId,
+          position: { x: 0, y: 0, z: 0 },
         });
 
         const history = withProjectHistory(state, (project) => ({
@@ -256,30 +254,23 @@ export function createEditorStore() {
         },
       })),
 
-    setPartMaterial: (partId, material) =>
+    setPartProfile: (partId, profileId) =>
       set((state) => ({
         ...withProjectHistory(state, (project) => ({
           ...project,
-          parts: replacePart(project.parts, partId, (part) => ({
-            ...part,
-            material,
-            color: MATERIAL_COLORS[material],
-          })),
-        })),
-      })),
+          parts: replacePart(project.parts, partId, (part) => {
+            const profile = getProfileById(profileId);
+            if (profile.objectType !== part.objectType) {
+              return part;
+            }
 
-    setPartThicknessPreset: (partId, preset) =>
-      set((state) => ({
-        ...withProjectHistory(state, (project) => ({
-          ...project,
-          parts: replacePart(project.parts, partId, (part) => ({
-            ...part,
-            thicknessPreset: preset,
-            size: {
-              ...part.size,
-              z: preset === "custom" ? part.size.z : getThicknessPresetValue(preset),
-            },
-          })),
+            return {
+              ...part,
+              profileId,
+              size: applyProfileToSize(profile, part.size),
+              color: profile.color,
+            };
+          }),
         })),
       })),
 

@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "./components/Icons";
 import { Toolbar } from "./components/Toolbar";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
@@ -21,6 +22,10 @@ export default function App() {
   const hydrateProject = useEditorStore((state) => state.hydrateProject);
   const setHydrated = useEditorStore((state) => state.setHydrated);
   const createNewProject = useEditorStore((state) => state.createNewProject);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [leftPanelVisible, setLeftPanelVisible] = useState(true);
+  const [rightPanelVisible, setRightPanelVisible] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,10 +69,15 @@ export default function App() {
     }
 
     const timeout = window.setTimeout(() => {
+      setSaveState("saving");
       void saveProjectDocument(project)
         .then(() => listProjectSummaries())
-        .then((recentProjects) => setRecentProjects(recentProjects))
-        .catch(() => undefined);
+        .then((recentProjects) => {
+          setRecentProjects(recentProjects);
+          setSaveState("saved");
+          setLastSavedAt(new Date().toLocaleTimeString());
+        })
+        .catch(() => setSaveState("error"));
     }, AUTOSAVE_DELAY_MS);
 
     return () => window.clearTimeout(timeout);
@@ -81,9 +91,17 @@ export default function App() {
   }
 
   async function handleSaveNow() {
-    await saveProjectDocument(editorStore.getState().project);
-    const summaries = await listProjectSummaries();
-    editorStore.getState().setRecentProjects(summaries);
+    setSaveState("saving");
+
+    try {
+      await saveProjectDocument(editorStore.getState().project);
+      const summaries = await listProjectSummaries();
+      editorStore.getState().setRecentProjects(summaries);
+      setSaveState("saved");
+      setLastSavedAt(new Date().toLocaleTimeString());
+    } catch {
+      setSaveState("error");
+    }
   }
 
   function handleNewProject() {
@@ -100,14 +118,50 @@ export default function App() {
     );
   }
 
+  const saveStatusLabel =
+    saveState === "saving"
+      ? "Saving..."
+      : saveState === "saved" && lastSavedAt
+        ? `Saved ${lastSavedAt}`
+        : saveState === "error"
+          ? "Save failed"
+          : "Local project";
+  const workspaceColumns = leftPanelVisible
+    ? rightPanelVisible
+      ? "280px minmax(0, 1fr) 320px"
+      : "280px minmax(0, 1fr)"
+    : rightPanelVisible
+      ? "minmax(0, 1fr) 320px"
+      : "minmax(0, 1fr)";
+
   return (
     <main className="app-shell">
-      <Toolbar onNewProject={handleNewProject} onSaveProject={handleSaveNow} />
-      <section className="workspace">
-        <ProjectSidebar onOpenProject={handleOpenProject} />
+      <Toolbar
+        onNewProject={handleNewProject}
+        onSaveProject={handleSaveNow}
+        onToggleLeftPanel={() => setLeftPanelVisible((value) => !value)}
+        onToggleRightPanel={() => setRightPanelVisible((value) => !value)}
+        leftPanelVisible={leftPanelVisible}
+        rightPanelVisible={rightPanelVisible}
+        saveStatusLabel={saveStatusLabel}
+      />
+      <section className="workspace" style={{ gridTemplateColumns: workspaceColumns }}>
+        {leftPanelVisible ? <ProjectSidebar onOpenProject={handleOpenProject} /> : null}
         <Viewport />
-        <InspectorPanel />
+        {rightPanelVisible ? <InspectorPanel /> : null}
       </section>
+      {!leftPanelVisible ? (
+        <button className="edge-toggle edge-toggle--left" onClick={() => setLeftPanelVisible(true)} type="button">
+          <ChevronRightIcon width={16} height={16} />
+          <span>Objects</span>
+        </button>
+      ) : null}
+      {!rightPanelVisible ? (
+        <button className="edge-toggle edge-toggle--right" onClick={() => setRightPanelVisible(true)} type="button">
+          <span>Inspector</span>
+          <ChevronLeftIcon width={16} height={16} />
+        </button>
+      ) : null}
     </main>
   );
 }

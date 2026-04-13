@@ -1,13 +1,12 @@
 export type UnitPreference = "metric-cm" | "metric-mm" | "imperial-in";
 
-export type MaterialKind = "pine" | "oak" | "plywood" | "mdf" | "generic";
+export type ObjectType = "sheet" | "timber";
 
-export type ThicknessPreset =
-  | "board-18mm"
-  | "board-24mm"
-  | "sheet-12mm"
-  | "sheet-18mm"
-  | "custom";
+export type SheetProfileId = "osb3-12" | "osb3-15" | "osb3-18" | "osb3-22" | "plywood-18";
+
+export type TimberProfileId = "timber-60x80" | "timber-80x100" | "timber-100x100" | "timber-120x120";
+
+export type ObjectProfileId = SheetProfileId | TimberProfileId;
 
 export type ActiveTool = "move" | "rotate" | "resize";
 
@@ -32,11 +31,11 @@ export interface CameraState {
 export interface PartNode {
   id: string;
   name: string;
+  objectType: ObjectType;
+  profileId: ObjectProfileId;
   size: Vector3Like;
   position: Vector3Like;
   rotation: Vector3Like;
-  material: MaterialKind;
-  thicknessPreset: ThicknessPreset;
   color: string;
 }
 
