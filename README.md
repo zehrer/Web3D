@@ -39,8 +39,8 @@ npm test
 
 ## GitHub Pages
 
-This repository is configured for GitHub Pages deployment through GitHub Actions.
+This repository is configured for GitHub Pages deployment through GitHub Actions and a `gh-pages` branch.
 
-- Pushes to `main` build the app and publish the `dist/` folder.
+- Pushes to `main` build the app and publish the `dist/` folder to `gh-pages`.
 - For this repository, the published site path is `/Web3D/`.
 - The expected Pages URL is `https://zehrer.github.io/Web3D/`.
