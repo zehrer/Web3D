@@ -36,3 +36,11 @@ Run the test suite with:
 ```bash
 npm test
 ```
+
+## GitHub Pages
+
+This repository is configured for GitHub Pages deployment through GitHub Actions.
+
+- Pushes to `main` build the app and publish the `dist/` folder.
+- For this repository, the published site path is `/Web3D/`.
+- The expected Pages URL is `https://zehrer.github.io/Web3D/`.
