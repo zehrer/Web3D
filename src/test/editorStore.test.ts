@@ -17,6 +17,7 @@ describe("editor store", () => {
 
     store.getState().duplicateSelectedPart();
     expect(store.getState().project.parts).toHaveLength(3);
+    expect(store.getState().project.parts[2].position).toEqual({ x: 10, y: 0, z: 0 });
 
     store.getState().deleteSelectedPart();
     expect(store.getState().project.parts).toHaveLength(2);

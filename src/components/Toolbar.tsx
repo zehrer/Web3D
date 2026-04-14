@@ -1,18 +1,18 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useEditorStore } from "../store/editorStore";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  HelpIcon,
   PanelLeftIcon,
   PanelRightIcon,
-  PlusIcon,
-  SaveIcon,
 } from "./Icons";
+import type { ProjectSummary } from "../types/model";
 
 interface ToolbarProps {
   onSaveProject: () => void | Promise<void>;
+  onExportStl: () => void;
   onNewProject: () => void;
+  onOpenProject: (projectId: string) => void | Promise<void>;
   onToggleLeftPanel: () => void;
   onToggleRightPanel: () => void;
   leftPanelVisible: boolean;
@@ -44,9 +44,29 @@ function IconButton({
   );
 }
 
+type MenuKey = "file" | "edit" | "add" | "view" | "help";
+
+function MenuButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button className={`menu-bar__button ${active ? "menu-bar__button--active" : ""}`} onClick={onClick} type="button">
+      {label}
+    </button>
+  );
+}
+
 export function Toolbar({
   onNewProject,
   onSaveProject,
+  onExportStl,
+  onOpenProject,
   onToggleLeftPanel,
   onToggleRightPanel,
   leftPanelVisible,
@@ -54,6 +74,66 @@ export function Toolbar({
   saveStatusLabel,
 }: ToolbarProps) {
   const projectName = useEditorStore((state) => state.project.name);
+  const renameProject = useEditorStore((state) => state.renameProject);
+  const recentProjects = useEditorStore((state) => state.recentProjects);
+  const addObject = useEditorStore((state) => state.addObject);
+  const undo = useEditorStore((state) => state.undo);
+  const redo = useEditorStore((state) => state.redo);
+  const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState(false);
+  const [draftProjectName, setDraftProjectName] = useState(projectName);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!editingProjectName) {
+      setDraftProjectName(projectName);
+    }
+  }, [editingProjectName, projectName]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setActiveMenu(null);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  function toggleMenu(menu: MenuKey) {
+    setActiveMenu((current) => (current === menu ? null : menu));
+  }
+
+  function closeMenu() {
+    setActiveMenu(null);
+  }
+
+  function commitProjectName() {
+    renameProject(draftProjectName);
+    setEditingProjectName(false);
+  }
+
+  function renderRecentProjects(projects: ProjectSummary[]) {
+    if (!projects.length) {
+      return <div className="menu-dropdown__empty">No recent local projects</div>;
+    }
+
+    return projects.map((recentProject) => (
+      <button
+        key={recentProject.id}
+        className="menu-dropdown__item menu-dropdown__item--stacked"
+        onClick={() => {
+          closeMenu();
+          void onOpenProject(recentProject.id);
+        }}
+        type="button"
+      >
+        <span>{recentProject.name}</span>
+        <small>{recentProject.partCount} objects</small>
+      </button>
+    ));
+  }
 
   return (
     <header className="topbar">
@@ -63,29 +143,98 @@ export function Toolbar({
         </IconButton>
         <div className="topbar__brand">
           <span className="topbar__eyebrow">Web3D Designer</span>
-          <strong>{projectName}</strong>
+          {editingProjectName ? (
+            <input
+              autoFocus
+              className="topbar__project-input"
+              type="text"
+              value={draftProjectName}
+              onBlur={commitProjectName}
+              onChange={(event) => setDraftProjectName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  commitProjectName();
+                }
+
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setDraftProjectName(projectName);
+                  setEditingProjectName(false);
+                }
+              }}
+            />
+          ) : (
+            <button className="topbar__project-name" onClick={() => setEditingProjectName(true)} type="button">
+              {projectName}
+            </button>
+          )}
+        </div>
+        <div className="menu-bar" ref={menuRef}>
+          <div className="menu-bar__group">
+            <MenuButton active={activeMenu === "file"} label="File" onClick={() => toggleMenu("file")} />
+            {activeMenu === "file" ? (
+              <div className="menu-dropdown">
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onNewProject(); }} type="button">New Project</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onSaveProject(); }} type="button">Save Now</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">Export STL</button>
+                <div className="menu-dropdown__divider" />
+                <div className="menu-dropdown__label">Recent Projects</div>
+                {renderRecentProjects(recentProjects)}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="menu-bar__group">
+            <MenuButton active={activeMenu === "edit"} label="Edit" onClick={() => toggleMenu("edit")} />
+            {activeMenu === "edit" ? (
+              <div className="menu-dropdown">
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); undo(); }} type="button">Undo</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); redo(); }} type="button">Redo</button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="menu-bar__group">
+            <MenuButton active={activeMenu === "add"} label="Add" onClick={() => toggleMenu("add")} />
+            {activeMenu === "add" ? (
+              <div className="menu-dropdown">
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("sheet"); }} type="button">Sheet Object</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("timber"); }} type="button">Timber Object</button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="menu-bar__group">
+            <MenuButton active={activeMenu === "view"} label="View" onClick={() => toggleMenu("view")} />
+            {activeMenu === "view" ? (
+              <div className="menu-dropdown">
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onToggleLeftPanel(); }} type="button">
+                  {leftPanelVisible ? "Hide Objects Panel" : "Show Objects Panel"}
+                </button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onToggleRightPanel(); }} type="button">
+                  {rightPanelVisible ? "Hide Inspector" : "Show Inspector"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="menu-bar__group">
+            <MenuButton active={activeMenu === "help"} label="Help" onClick={() => toggleMenu("help")} />
+            {activeMenu === "help" ? (
+              <div className="menu-dropdown">
+                <div className="menu-dropdown__note">Drag to orbit the camera. Use move and rotate for gizmos, and resize for the yellow handles.</div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
       <div className="topbar__cluster">
-        <IconButton label="New project" onClick={onNewProject}>
-          <PlusIcon width={18} height={18} />
-        </IconButton>
-        <IconButton label="Save project" onClick={() => void onSaveProject()}>
-          <SaveIcon width={18} height={18} />
-        </IconButton>
         <span className="topbar__status">{saveStatusLabel}</span>
-      </div>
-
-      <div className="topbar__cluster">
-        <span className="topbar__hint">Icon-first workspace</span>
         <IconButton label={rightPanelVisible ? "Hide inspector" : "Show inspector"} onClick={onToggleRightPanel} active={rightPanelVisible}>
           {rightPanelVisible ? <ChevronRightIcon width={18} height={18} /> : <PanelRightIcon width={18} height={18} />}
         </IconButton>
-        <div className="topbar__help-chip">
-          <HelpIcon width={15} height={15} />
-          <span>Focus on the scene</span>
-        </div>
       </div>
     </header>
   );

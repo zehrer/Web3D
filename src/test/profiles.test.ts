@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyProfileToSize, createSizeFromProfile, getProfileById } from "../lib/profiles";
+import { applyProfileToSize, createSizeFromProfile, getProfileById, getResizableAxes } from "../lib/profiles";
+import { createObjectPart } from "../lib/project";
 
 describe("object profiles", () => {
   it("creates a sheet size from its profile defaults", () => {
@@ -17,5 +18,10 @@ describe("object profiles", () => {
     expect(size.x).toBe(1800);
     expect(size.y).toBe(120);
     expect(size.z).toBe(120);
+  });
+
+  it("limits resize axes by object family", () => {
+    expect(getResizableAxes(createObjectPart(0, { objectType: "sheet", profileId: "osb3-18" }))).toEqual(["x", "y"]);
+    expect(getResizableAxes(createObjectPart(0, { objectType: "timber", profileId: "timber-100x100" }))).toEqual(["x"]);
   });
 });

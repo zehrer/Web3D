@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon } from "./components/Icons";
 import { Toolbar } from "./components/Toolbar";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { Viewport } from "./components/Viewport";
+import { downloadProjectAsStl } from "./lib/export";
 import { createProject } from "./lib/project";
 import {
   listProjectSummaries,
@@ -108,6 +108,10 @@ export default function App() {
     createNewProject();
   }
 
+  function handleExportStl() {
+    downloadProjectAsStl(editorStore.getState().project);
+  }
+
   if (!hydrated) {
     return (
       <main className="app-shell">
@@ -139,6 +143,8 @@ export default function App() {
       <Toolbar
         onNewProject={handleNewProject}
         onSaveProject={handleSaveNow}
+        onExportStl={handleExportStl}
+        onOpenProject={handleOpenProject}
         onToggleLeftPanel={() => setLeftPanelVisible((value) => !value)}
         onToggleRightPanel={() => setRightPanelVisible((value) => !value)}
         leftPanelVisible={leftPanelVisible}
@@ -146,22 +152,10 @@ export default function App() {
         saveStatusLabel={saveStatusLabel}
       />
       <section className="workspace" style={{ gridTemplateColumns: workspaceColumns }}>
-        {leftPanelVisible ? <ProjectSidebar onOpenProject={handleOpenProject} /> : null}
+        {leftPanelVisible ? <ProjectSidebar /> : null}
         <Viewport />
         {rightPanelVisible ? <InspectorPanel /> : null}
       </section>
-      {!leftPanelVisible ? (
-        <button className="edge-toggle edge-toggle--left" onClick={() => setLeftPanelVisible(true)} type="button">
-          <ChevronRightIcon width={16} height={16} />
-          <span>Objects</span>
-        </button>
-      ) : null}
-      {!rightPanelVisible ? (
-        <button className="edge-toggle edge-toggle--right" onClick={() => setRightPanelVisible(true)} type="button">
-          <span>Inspector</span>
-          <ChevronLeftIcon width={16} height={16} />
-        </button>
-      ) : null}
     </main>
   );
 }

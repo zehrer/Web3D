@@ -1,31 +1,58 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BeamIcon, SearchIcon, SettingsIcon, SheetIcon } from "./Icons";
 import { getObjectTypeLabel } from "../lib/profiles";
 import { fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { useEditorStore } from "../store/editorStore";
 import type { UnitPreference } from "../types/model";
 
-interface ProjectSidebarProps {
-  onOpenProject: (projectId: string) => void | Promise<void>;
-}
-
 function formatObjectSize(valueMm: number, unitPreference: UnitPreference): string {
   return `${Number(toDisplayUnits(valueMm, unitPreference).toFixed(1))} ${UNIT_DEFINITIONS[unitPreference].shortLabel}`;
 }
 
-export function ProjectSidebar({ onOpenProject }: ProjectSidebarProps) {
+export function ProjectSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [editingPartId, setEditingPartId] = useState<string | null>(null);
+  const [draftPartName, setDraftPartName] = useState("");
   const project = useEditorStore((state) => state.project);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectPart = useEditorStore((state) => state.selectPart);
-  const renameProject = useEditorStore((state) => state.renameProject);
   const addObject = useEditorStore((state) => state.addObject);
+  const updatePart = useEditorStore((state) => state.updatePart);
   const updateUnitPreference = useEditorStore((state) => state.updateUnitPreference);
   const updateSnapSettings = useEditorStore((state) => state.updateSnapSettings);
-  const recentProjects = useEditorStore((state) => state.recentProjects);
   const unitPreference = project.unitPreference;
   const filteredParts = project.parts.filter((part) => part.name.toLowerCase().includes(searchQuery.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (editingPartId && !project.parts.some((part) => part.id === editingPartId)) {
+      setEditingPartId(null);
+      setDraftPartName("");
+    }
+  }, [editingPartId, project.parts]);
+
+  function beginRenamePart(partId: string, currentName: string) {
+    setEditingPartId(partId);
+    setDraftPartName(currentName);
+    selectPart(partId);
+  }
+
+  function commitRenamePart() {
+    if (!editingPartId) {
+      return;
+    }
+
+    const nextName = draftPartName.trim();
+    if (nextName) {
+      updatePart(editingPartId, (part) => ({
+        ...part,
+        name: nextName,
+      }));
+    }
+
+    setEditingPartId(null);
+    setDraftPartName("");
+  }
 
   return (
     <aside className="sidebar">
@@ -70,38 +97,66 @@ export function ProjectSidebar({ onOpenProject }: ProjectSidebarProps) {
         <div className="object-browser">
           {filteredParts.length ? (
             filteredParts.map((part) => (
-              <button
+              <div
                 key={part.id}
                 className={`object-row ${selectedPartId === part.id ? "object-row--selected" : ""}`}
                 onClick={() => selectPart(part.id)}
-                type="button"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    selectPart(part.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <span className="object-row__icon">
                   {part.objectType === "sheet" ? <SheetIcon width={15} height={15} /> : <BeamIcon width={15} height={15} />}
                 </span>
                 <span className="object-row__content">
-                  <strong>{part.name}</strong>
+                  {editingPartId === part.id ? (
+                    <input
+                      autoFocus
+                      className="object-row__name-input"
+                      type="text"
+                      value={draftPartName}
+                      onBlur={commitRenamePart}
+                      onChange={(event) => setDraftPartName(event.target.value)}
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitRenamePart();
+                        }
+
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          setEditingPartId(null);
+                          setDraftPartName("");
+                        }
+                      }}
+                    />
+                  ) : (
+                    <button
+                      className="object-row__name-button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        beginRenamePart(part.id, part.name);
+                      }}
+                      type="button"
+                    >
+                      <strong>{part.name}</strong>
+                    </button>
+                  )}
                   <small>
                     {getObjectTypeLabel(part.objectType)} · {formatObjectSize(part.size.x, unitPreference)}
                   </small>
                 </span>
-              </button>
+              </div>
             ))
           ) : (
             <p className="panel-card__empty">No objects match the current filter.</p>
           )}
-        </div>
-
-        <div className="browser-card__footer">
-          <label className="field browser-card__footer-field">
-            <span>Project name</span>
-            <input
-              className="field__input"
-              type="text"
-              value={project.name}
-              onChange={(event) => renameProject(event.target.value)}
-            />
-          </label>
         </div>
       </section>
 
@@ -183,30 +238,6 @@ export function ProjectSidebar({ onOpenProject }: ProjectSidebarProps) {
         </section>
       ) : null}
 
-      <section className="panel-card panel-card--compact">
-        <div className="panel-card__header">
-          <span className="panel-card__title">Recent Projects</span>
-          <span className="panel-card__meta">Local</span>
-        </div>
-
-        <div className="recent-list">
-          {recentProjects.length ? (
-            recentProjects.map((recentProject) => (
-              <button
-                key={recentProject.id}
-                className="recent-list__item"
-                onClick={() => void onOpenProject(recentProject.id)}
-                type="button"
-              >
-                <span>{recentProject.name}</span>
-                <small>{recentProject.partCount} objects</small>
-              </button>
-            ))
-          ) : (
-            <p className="panel-card__empty">Saved projects will appear here.</p>
-          )}
-        </div>
-      </section>
     </aside>
   );
 }

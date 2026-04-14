@@ -41,12 +41,14 @@ function VectorFields({
   vector,
   unitPreference,
   convertFromMm = true,
+  columns = 1,
   onChange,
 }: {
   label: string;
   vector: Vector3Like;
   unitPreference: UnitPreference;
   convertFromMm?: boolean;
+  columns?: 1 | 2 | 3;
   onChange: (vector: Vector3Like) => void;
 }) {
   const suffix = convertFromMm ? UNIT_DEFINITIONS[unitPreference].shortLabel : "deg";
@@ -56,7 +58,7 @@ function VectorFields({
       <span className="field-group__label">
         {label} <small>{suffix}</small>
       </span>
-      <div className="field-group__grid">
+      <div className={`field-group__grid field-group__grid--${columns}`}>
         {(["x", "y", "z"] as const).map((axis) => (
           <FieldRow
             key={axis}
@@ -127,26 +129,12 @@ export function InspectorPanel() {
               </label>
             )}
 
-            <label className="field">
-              <span>Name</span>
-              <input
-                className="field__input"
-                type="text"
-                value={selectedPart.name}
-                onChange={(event) =>
-                  state.updatePart(selectedPart.id, (part) => ({
-                    ...part,
-                    name: event.target.value,
-                  }))
-                }
-              />
-            </label>
-
             {selectedPart.objectType === "sheet" ? (
               <VectorFields
                 label="Size"
                 vector={selectedPart.size}
                 unitPreference={unitPreference}
+                columns={1}
                 onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
               />
             ) : (
@@ -179,6 +167,7 @@ export function InspectorPanel() {
               label="Position"
               vector={selectedPart.position}
               unitPreference={unitPreference}
+              columns={1}
               onChange={(vector) => setPartGeometry(selectedPart.id, { position: vector })}
             />
 
@@ -191,6 +180,7 @@ export function InspectorPanel() {
               }}
               unitPreference={unitPreference}
               convertFromMm={false}
+              columns={1}
               onChange={(vector) =>
                 setPartGeometry(selectedPart.id, {
                   rotation: {

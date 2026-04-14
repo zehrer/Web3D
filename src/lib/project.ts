@@ -10,6 +10,8 @@ import type {
 } from "../types/model";
 
 export const PROJECT_SCHEMA_VERSION = 2;
+export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
+export const DEFAULT_CAMERA_HEIGHT = 160;
 
 function randomId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`;
@@ -63,8 +65,8 @@ export function createProject(name = "Untitled Project"): ProjectDocument {
       rotateIncrementDeg: 15,
     },
     cameraState: {
-      position: makeVector3(1200, 900, 1200),
-      target: makeVector3(0, 150, 0),
+      position: makeVector3(2600, 1700, 2600),
+      target: makeVector3(DEFAULT_WORKSPACE_FOCUS_XZ, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ),
     },
     parts: [createObjectPart(0, { objectType: "sheet", profileId: "osb3-18" })],
     createdAt: now,

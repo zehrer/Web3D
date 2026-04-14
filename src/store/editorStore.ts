@@ -55,6 +55,7 @@ export interface EditorActions {
 export type EditorStore = ReturnType<typeof createEditorStore>;
 
 const MAX_HISTORY = 50;
+const DUPLICATE_OFFSET_MM = 10;
 
 function cloneHistoryProject(project: ProjectDocument): ProjectDocument {
   return cloneProject(project);
@@ -173,9 +174,9 @@ export function createEditorStore() {
           id: globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`,
           name: `${selected.name} Copy`,
           position: {
-            x: selected.position.x + 80,
+            x: selected.position.x + DUPLICATE_OFFSET_MM,
             y: selected.position.y,
-            z: selected.position.z + 80,
+            z: selected.position.z,
           },
         };
 

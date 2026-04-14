@@ -9,6 +9,7 @@ A lightweight browser-based 3D editor for simple box-based design, with woodwork
 - Grid snapping for translation, rotation, and face-handle resizing
 - Locale-based default units with metric and imperial switching
 - Object families for sheet goods and structural timber profiles
+- STL export for sharing and fabrication workflows
 - IndexedDB-backed local project autosave and recent-project loading
 - Undo/redo for editor actions and transient drag commits
 - Lower-corner object origin so new objects start on the floor at `0 / 0 / 0`
@@ -35,7 +36,3 @@ Run the test suite with:
 ```bash
 npm test
 ```
-
-## Next Release
-
-- STL export for sharing and fabrication workflows

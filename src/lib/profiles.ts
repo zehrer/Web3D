@@ -109,3 +109,7 @@ export function createObjectName(objectType: ObjectType, index: number): string 
 export function isSheetObject(part: PartNode): boolean {
   return part.objectType === "sheet";
 }
+
+export function getResizableAxes(part: PartNode): Array<keyof Vector3Like> {
+  return part.objectType === "sheet" ? ["x", "y"] : ["x"];
+}

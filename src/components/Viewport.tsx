@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
-import { Edges, Html, OrbitControls, TransformControls } from "@react-three/drei";
-import { Vector3, type Object3D } from "three";
+import { Edges, Html, Line, OrbitControls, Text, TransformControls } from "@react-three/drei";
+import { ArrowHelper, Vector3, type Object3D } from "three";
 import {
   BeamIcon,
   DuplicateIcon,
@@ -17,13 +17,21 @@ import {
   TrashIcon,
   UndoIcon,
 } from "./Icons";
-import { getObjectTypeLabel } from "../lib/profiles";
+import { getResizableAxes } from "../lib/profiles";
 import { applyResizeFromHandle } from "../lib/geometry";
-import { cloneProject } from "../lib/project";
+import { cloneProject, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ } from "../lib/project";
 import { snapValue, toRadians } from "../lib/snap";
 import { formatLength } from "../lib/units";
 import { editorStore, useEditorStore } from "../store/editorStore";
 import type { PartNode, ProjectDocument, Vector3Like } from "../types/model";
+
+const GRID_STEP = 100;
+const BUILD_AREA_SIZE = 6000;
+const BUILD_MARGIN = GRID_STEP;
+const GRID_SIZE = BUILD_AREA_SIZE + BUILD_MARGIN * 2;
+const GRID_DIVISIONS = GRID_SIZE / GRID_STEP;
+const WORKSPACE_CENTER = BUILD_AREA_SIZE / 2;
+const GROUND_PLANE_SIZE = 12400;
 
 type ResizeDragState = {
   axis: keyof Vector3Like;
@@ -96,19 +104,75 @@ function CameraController({
   );
 }
 
-function SelectedBadge({ part }: { part: PartNode }) {
+function KeyDimensionGuide({ part }: { part: PartNode }) {
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
+  const guideOffset = Math.max(36, part.size.z * 0.2);
+  const guideZ = part.size.z + guideOffset;
+  const guideY = Math.max(16, Math.min(36, part.size.y * 0.12));
+  const labelPosition: [number, number, number] = [part.size.x / 2, guideY + 18, guideZ];
+  const measureText = formatLength(part.size.x, unitPreference);
 
   return (
-    <Html position={[part.size.x / 2, part.size.y + 45, part.size.z / 2]} center>
-      <div className="dimension-chip">
-        <strong>{part.name}</strong>
-        <span>
-          {formatLength(part.size.x, unitPreference)} × {formatLength(part.size.y, unitPreference)} ×{" "}
-          {formatLength(part.size.z, unitPreference)}
-        </span>
-      </div>
-    </Html>
+    <>
+      <Line points={[[0, guideY, guideZ], [part.size.x, guideY, guideZ]]} color="#505a66" lineWidth={1.2} />
+      <Line points={[[0, 0, part.size.z], [0, guideY, guideZ]]} color="#9aa6b1" lineWidth={1} dashed dashSize={10} gapSize={6} />
+      <Line
+        points={[[part.size.x, 0, part.size.z], [part.size.x, guideY, guideZ]]}
+        color="#9aa6b1"
+        lineWidth={1}
+        dashed
+        dashSize={10}
+        gapSize={6}
+      />
+      <mesh position={[0, guideY, guideZ]}>
+        <sphereGeometry args={[7, 20, 20]} />
+        <meshStandardMaterial color="#f5f7fa" />
+      </mesh>
+      <mesh position={[part.size.x, guideY, guideZ]}>
+        <sphereGeometry args={[7, 20, 20]} />
+        <meshStandardMaterial color="#f5f7fa" />
+      </mesh>
+      <Html position={labelPosition} center style={{ pointerEvents: "none" }}>
+        <div className="measurement-chip">{measureText}</div>
+      </Html>
+    </>
+  );
+}
+
+function AxisArrow({
+  direction,
+  length,
+  color,
+}: {
+  direction: [number, number, number];
+  length: number;
+  color: string;
+}) {
+  const helper = useMemo(
+    () => new ArrowHelper(new Vector3(...direction).normalize(), new Vector3(0, 0, 0), length, color, 100, 55),
+    [color, direction, length],
+  );
+
+  return <primitive object={helper} />;
+}
+
+function AxisGuide() {
+  return (
+    <>
+      <AxisArrow direction={[1, 0, 0]} length={900} color="#c96b54" />
+      <AxisArrow direction={[0, 1, 0]} length={720} color="#5b9b67" />
+      <AxisArrow direction={[0, 0, 1]} length={900} color="#5682c8" />
+
+      <Text position={[980, 8, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={92} color="#c96b54">
+        X
+      </Text>
+      <Text position={[0, 780, 0]} fontSize={92} color="#5b9b67">
+        Y
+      </Text>
+      <Text position={[0, 8, 980]} rotation={[-Math.PI / 2, 0, 0]} fontSize={92} color="#5682c8">
+        Z
+      </Text>
+    </>
   );
 }
 
@@ -212,35 +276,40 @@ function Scene() {
   }
 
   const handleDefinitions: HandleDefinition[] = selectedPart
-    ? [
+    ? ([
         { axis: "x", direction: 1, position: [selectedPart.size.x, selectedPart.size.y / 2, selectedPart.size.z / 2] },
         { axis: "x", direction: -1, position: [0, selectedPart.size.y / 2, selectedPart.size.z / 2] },
         { axis: "y", direction: 1, position: [selectedPart.size.x / 2, selectedPart.size.y, selectedPart.size.z / 2] },
         { axis: "y", direction: -1, position: [selectedPart.size.x / 2, 0, selectedPart.size.z / 2] },
         { axis: "z", direction: 1, position: [selectedPart.size.x / 2, selectedPart.size.y / 2, selectedPart.size.z] },
         { axis: "z", direction: -1, position: [selectedPart.size.x / 2, selectedPart.size.y / 2, 0] },
-      ]
+      ] as HandleDefinition[]).filter((handle) => getResizableAxes(selectedPart).includes(handle.axis))
     : [];
+  const transformMode = activeTool === "rotate" ? "rotate" : "translate";
 
   return (
     <>
-      <color attach="background" args={["#0c1217"]} />
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[900, 1400, 700]} intensity={1.3} />
-      <directionalLight position={[-400, 500, -900]} intensity={0.4} />
+      <color attach="background" args={["#f3f5f2"]} />
+      <ambientLight intensity={1.05} />
+      <directionalLight position={[1400, 2200, 1200]} intensity={1.35} />
+      <directionalLight position={[-800, 900, -1200]} intensity={0.35} />
 
       <CameraController orbitRef={orbitRef} />
-      <gridHelper args={[4000, 40, "#745f41", "#26323b"]} position={[0, 0, 0]} />
+      <gridHelper
+        args={[GRID_SIZE, GRID_DIVISIONS, "#cfd7dd", "#cfd7dd"]}
+        position={[WORKSPACE_CENTER, 0, WORKSPACE_CENTER]}
+      />
+      <AxisGuide />
 
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -0.5, 0]}
+        position={[WORKSPACE_CENTER, -0.5, WORKSPACE_CENTER]}
         onClick={(event) => {
           event.stopPropagation();
           selectPart(null);
         }}
       >
-        <planeGeometry args={[5000, 5000]} />
+        <planeGeometry args={[GROUND_PLANE_SIZE, GROUND_PLANE_SIZE]} />
         <meshStandardMaterial transparent opacity={0} />
       </mesh>
 
@@ -263,9 +332,9 @@ function Scene() {
             <mesh position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]} castShadow receiveShadow>
               <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
               <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />
-              <Edges color={isSelected ? "#fff5d7" : "#1b2329"} />
+              <Edges color={isSelected ? "#f4ead4" : "#53606d"} />
             </mesh>
-            {isSelected ? <SelectedBadge part={part} /> : null}
+            {isSelected ? <KeyDimensionGuide part={part} /> : null}
 
             {isSelected && activeTool === "resize"
               ? handleDefinitions.map((handle) => (
@@ -275,7 +344,7 @@ function Scene() {
                     onPointerDown={(event) => beginResizeDrag(event, part, handle.axis, handle.direction)}
                   >
                     <sphereGeometry args={[16, 18, 18]} />
-                    <meshStandardMaterial color="#ffcf6b" emissive="#8c5d17" />
+                    <meshStandardMaterial color="#dfa249" emissive="#9f6410" />
                   </mesh>
                 ))
               : null}
@@ -283,12 +352,12 @@ function Scene() {
         );
       })}
 
-      {selectedObject && selectedPart && activeTool !== "resize" ? (
+      {selectedObject && selectedPart ? (
         <TransformControls
           object={selectedObject}
-          mode={activeTool === "move" ? "translate" : "rotate"}
-          translationSnap={snapSettings.enabled ? snapSettings.moveIncrement : undefined}
-          rotationSnap={snapSettings.enabled ? toRadians(snapSettings.rotateIncrementDeg) : undefined}
+          mode={transformMode}
+          translationSnap={transformMode === "translate" && snapSettings.enabled ? snapSettings.moveIncrement : undefined}
+          rotationSnap={transformMode === "rotate" && snapSettings.enabled ? toRadians(snapSettings.rotateIncrementDeg) : undefined}
           onMouseDown={() => {
             transformSnapshotRef.current = cloneProject(editorStore.getState().project);
             if (orbitRef.current) {
@@ -298,9 +367,9 @@ function Scene() {
           onObjectChange={() => {
             previewPartGeometry(selectedPart.id, {
               position: {
-                x: snapValue(selectedObject.position.x, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
-                y: snapValue(selectedObject.position.y, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
-                z: snapValue(selectedObject.position.z, snapSettings.moveIncrement, activeTool === "move" && snapSettings.enabled),
+                x: snapValue(selectedObject.position.x, snapSettings.moveIncrement, transformMode === "translate" && snapSettings.enabled),
+                y: snapValue(selectedObject.position.y, snapSettings.moveIncrement, transformMode === "translate" && snapSettings.enabled),
+                z: snapValue(selectedObject.position.z, snapSettings.moveIncrement, transformMode === "translate" && snapSettings.enabled),
               },
               rotation: {
                 x: selectedObject.rotation.x,
@@ -341,16 +410,20 @@ export function Viewport() {
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
 
   function setCameraPreset(preset: "perspective" | "top" | "front" | "right") {
-    const target = { x: 0, y: 150, z: 0 };
+    const target = {
+      x: DEFAULT_WORKSPACE_FOCUS_XZ,
+      y: DEFAULT_CAMERA_HEIGHT,
+      z: DEFAULT_WORKSPACE_FOCUS_XZ,
+    };
 
     const position =
       preset === "top"
-        ? { x: 0, y: 1600, z: 0.01 }
+        ? { x: DEFAULT_WORKSPACE_FOCUS_XZ, y: 2400, z: DEFAULT_WORKSPACE_FOCUS_XZ + 0.01 }
         : preset === "front"
-          ? { x: 0, y: 500, z: 1600 }
+          ? { x: DEFAULT_WORKSPACE_FOCUS_XZ, y: 900, z: 3000 }
           : preset === "right"
-            ? { x: 1600, y: 500, z: 0 }
-            : { x: 1200, y: 900, z: 1200 };
+            ? { x: 3000, y: 900, z: DEFAULT_WORKSPACE_FOCUS_XZ }
+            : { x: 2600, y: 1700, z: 2600 };
 
     commitCameraState({ position, target });
   }
@@ -411,16 +484,6 @@ export function Viewport() {
             <span>Use move and rotate for gizmos.</span>
             <span>Use resize to drag the yellow handles.</span>
             <span>Units and snap live in the project settings.</span>
-          </div>
-        ) : null}
-
-        {selectedPart ? (
-          <div className="viewport-selection-chip">
-            <strong>{selectedPart.name}</strong>
-            <span>
-              {getObjectTypeLabel(selectedPart.objectType)} · {formatLength(selectedPart.size.x, unitPreference)} /{" "}
-              {formatLength(selectedPart.size.y, unitPreference)} / {formatLength(selectedPart.size.z, unitPreference)}
-            </span>
           </div>
         ) : null}
 

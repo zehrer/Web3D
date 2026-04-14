@@ -38,6 +38,16 @@ export function SaveIcon(props: IconProps) {
   );
 }
 
+export function ExportIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12 4.5v10" />
+      <path d="m8.5 11 3.5 3.5 3.5-3.5" />
+      <path d="M5 16.5v3h14v-3" />
+    </BaseIcon>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
