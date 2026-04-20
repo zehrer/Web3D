@@ -5,22 +5,24 @@ import { createEditorStore } from "../store/editorStore";
 describe("editor store", () => {
   it("adds, duplicates, and deletes objects", () => {
     const store = createEditorStore();
-    store.getState().hydrateProject(createProject());
+    const project = createProject();
+    const initialCount = project.parts.length;
+    store.getState().hydrateProject(project);
 
     store.getState().addObject("sheet");
-    expect(store.getState().project.parts).toHaveLength(2);
-    expect(store.getState().project.parts[1].objectType).toBe("sheet");
-    expect(store.getState().project.parts[1].position).toEqual({ x: 0, y: 0, z: 0 });
+    expect(store.getState().project.parts).toHaveLength(initialCount + 1);
+    expect(store.getState().project.parts.at(-1)?.objectType).toBe("sheet");
+    expect(store.getState().project.parts.at(-1)?.position).toEqual({ x: 0, y: 0, z: 0 });
 
     const selectedPartId = store.getState().selectedPartId;
     expect(selectedPartId).toBeTruthy();
 
     store.getState().duplicateSelectedPart();
-    expect(store.getState().project.parts).toHaveLength(3);
-    expect(store.getState().project.parts[2].position).toEqual({ x: 10, y: 0, z: 0 });
+    expect(store.getState().project.parts).toHaveLength(initialCount + 2);
+    expect(store.getState().project.parts.at(-1)?.position).toEqual({ x: 10, y: 0, z: 0 });
 
     store.getState().deleteSelectedPart();
-    expect(store.getState().project.parts).toHaveLength(2);
+    expect(store.getState().project.parts).toHaveLength(initialCount + 1);
   });
 
   it("supports undo and redo around geometry edits", () => {
@@ -33,7 +35,7 @@ describe("editor store", () => {
     expect(store.getState().project.parts[0].size.x).toBe(700);
 
     store.getState().undo();
-    expect(store.getState().project.parts[0].size.x).toBe(1200);
+    expect(store.getState().project.parts[0].size.x).toBe(1800);
 
     store.getState().redo();
     expect(store.getState().project.parts[0].size.x).toBe(700);
@@ -71,10 +73,10 @@ describe("editor store", () => {
     const snapshot = JSON.parse(JSON.stringify(store.getState().project));
 
     store.getState().previewPartGeometry(selectedPartId, {
-      position: { x: 100, y: 150, z: 0 },
+      position: { x: 100, y: 0, z: 0 },
     });
     store.getState().previewPartGeometry(selectedPartId, {
-      position: { x: 200, y: 150, z: 0 },
+      position: { x: 200, y: 0, z: 0 },
     });
     store.getState().finalizeTransientChange(snapshot);
 

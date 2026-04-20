@@ -15,7 +15,7 @@ describe("project persistence", () => {
     const loaded = await loadProjectDocument(project.id);
 
     expect(loaded?.name).toBe("Workshop Shelf");
-    expect(loaded?.parts).toHaveLength(1);
+    expect(loaded?.parts).toHaveLength(project.parts.length);
   });
 
   it("lists saved projects by recency", async () => {

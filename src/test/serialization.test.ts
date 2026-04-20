@@ -10,8 +10,10 @@ describe("project serialization", () => {
 
     expect(parsed.id).toBe(project.id);
     expect(parsed.name).toBe("Workbench");
+    expect(parsed.parts).toHaveLength(project.parts.length);
     expect(parsed.parts[0].size.x).toBe(project.parts[0].size.x);
-    expect(parsed.parts[0].objectType).toBe("sheet");
+    expect(parsed.parts.some((part) => part.objectType === "sheet")).toBe(true);
+    expect(parsed.parts.some((part) => part.objectType === "timber")).toBe(true);
   });
 
   it("migrates legacy thickness-based projects into sheet objects", () => {
