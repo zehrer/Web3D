@@ -15,6 +15,7 @@ interface ToolbarProps {
   onExportWeb3d: () => void;
   onExportStl: () => void;
   onExportGltf: () => void | Promise<void>;
+  onDeleteCurrentProject: () => void | Promise<void>;
   onNewProject: () => void;
   onOpenProject: (projectId: string) => void | Promise<void>;
   onToggleLeftPanel: () => void;
@@ -73,6 +74,7 @@ export function Toolbar({
   onExportWeb3d,
   onExportStl,
   onExportGltf,
+  onDeleteCurrentProject,
   onOpenProject,
   onToggleLeftPanel,
   onToggleRightPanel,
@@ -204,9 +206,18 @@ export function Toolbar({
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); onNewProject(); }} type="button">New Project</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); importInputRef.current?.click(); }} type="button">Import Web3D Project</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onSaveProject(); }} type="button">Save Now</button>
-                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportWeb3d(); }} type="button">Export Web3D Project</button>
-                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">Export STL Mesh</button>
-                <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onExportGltf(); }} type="button">Export glTF Project</button>
+                <div className="menu-dropdown__submenu">
+                  <button className="menu-dropdown__item menu-dropdown__item--submenu-trigger" type="button">
+                    <span>Export</span>
+                    <ChevronRightIcon width={16} height={16} />
+                  </button>
+                  <div className="menu-dropdown menu-dropdown--submenu">
+                    <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportWeb3d(); }} type="button">Web3D Project</button>
+                    <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">STL Mesh</button>
+                    <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onExportGltf(); }} type="button">glTF Project</button>
+                  </div>
+                </div>
+                <button className="menu-dropdown__item menu-dropdown__item--danger" onClick={() => { closeMenu(); void onDeleteCurrentProject(); }} type="button">Delete Current Project</button>
                 <div className="menu-dropdown__divider" />
                 <div className="menu-dropdown__label">Recent Projects</div>
                 {renderRecentProjects(recentProjects)}

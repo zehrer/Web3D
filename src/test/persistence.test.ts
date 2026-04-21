@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createProject } from "../lib/project";
 import {
+  deleteProjectDocument,
+  getLastProjectId,
   listProjectSummaries,
   loadMostRecentProject,
   loadProjectDocument,
@@ -40,5 +42,15 @@ describe("project persistence", () => {
     const loaded = await loadMostRecentProject();
 
     expect(loaded?.id).toBe(project.id);
+  });
+
+  it("deletes a saved project and clears the last project pointer", async () => {
+    const project = createProject("Disposable Project");
+    await saveProjectDocument(project);
+
+    await deleteProjectDocument(project.id);
+
+    await expect(loadProjectDocument(project.id)).resolves.toBeNull();
+    await expect(getLastProjectId()).resolves.toBeNull();
   });
 });

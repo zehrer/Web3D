@@ -63,6 +63,14 @@ export async function saveProjectDocument(project: ProjectDocument): Promise<voi
   }
 }
 
+export async function deleteProjectDocument(projectId: string): Promise<void> {
+  await withStore("readwrite", (store) => store.delete(projectId));
+
+  if (typeof localStorage !== "undefined" && localStorage.getItem(LAST_PROJECT_KEY) === projectId) {
+    localStorage.removeItem(LAST_PROJECT_KEY);
+  }
+}
+
 export async function loadProjectDocument(projectId: string): Promise<ProjectDocument | null> {
   const record = await withStore<{ serialized: string } | undefined>("readonly", (store) => store.get(projectId));
   return record ? deserializeProject(record.serialized) : null;

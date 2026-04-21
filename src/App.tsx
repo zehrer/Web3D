@@ -6,6 +6,7 @@ import { Viewport } from "./components/Viewport";
 import { downloadProjectAsGltf, downloadProjectAsStl, downloadProjectAsWeb3d } from "./lib/export";
 import { createProject } from "./lib/project";
 import {
+  deleteProjectDocument,
   listProjectSummaries,
   loadMostRecentProject,
   loadProjectDocument,
@@ -109,6 +110,39 @@ export default function App() {
     createNewProject();
   }
 
+  async function handleDeleteCurrentProject() {
+    const currentProject = editorStore.getState().project;
+    const confirmed = window.confirm(
+      `Delete project "${currentProject.name}" from this browser?\n\nThis cannot be undone.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSaveState("saving");
+
+    try {
+      await deleteProjectDocument(currentProject.id);
+
+      const fallbackProject = await loadMostRecentProject();
+      if (fallbackProject) {
+        editorStore.getState().hydrateProject(fallbackProject);
+      } else {
+        const nextProject = createProject();
+        editorStore.getState().hydrateProject(nextProject);
+        await saveProjectDocument(nextProject);
+      }
+
+      const summaries = await listProjectSummaries();
+      editorStore.getState().setRecentProjects(summaries);
+      setSaveState("saved");
+      setLastSavedAt(new Date().toLocaleTimeString());
+    } catch {
+      setSaveState("error");
+    }
+  }
+
   function handleExportStl() {
     downloadProjectAsStl(editorStore.getState().project);
   }
@@ -173,6 +207,7 @@ export default function App() {
         onExportWeb3d={handleExportWeb3d}
         onExportStl={handleExportStl}
         onExportGltf={handleExportGltf}
+        onDeleteCurrentProject={handleDeleteCurrentProject}
         onOpenProject={handleOpenProject}
         onToggleLeftPanel={() => setLeftPanelVisible((value) => !value)}
         onToggleRightPanel={() => setRightPanelVisible((value) => !value)}
