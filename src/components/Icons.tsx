@@ -194,6 +194,17 @@ export function CladdingIcon(props: IconProps) {
   );
 }
 
+export function GlassIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="5" y="4" width="14" height="16" />
+      <path d="M8 17 16 7" />
+      <path d="M8 11 12 7" />
+      <path d="M12 17 16 13" />
+    </BaseIcon>
+  );
+}
+
 export function FolderIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

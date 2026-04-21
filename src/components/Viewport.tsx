@@ -6,6 +6,7 @@ import {
   BeamIcon,
   CladdingIcon,
   DuplicateIcon,
+  GlassIcon,
   HelpIcon,
   MoveIcon,
   PerspectiveIcon,
@@ -214,6 +215,23 @@ function MeasurementGuide({
       </Html>
     </>
   );
+}
+
+function ObjectMaterial({ part }: { part: PartNode }) {
+  if (part.objectType === "glass") {
+    return (
+      <meshStandardMaterial
+        color={part.color}
+        depthWrite={false}
+        metalness={0}
+        opacity={0.38}
+        roughness={0.08}
+        transparent
+      />
+    );
+  }
+
+  return <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />;
 }
 
 function AxisArrow({
@@ -450,9 +468,13 @@ function Scene() {
               selectPart(part.id);
             }}
           >
-            <mesh position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]} castShadow receiveShadow>
+            <mesh
+              position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]}
+              castShadow={part.objectType !== "glass"}
+              receiveShadow={part.objectType !== "glass"}
+            >
               <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
-              <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />
+              <ObjectMaterial part={part} />
               <Edges color={isSelected ? "#eef1f4" : "#53606d"} />
             </mesh>
             {isSelected ? <KeyDimensionGuide part={part} /> : null}
@@ -653,13 +675,13 @@ export function Viewport() {
                 <button
                   className="viewport-add-menu__item"
                   onClick={() => {
-                    setActiveTool("measure");
+                    addObject("glass");
                     setShowAddMenu(false);
                   }}
                   type="button"
                 >
-                  <RulerIcon width={16} height={16} />
-                  <span>Measure</span>
+                  <GlassIcon width={16} height={16} />
+                  <span>Glass</span>
                 </button>
               </div>
             ) : null}

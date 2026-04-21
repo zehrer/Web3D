@@ -1,6 +1,7 @@
 import { DEFAULT_OBJECT_COLOR } from "./materials";
 import type {
   CladdingProfileId,
+  GlassProfileId,
   ObjectProfileId,
   ObjectType,
   PartNode,
@@ -41,7 +42,16 @@ export type CladdingProfile = BaseProfile & {
   profileAngleDeg: number;
 };
 
-export type ObjectProfile = SheetProfile | TimberProfile | CladdingProfile;
+export type GlassProfile = BaseProfile & {
+  id: GlassProfileId;
+  objectType: "glass";
+  thicknessMm: number;
+  defaultLengthMm: number;
+  defaultWidthMm: number;
+  opacity: number;
+};
+
+export type ObjectProfile = SheetProfile | TimberProfile | CladdingProfile | GlassProfile;
 
 export const SHEET_PROFILES: SheetProfile[] = [
   { id: "osb3-12", objectType: "sheet", label: "OSB/3 12 mm", thicknessMm: 12, defaultLengthMm: 1200, defaultWidthMm: 600, color: DEFAULT_OBJECT_COLOR },
@@ -67,10 +77,15 @@ export const CLADDING_PROFILES: CladdingProfile[] = [
   { id: "rhombus-27x68", objectType: "cladding", label: "Rhombus 27 x 68 mm", widthMm: 68, heightMm: 27, defaultLengthMm: 2000, profileAngleDeg: 20, color: "#9a7958" },
 ];
 
+export const GLASS_PROFILES: GlassProfile[] = [
+  { id: "plexiglass-3", objectType: "glass", label: "Plexiglass 3 mm", thicknessMm: 3, defaultLengthMm: 900, defaultWidthMm: 600, opacity: 0.38, color: "#86cfff" },
+];
+
 export const OBJECT_TYPE_LABELS: Record<ObjectType, string> = {
   sheet: "Sheet Goods",
   timber: "Structural Timber",
   cladding: "Rhombus Cladding",
+  glass: "Glass",
 };
 
 export function getProfilesForType(objectType: ObjectType): ObjectProfile[] {
@@ -82,11 +97,15 @@ export function getProfilesForType(objectType: ObjectType): ObjectProfile[] {
     return TIMBER_PROFILES;
   }
 
-  return CLADDING_PROFILES;
+  if (objectType === "cladding") {
+    return CLADDING_PROFILES;
+  }
+
+  return GLASS_PROFILES;
 }
 
 export function getProfileById(profileId: ObjectProfileId): ObjectProfile {
-  const profile = [...SHEET_PROFILES, ...TIMBER_PROFILES, ...CLADDING_PROFILES].find((entry) => entry.id === profileId);
+  const profile = [...SHEET_PROFILES, ...TIMBER_PROFILES, ...CLADDING_PROFILES, ...GLASS_PROFILES].find((entry) => entry.id === profileId);
   if (!profile) {
     throw new Error(`Unknown object profile: ${profileId}`);
   }
@@ -103,7 +122,11 @@ export function getDefaultProfileId(objectType: ObjectType): ObjectProfileId {
     return "timber-100x100";
   }
 
-  return "rhombus-19x68";
+  if (objectType === "cladding") {
+    return "rhombus-19x68";
+  }
+
+  return "plexiglass-3";
 }
 
 export function getObjectTypeLabel(objectType: ObjectType): string {
@@ -111,7 +134,7 @@ export function getObjectTypeLabel(objectType: ObjectType): string {
 }
 
 export function createSizeFromProfile(profile: ObjectProfile): Vector3Like {
-  if (profile.objectType === "sheet") {
+  if (profile.objectType === "sheet" || profile.objectType === "glass") {
     return {
       x: profile.defaultLengthMm,
       y: profile.defaultWidthMm,
@@ -127,7 +150,7 @@ export function createSizeFromProfile(profile: ObjectProfile): Vector3Like {
 }
 
 export function applyProfileToSize(profile: ObjectProfile, size: Vector3Like): Vector3Like {
-  if (profile.objectType === "sheet") {
+  if (profile.objectType === "sheet" || profile.objectType === "glass") {
     return {
       ...size,
       z: profile.thicknessMm,
@@ -146,7 +169,14 @@ export function getProfileLabel(profileId: ObjectProfileId): string {
 }
 
 export function createObjectName(objectType: ObjectType, index: number): string {
-  const prefix = objectType === "sheet" ? "Sheet" : objectType === "timber" ? "Timber" : "Cladding";
+  const prefix =
+    objectType === "sheet"
+      ? "Sheet"
+      : objectType === "timber"
+        ? "Timber"
+        : objectType === "cladding"
+          ? "Cladding"
+          : "Glass";
   return `${prefix} ${index + 1}`;
 }
 
@@ -155,5 +185,5 @@ export function isSheetObject(part: PartNode): boolean {
 }
 
 export function getResizableAxes(part: PartNode): Array<keyof Vector3Like> {
-  return part.objectType === "sheet" ? ["x", "y"] : ["x"];
+  return part.objectType === "sheet" || part.objectType === "glass" ? ["x", "y"] : ["x"];
 }

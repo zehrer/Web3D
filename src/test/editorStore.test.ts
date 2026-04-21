@@ -85,6 +85,23 @@ describe("editor store", () => {
     expect(updated.size).toEqual({ x: 2400, y: 68, z: 27 });
   });
 
+  it("creates glass objects as plexiglass panels", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+
+    store.getState().addObject("glass", "plexiglass-3");
+    const glass = store.getState().project.parts.at(-1)!;
+
+    expect(glass.objectType).toBe("glass");
+    expect(glass.profileId).toBe("plexiglass-3");
+    expect(glass.size).toEqual({ x: 900, y: 600, z: 3 });
+
+    store.getState().setPartGeometry(glass.id, {
+      size: { x: 1200, y: 800, z: 3 },
+    });
+    expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 3 });
+  });
+
   it("creates repeated cladding patterns from profile width plus gap", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());

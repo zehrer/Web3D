@@ -1,6 +1,6 @@
 export type UnitPreference = "metric-cm" | "metric-mm" | "imperial-in";
 
-export type ObjectType = "sheet" | "timber" | "cladding";
+export type ObjectType = "sheet" | "timber" | "cladding" | "glass";
 
 export type SheetProfileId = "osb3-12" | "osb3-15" | "osb3-18" | "osb3-22" | "plywood-18";
 
@@ -8,7 +8,9 @@ export type TimberProfileId = "timber-56x56" | "timber-60x80" | "timber-80x100" 
 
 export type CladdingProfileId = "rhombus-18x68" | "rhombus-19x68" | "rhombus-19x95" | "rhombus-24x68" | "rhombus-27x68";
 
-export type ObjectProfileId = SheetProfileId | TimberProfileId | CladdingProfileId;
+export type GlassProfileId = "plexiglass-3";
+
+export type ObjectProfileId = SheetProfileId | TimberProfileId | CladdingProfileId | GlassProfileId;
 
 export type ActiveTool = "move" | "rotate" | "resize" | "measure";
 

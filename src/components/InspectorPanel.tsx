@@ -86,7 +86,11 @@ function VectorFields({
   );
 }
 
-function getProfileFieldLabel(objectType: "sheet" | "timber" | "cladding") {
+function isPanelObject(objectType: string) {
+  return objectType === "sheet" || objectType === "glass";
+}
+
+function getProfileFieldLabel(objectType: "sheet" | "timber" | "cladding" | "glass") {
   if (objectType === "sheet") {
     return "Sheet profile";
   }
@@ -95,7 +99,11 @@ function getProfileFieldLabel(objectType: "sheet" | "timber" | "cladding") {
     return "Timber profile";
   }
 
-  return "Cladding profile";
+  if (objectType === "cladding") {
+    return "Cladding profile";
+  }
+
+  return "Glass profile";
 }
 
 export function InspectorPanel() {
@@ -153,7 +161,7 @@ export function InspectorPanel() {
               </select>
             </label>
 
-            {selectedPart.objectType === "sheet" ? (
+            {isPanelObject(selectedPart.objectType) ? (
               <VectorFields
                 label="Size"
                 vector={selectedPart.size}
@@ -216,7 +224,7 @@ export function InspectorPanel() {
               }
             />
 
-            {selectedPart.objectType === "sheet" ? (
+            {isPanelObject(selectedPart.objectType) ? (
               <label className="field inspector-field">
                 <span>Thickness</span>
                 <div className="field__input field__input--readonly">

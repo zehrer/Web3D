@@ -36,9 +36,20 @@ describe("object profiles", () => {
     expect(resized).toEqual({ x: 2400, y: 68, z: 27 });
   });
 
+  it("creates plexiglass as a thin resizeable panel", () => {
+    const profile = getProfileById("plexiglass-3");
+    const size = createSizeFromProfile(profile);
+    const resized = applyProfileToSize(profile, { x: 1200, y: 800, z: 20 });
+
+    expect(profile.objectType).toBe("glass");
+    expect(size).toEqual({ x: 900, y: 600, z: 3 });
+    expect(resized).toEqual({ x: 1200, y: 800, z: 3 });
+  });
+
   it("limits resize axes by object family", () => {
     expect(getResizableAxes(createObjectPart(0, { objectType: "sheet", profileId: "osb3-18" }))).toEqual(["x", "y"]);
     expect(getResizableAxes(createObjectPart(0, { objectType: "timber", profileId: "timber-100x100" }))).toEqual(["x"]);
     expect(getResizableAxes(createObjectPart(0, { objectType: "cladding", profileId: "rhombus-19x68" }))).toEqual(["x"]);
+    expect(getResizableAxes(createObjectPart(0, { objectType: "glass", profileId: "plexiglass-3" }))).toEqual(["x", "y"]);
   });
 });

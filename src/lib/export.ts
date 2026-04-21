@@ -6,6 +6,20 @@ import type { PartNode, ProjectDocument } from "../types/model";
 
 const GLTF_METERS_PER_MILLIMETER = 0.001;
 
+function createExportMaterial(part: PartNode) {
+  if (part.objectType === "glass") {
+    return new MeshStandardMaterial({
+      color: part.color,
+      depthWrite: false,
+      opacity: 0.38,
+      roughness: 0.08,
+      transparent: true,
+    });
+  }
+
+  return new MeshStandardMaterial({ color: part.color });
+}
+
 function createPartExportGroup(part: PartNode, unitScale = 1): Group {
   const group = new Group();
   group.name = part.name;
@@ -24,7 +38,7 @@ function createPartExportGroup(part: PartNode, unitScale = 1): Group {
 
   const mesh = new Mesh(
     new BoxGeometry(part.size.x * unitScale, part.size.y * unitScale, part.size.z * unitScale),
-    new MeshStandardMaterial({ color: part.color }),
+    createExportMaterial(part),
   );
   mesh.name = `${part.name} Mesh`;
   mesh.position.set(
