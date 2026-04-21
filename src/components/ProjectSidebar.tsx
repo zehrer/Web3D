@@ -1,19 +1,13 @@
-import { useEffect, useState, type DragEvent } from "react";
-import { BeamIcon, FolderIcon, SheetIcon } from "./Icons";
-import { getObjectTypeLabel } from "../lib/profiles";
-import { toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, SheetIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
-import type { GroupNode, PartNode, UnitPreference } from "../types/model";
+import type { GroupNode, PartNode } from "../types/model";
 
 type EditingItem = { kind: "part" | "group"; id: string } | null;
 type DraggedTreeItem = { kind: "part" | "group"; id: string };
 type DropTarget = "root" | string | null;
 
 const TREE_DRAG_MIME = "application/x-web3d-tree-item";
-
-function formatObjectSize(valueMm: number, unitPreference: UnitPreference): string {
-  return `${Number(toDisplayUnits(valueMm, unitPreference).toFixed(1))} ${UNIT_DEFINITIONS[unitPreference].shortLabel}`;
-}
 
 function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancestorGroupId: string): boolean {
   let current = groups.find((group) => group.id === candidateGroupId);
@@ -34,6 +28,8 @@ export function ProjectSidebar() {
   const [draftName, setDraftName] = useState("");
   const [draggingItem, setDraggingItem] = useState<DraggedTreeItem | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
+  const knownGroupIdsRef = useRef<Set<string>>(new Set());
   const project = useEditorStore((state) => state.project);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectPart = useEditorStore((state) => state.selectPart);
@@ -42,7 +38,6 @@ export function ProjectSidebar() {
   const updateGroupName = useEditorStore((state) => state.updateGroupName);
   const movePartToGroup = useEditorStore((state) => state.movePartToGroup);
   const moveGroupToGroup = useEditorStore((state) => state.moveGroupToGroup);
-  const unitPreference = project.unitPreference;
 
   useEffect(() => {
     if (editingItem?.kind === "part" && !project.parts.some((part) => part.id === editingItem.id)) {
@@ -55,6 +50,33 @@ export function ProjectSidebar() {
       setDraftName("");
     }
   }, [editingItem, project.groups, project.parts]);
+
+  useEffect(() => {
+    const nextKnownGroupIds = new Set(project.groups.map((group) => group.id));
+
+    setExpandedGroupIds((current) => {
+      const next = new Set(current);
+      let changed = false;
+
+      project.groups.forEach((group) => {
+        if (!knownGroupIdsRef.current.has(group.id)) {
+          next.add(group.id);
+          changed = true;
+        }
+      });
+
+      Array.from(next).forEach((groupId) => {
+        if (!nextKnownGroupIds.has(groupId)) {
+          next.delete(groupId);
+          changed = true;
+        }
+      });
+
+      return changed ? next : current;
+    });
+
+    knownGroupIdsRef.current = nextKnownGroupIds;
+  }, [project.groups]);
 
   function beginRenamePart(partId: string, currentName: string) {
     setEditingItem({ kind: "part", id: partId });
@@ -207,6 +229,19 @@ export function ProjectSidebar() {
     endDrag();
   }
 
+  function toggleGroupExpanded(groupId: string) {
+    setExpandedGroupIds((current) => {
+      const next = new Set(current);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+
+      return next;
+    });
+  }
+
   function renderNameEditor(kind: "part" | "group", id: string, name: string) {
     if (editingItem?.kind === kind && editingItem.id === id) {
       return (
@@ -273,14 +308,12 @@ export function ProjectSidebar() {
         style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
         tabIndex={0}
       >
+        <span className="object-row__disclosure object-row__disclosure--placeholder" />
         <span className="object-row__icon">
-          {part.objectType === "sheet" ? <SheetIcon width={15} height={15} /> : <BeamIcon width={15} height={15} />}
+          {part.objectType === "sheet" ? <SheetIcon width={14} height={14} /> : <BeamIcon width={14} height={14} />}
         </span>
         <span className="object-row__content">
           {renderNameEditor("part", part.id, part.name)}
-          <small>
-            {getObjectTypeLabel(part.objectType)} · {formatObjectSize(part.size.x, unitPreference)}
-          </small>
         </span>
       </div>
     );
@@ -289,7 +322,8 @@ export function ProjectSidebar() {
   function renderGroup(group: GroupNode, depth: number) {
     const childrenGroups = groupChildren(group.id);
     const childrenParts = partChildren(group.id);
-    const childCount = project.parts.filter((part) => part.groupId === group.id).length + childrenGroups.length;
+    const hasChildren = childrenGroups.length > 0 || childrenParts.length > 0;
+    const isExpanded = expandedGroupIds.has(group.id);
     const isDragging = draggingItem?.kind === "group" && draggingItem.id === group.id;
     const isDropTarget = dropTarget === group.id;
 
@@ -309,16 +343,31 @@ export function ProjectSidebar() {
           onDrop={(event) => handleGroupDrop(event, group.id)}
           style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
         >
+          {hasChildren ? (
+            <button
+              aria-label={isExpanded ? `Collapse ${group.name}` : `Expand ${group.name}`}
+              className="object-row__disclosure"
+              onClick={(event) => {
+                event.stopPropagation();
+                toggleGroupExpanded(group.id);
+              }}
+              onDragStart={(event) => event.preventDefault()}
+              type="button"
+            >
+              {isExpanded ? <ChevronDownIcon width={13} height={13} /> : <ChevronRightIcon width={13} height={13} />}
+            </button>
+          ) : (
+            <span className="object-row__disclosure object-row__disclosure--placeholder" />
+          )}
           <span className="object-row__icon object-row__icon--group">
-            <FolderIcon width={15} height={15} />
+            <FolderIcon width={14} height={14} />
           </span>
           <span className="object-row__content">
             {renderNameEditor("group", group.id, group.name)}
-            <small>{childCount} direct items</small>
           </span>
         </div>
-        {childrenGroups.map((childGroup) => renderGroup(childGroup, depth + 1))}
-        {childrenParts.map((part) => renderPart(part, depth + 1))}
+        {isExpanded ? childrenGroups.map((childGroup) => renderGroup(childGroup, depth + 1)) : null}
+        {isExpanded ? childrenParts.map((part) => renderPart(part, depth + 1)) : null}
       </div>
     );
   }

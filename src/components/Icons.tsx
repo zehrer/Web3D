@@ -207,6 +207,14 @@ export function ChevronRightIcon(props: IconProps) {
   );
 }
 
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="m6 9.5 6 6 6-6" />
+    </BaseIcon>
+  );
+}
+
 export function PerspectiveIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

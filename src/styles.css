@@ -376,13 +376,13 @@ button {
 .object-browser {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.08rem;
   flex: 1 1 auto;
   overflow: auto;
   min-height: 0;
   border: 1px dashed transparent;
-  border-radius: 16px;
-  padding-bottom: 1rem;
+  border-radius: 12px;
+  padding-bottom: 0.75rem;
   transition: background 120ms ease, border-color 120ms ease;
 }
 
@@ -394,20 +394,20 @@ button {
 .object-tree__group {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
+  gap: 0.08rem;
 }
 
 .object-row,
 .recent-list__item {
   display: flex;
-  gap: 0.7rem;
+  gap: 0.32rem;
   align-items: center;
   width: 100%;
-  border: 1px solid rgba(205, 191, 159, 0.26);
-  background: rgba(255, 252, 247, 0.96);
+  border: 1px solid transparent;
+  background: transparent;
   color: inherit;
-  border-radius: 16px;
-  padding: 0.82rem 0.88rem;
+  border-radius: 8px;
+  padding: 0.22rem 0.4rem;
   text-align: left;
   cursor: grab;
   transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease;
@@ -419,13 +419,13 @@ button {
 }
 
 .object-row--group {
-  border-color: rgba(116, 134, 145, 0.24);
-  background: rgba(249, 246, 238, 0.98);
+  border-color: transparent;
+  background: transparent;
 }
 
 .object-row--selected {
-  border-color: rgba(213, 157, 72, 0.46);
-  background: rgba(249, 234, 210, 0.9);
+  border-color: rgba(213, 157, 72, 0.32);
+  background: rgba(249, 234, 210, 0.68);
 }
 
 .object-row--dragging {
@@ -440,26 +440,48 @@ button {
 }
 
 .object-row__icon {
-  width: 1.95rem;
-  height: 1.95rem;
+  width: 1.15rem;
+  height: 1.15rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  background: rgba(212, 191, 150, 0.18);
+  border-radius: 6px;
+  background: transparent;
   flex: 0 0 auto;
 }
 
 .object-row__icon--group {
-  background: rgba(213, 157, 72, 0.18);
+  background: transparent;
   color: #8b5e19;
+}
+
+.object-row__disclosure {
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #66737e;
+  padding: 0;
+}
+
+.object-row__disclosure:hover {
+  background: rgba(247, 236, 213, 0.78);
+  color: #22303c;
+}
+
+.object-row__disclosure--placeholder {
+  pointer-events: none;
 }
 
 .object-row__content,
 .recent-list__item {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -472,6 +494,14 @@ button {
   cursor: text;
   padding: 0;
   text-align: left;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-row__name-button strong {
+  font-weight: 500;
 }
 
 .object-row__name-input {
@@ -479,7 +509,7 @@ button {
   background: rgba(255, 252, 246, 0.98);
   color: #22303c;
   border-radius: 10px;
-  padding: 0.28rem 0.45rem;
+  padding: 0.12rem 0.3rem;
   width: 100%;
 }
 
