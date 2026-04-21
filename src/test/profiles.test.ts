@@ -20,6 +20,12 @@ describe("object profiles", () => {
     expect(size.z).toBe(120);
   });
 
+  it("supports compact square timber profiles", () => {
+    const size = createSizeFromProfile(getProfileById("timber-56x56"));
+
+    expect(size).toEqual({ x: 2000, y: 56, z: 56 });
+  });
+
   it("creates rhombus cladding profiles with fixed cross-section and editable length", () => {
     const profile = getProfileById("rhombus-19x68");
     const size = createSizeFromProfile(profile);

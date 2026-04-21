@@ -4,7 +4,7 @@ export type ObjectType = "sheet" | "timber" | "cladding";
 
 export type SheetProfileId = "osb3-12" | "osb3-15" | "osb3-18" | "osb3-22" | "plywood-18";
 
-export type TimberProfileId = "timber-60x80" | "timber-80x100" | "timber-100x100" | "timber-120x120";
+export type TimberProfileId = "timber-56x56" | "timber-60x80" | "timber-80x100" | "timber-100x100" | "timber-120x120";
 
 export type CladdingProfileId = "rhombus-18x68" | "rhombus-19x68" | "rhombus-19x95" | "rhombus-24x68" | "rhombus-27x68";
 

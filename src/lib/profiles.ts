@@ -52,6 +52,7 @@ export const SHEET_PROFILES: SheetProfile[] = [
 ];
 
 export const TIMBER_PROFILES: TimberProfile[] = [
+  { id: "timber-56x56", objectType: "timber", label: "56 x 56 mm", widthMm: 56, heightMm: 56, defaultLengthMm: 2000, color: "#a77b4e" },
   { id: "timber-60x80", objectType: "timber", label: "60 x 80 mm", widthMm: 60, heightMm: 80, defaultLengthMm: 2000, color: "#a77b4e" },
   { id: "timber-80x100", objectType: "timber", label: "80 x 100 mm", widthMm: 80, heightMm: 100, defaultLengthMm: 2000, color: "#a77b4e" },
   { id: "timber-100x100", objectType: "timber", label: "100 x 100 mm", widthMm: 100, heightMm: 100, defaultLengthMm: 2000, color: "#a77b4e" },
