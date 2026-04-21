@@ -3,7 +3,7 @@ import { Toolbar } from "./components/Toolbar";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { Viewport } from "./components/Viewport";
-import { downloadProjectAsStl } from "./lib/export";
+import { downloadProjectAsGltf, downloadProjectAsStl } from "./lib/export";
 import { createProject } from "./lib/project";
 import {
   listProjectSummaries,
@@ -112,6 +112,10 @@ export default function App() {
     downloadProjectAsStl(editorStore.getState().project);
   }
 
+  async function handleExportGltf() {
+    await downloadProjectAsGltf(editorStore.getState().project);
+  }
+
   if (!hydrated) {
     return (
       <main className="app-shell">
@@ -144,6 +148,7 @@ export default function App() {
         onNewProject={handleNewProject}
         onSaveProject={handleSaveNow}
         onExportStl={handleExportStl}
+        onExportGltf={handleExportGltf}
         onOpenProject={handleOpenProject}
         onToggleLeftPanel={() => setLeftPanelVisible((value) => !value)}
         onToggleRightPanel={() => setRightPanelVisible((value) => !value)}

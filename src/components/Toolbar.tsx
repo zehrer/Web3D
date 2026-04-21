@@ -11,6 +11,7 @@ import type { ProjectSummary } from "../types/model";
 interface ToolbarProps {
   onSaveProject: () => void | Promise<void>;
   onExportStl: () => void;
+  onExportGltf: () => void | Promise<void>;
   onNewProject: () => void;
   onOpenProject: (projectId: string) => void | Promise<void>;
   onToggleLeftPanel: () => void;
@@ -66,6 +67,7 @@ export function Toolbar({
   onNewProject,
   onSaveProject,
   onExportStl,
+  onExportGltf,
   onOpenProject,
   onToggleLeftPanel,
   onToggleRightPanel,
@@ -177,7 +179,8 @@ export function Toolbar({
               <div className="menu-dropdown">
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); onNewProject(); }} type="button">New Project</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onSaveProject(); }} type="button">Save Now</button>
-                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">Export STL</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">Export STL Mesh</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onExportGltf(); }} type="button">Export glTF Project</button>
                 <div className="menu-dropdown__divider" />
                 <div className="menu-dropdown__label">Recent Projects</div>
                 {renderRecentProjects(recentProjects)}
