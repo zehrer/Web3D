@@ -10,6 +10,17 @@ import { createObjectPart, PROJECT_SCHEMA_VERSION } from "../lib/project";
 import type { ProjectDocument } from "../types/model";
 
 describe("3D export", () => {
+  function expectVectorToBeClose(actual: number[], expected: number[]) {
+    expect(actual).toHaveLength(expected.length);
+    expected.forEach((value, index) => {
+      expect(actual[index]).toBeCloseTo(value, 6);
+    });
+  }
+
+  function getNodePosition(node: { translation?: number[]; matrix?: number[] }) {
+    return node.translation ?? node.matrix?.slice(12, 15) ?? [];
+  }
+
   it("exports anchored objects as ASCII STL", () => {
     const project: ProjectDocument = {
       id: "project-1",
@@ -108,5 +119,57 @@ describe("3D export", () => {
       parts: [{ id: "part-1", groupId: "group-1", objectType: "timber", profileId: "timber-100x100" }],
     });
     expect(JSON.stringify(gltf.nodes)).toContain("Frame");
+  });
+
+  it("exports glTF scene geometry in meters while preserving Web3D millimeter metadata", async () => {
+    const project: ProjectDocument = {
+      id: "project-1",
+      name: "Metric Export",
+      version: PROJECT_SCHEMA_VERSION,
+      unitPreference: "metric-mm",
+      snapSettings: {
+        enabled: true,
+        moveIncrement: 10,
+        resizeIncrement: 5,
+        rotateIncrementDeg: 15,
+      },
+      cameraState: {
+        position: { x: 1000, y: 800, z: 1000 },
+        target: { x: 0, y: 0, z: 0 },
+      },
+      groups: [],
+      measurements: [],
+      parts: [
+        {
+          ...createObjectPart(0, {
+            objectType: "timber",
+            profileId: "timber-100x100",
+            size: { x: 2000, y: 2200, z: 860 },
+            position: { x: 1000, y: 0, z: 500 },
+          }),
+          id: "part-1",
+          name: "Metric Beam",
+        },
+      ],
+      createdAt: "2026-04-13T00:00:00.000Z",
+      updatedAt: "2026-04-13T00:00:00.000Z",
+    };
+
+    const gltf = JSON.parse(await exportProjectToGltf(project));
+    const partNode = gltf.nodes.find((node: { name?: string }) => node.name === "Metric Beam");
+    const meshNode = gltf.nodes.find((node: { name?: string }) => node.name === "Metric Beam Mesh");
+    const positionAccessor =
+      gltf.accessors[gltf.meshes[meshNode.mesh].primitives[0].attributes.POSITION];
+
+    expect(gltf.extras.units).toEqual({
+      length: "meter",
+      sourceLength: "millimeter",
+      sourceToExportScale: 0.001,
+    });
+    expectVectorToBeClose(getNodePosition(partNode), [1, 0, 0.5]);
+    expectVectorToBeClose(getNodePosition(meshNode), [1, 1.1, 0.43]);
+    expectVectorToBeClose(positionAccessor.min, [-1, -1.1, -0.43]);
+    expectVectorToBeClose(positionAccessor.max, [1, 1.1, 0.43]);
+    expect(gltf.extras.web3dProjectDocument.parts[0].size).toEqual({ x: 2000, y: 2200, z: 860 });
   });
 });

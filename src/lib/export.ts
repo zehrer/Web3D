@@ -4,10 +4,16 @@ import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { serializeProject, serializeProjectFile } from "./serialization";
 import type { PartNode, ProjectDocument } from "../types/model";
 
-function createPartExportGroup(part: PartNode): Group {
+const GLTF_METERS_PER_MILLIMETER = 0.001;
+
+function createPartExportGroup(part: PartNode, unitScale = 1): Group {
   const group = new Group();
   group.name = part.name;
-  group.position.set(part.position.x, part.position.y, part.position.z);
+  group.position.set(
+    part.position.x * unitScale,
+    part.position.y * unitScale,
+    part.position.z * unitScale,
+  );
   group.rotation.set(part.rotation.x, part.rotation.y, part.rotation.z);
   group.userData = {
     web3d: {
@@ -17,11 +23,15 @@ function createPartExportGroup(part: PartNode): Group {
   };
 
   const mesh = new Mesh(
-    new BoxGeometry(part.size.x, part.size.y, part.size.z),
+    new BoxGeometry(part.size.x * unitScale, part.size.y * unitScale, part.size.z * unitScale),
     new MeshStandardMaterial({ color: part.color }),
   );
   mesh.name = `${part.name} Mesh`;
-  mesh.position.set(part.size.x / 2, part.size.y / 2, part.size.z / 2);
+  mesh.position.set(
+    (part.size.x * unitScale) / 2,
+    (part.size.y * unitScale) / 2,
+    (part.size.z * unitScale) / 2,
+  );
   mesh.userData = {
     web3d: {
       kind: "part-mesh",
@@ -37,7 +47,7 @@ function createPartExportGroup(part: PartNode): Group {
   return group;
 }
 
-function createProjectScene(project: ProjectDocument): Group {
+function createProjectScene(project: ProjectDocument, unitScale = 1): Group {
   const sceneRoot = new Group();
   sceneRoot.name = project.name;
   sceneRoot.userData = {
@@ -71,7 +81,7 @@ function createProjectScene(project: ProjectDocument): Group {
 
   project.parts.forEach((part) => {
     const parent = part.groupId ? groupObjects.get(part.groupId) : sceneRoot;
-    (parent ?? sceneRoot).add(createPartExportGroup(part));
+    (parent ?? sceneRoot).add(createPartExportGroup(part, unitScale));
   });
 
   sceneRoot.updateMatrixWorld(true);
@@ -103,7 +113,7 @@ export function exportProjectToStl(project: ProjectDocument): string {
 }
 
 export function exportProjectToGltf(project: ProjectDocument): Promise<string> {
-  const sceneRoot = createProjectScene(project);
+  const sceneRoot = createProjectScene(project, GLTF_METERS_PER_MILLIMETER);
   const exporter = new GLTFExporter();
 
   return new Promise((resolve, reject) => {
@@ -120,6 +130,11 @@ export function exportProjectToGltf(project: ProjectDocument): Promise<string> {
             {
               ...result,
               extras: {
+                units: {
+                  length: "meter",
+                  sourceLength: "millimeter",
+                  sourceToExportScale: GLTF_METERS_PER_MILLIMETER,
+                },
                 web3dProjectDocument: JSON.parse(serializeProject(project)),
               },
             },
