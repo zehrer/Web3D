@@ -175,6 +175,11 @@ button {
   box-shadow: 0 12px 28px rgba(95, 108, 120, 0.14);
 }
 
+.menu-dropdown--settings {
+  min-width: 340px;
+  padding: 0.8rem;
+}
+
 .menu-dropdown__item {
   display: flex;
   align-items: center;
@@ -301,6 +306,24 @@ button {
   gap: 0.75rem;
   align-items: flex-start;
   margin-bottom: 0.85rem;
+}
+
+.browser-card__header-action {
+  width: 2.05rem;
+  height: 2.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #66737e;
+  padding: 0;
+}
+
+.browser-card__header-action:hover {
+  background: rgba(247, 236, 213, 0.78);
+  color: #22303c;
 }
 
 .browser-card__subtitle {

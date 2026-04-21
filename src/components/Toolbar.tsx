@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { useEditorStore } from "../store/editorStore";
 import {
   ChevronLeftIcon,
@@ -6,7 +7,7 @@ import {
   PanelLeftIcon,
   PanelRightIcon,
 } from "./Icons";
-import type { ProjectSummary } from "../types/model";
+import type { ProjectSummary, UnitPreference } from "../types/model";
 
 interface ToolbarProps {
   onSaveProject: () => void | Promise<void>;
@@ -45,7 +46,7 @@ function IconButton({
   );
 }
 
-type MenuKey = "file" | "edit" | "add" | "view" | "help";
+type MenuKey = "file" | "edit" | "add" | "view" | "settings" | "help";
 
 function MenuButton({
   active,
@@ -75,10 +76,13 @@ export function Toolbar({
   rightPanelVisible,
   saveStatusLabel,
 }: ToolbarProps) {
-  const projectName = useEditorStore((state) => state.project.name);
+  const project = useEditorStore((state) => state.project);
+  const projectName = project.name;
   const renameProject = useEditorStore((state) => state.renameProject);
   const recentProjects = useEditorStore((state) => state.recentProjects);
   const addObject = useEditorStore((state) => state.addObject);
+  const updateUnitPreference = useEditorStore((state) => state.updateUnitPreference);
+  const updateSnapSettings = useEditorStore((state) => state.updateSnapSettings);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
@@ -218,6 +222,82 @@ export function Toolbar({
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); onToggleRightPanel(); }} type="button">
                   {rightPanelVisible ? "Hide Inspector" : "Show Inspector"}
                 </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="menu-bar__group">
+            <MenuButton active={activeMenu === "settings"} label="Settings" onClick={() => toggleMenu("settings")} />
+            {activeMenu === "settings" ? (
+              <div className="menu-dropdown menu-dropdown--settings">
+                <label className="field">
+                  <span>Display units</span>
+                  <select
+                    className="field__input"
+                    value={project.unitPreference}
+                    onChange={(event) => updateUnitPreference(event.target.value as UnitPreference)}
+                  >
+                    {Object.values(UNIT_DEFINITIONS).map((definition) => (
+                      <option key={definition.id} value={definition.id}>
+                        {definition.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="field field--checkbox">
+                  <input
+                    type="checkbox"
+                    checked={project.snapSettings.enabled}
+                    onChange={(event) => updateSnapSettings({ enabled: event.target.checked })}
+                  />
+                  <span>Enable snap</span>
+                </label>
+
+                <div className="field-grid">
+                  <label className="field">
+                    <span>Move</span>
+                    <input
+                      className="field__input"
+                      type="number"
+                      step="0.1"
+                      value={Number(toDisplayUnits(project.snapSettings.moveIncrement, project.unitPreference).toFixed(2))}
+                      onChange={(event) =>
+                        updateSnapSettings({
+                          moveIncrement: Math.max(0, fromDisplayUnits(Number(event.target.value || 0), project.unitPreference)),
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Resize</span>
+                    <input
+                      className="field__input"
+                      type="number"
+                      step="0.1"
+                      value={Number(toDisplayUnits(project.snapSettings.resizeIncrement, project.unitPreference).toFixed(2))}
+                      onChange={(event) =>
+                        updateSnapSettings({
+                          resizeIncrement: Math.max(0, fromDisplayUnits(Number(event.target.value || 0), project.unitPreference)),
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Rotate</span>
+                    <input
+                      className="field__input"
+                      type="number"
+                      step="1"
+                      value={project.snapSettings.rotateIncrementDeg}
+                      onChange={(event) =>
+                        updateSnapSettings({ rotateIncrementDeg: Math.max(0, Number(event.target.value || 0)) })
+                      }
+                    />
+                  </label>
+                </div>
               </div>
             ) : null}
           </div>
