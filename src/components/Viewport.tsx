@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { Edges, Html, Line, OrbitControls, Text, TransformControls } from "@react-three/drei";
-import { ArrowHelper, Vector3, type Object3D } from "three";
+import { ArrowHelper, Euler, Vector3, type Object3D } from "three";
 import {
   BeamIcon,
   DuplicateIcon,
@@ -54,12 +54,41 @@ type MeasurementDraft = {
   end: Vector3Like;
 };
 
+type PartCornerDefinition = {
+  key: string;
+  local: [number, number, number];
+  world: Vector3Like;
+};
+
 function vectorToTuple(vector: Vector3Like): [number, number, number] {
   return [vector.x, vector.y, vector.z];
 }
 
 function distanceBetween(start: Vector3Like, end: Vector3Like): number {
   return Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z);
+}
+
+function getPartCorners(part: PartNode): PartCornerDefinition[] {
+  const rotation = new Euler(part.rotation.x, part.rotation.y, part.rotation.z);
+
+  return ([0, part.size.x] as const).flatMap((x) =>
+    ([0, part.size.y] as const).flatMap((y) =>
+      ([0, part.size.z] as const).map((z) => {
+        const local: [number, number, number] = [x, y, z];
+        const world = new Vector3(x, y, z).applyEuler(rotation).add(new Vector3(part.position.x, part.position.y, part.position.z));
+
+        return {
+          key: `${x}-${y}-${z}`,
+          local,
+          world: {
+            x: world.x,
+            y: world.y,
+            z: world.z,
+          },
+        };
+      }),
+    ),
+  );
 }
 
 function CameraController({
@@ -253,9 +282,7 @@ function Scene() {
     };
   }
 
-  function handleMeasurePoint(point: Vector3) {
-    const nextPoint = snapGroundPoint(point);
-
+  function handleMeasurePoint(nextPoint: Vector3Like) {
     if (!measurementDraft) {
       selectPart(null);
       setMeasurementDraft({ start: nextPoint, end: nextPoint });
@@ -395,7 +422,7 @@ function Scene() {
         onClick={(event) => {
           event.stopPropagation();
           if (activeTool === "measure") {
-            handleMeasurePoint(event.point);
+            handleMeasurePoint(snapGroundPoint(event.point));
           } else {
             selectPart(null);
             setMeasurementDraft(null);
@@ -428,6 +455,28 @@ function Scene() {
               <Edges color={isSelected ? "#f4ead4" : "#53606d"} />
             </mesh>
             {isSelected ? <KeyDimensionGuide part={part} /> : null}
+
+            {activeTool === "measure"
+              ? getPartCorners(part).map((corner) => (
+                  <mesh
+                    key={corner.key}
+                    position={corner.local}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleMeasurePoint(corner.world);
+                    }}
+                    onPointerMove={(event) => {
+                      if (measurementDraft) {
+                        event.stopPropagation();
+                        setMeasurementDraft((draft) => (draft ? { ...draft, end: corner.world } : draft));
+                      }
+                    }}
+                  >
+                    <sphereGeometry args={[13, 18, 18]} />
+                    <meshStandardMaterial color="#276f9f" emissive="#0c3a53" depthTest={false} />
+                  </mesh>
+                ))
+              : null}
 
             {isSelected && activeTool === "resize"
               ? handleDefinitions.map((handle) => (
@@ -646,7 +695,7 @@ export function Viewport() {
             <span>Drag to orbit the camera.</span>
             <span>Use move and rotate for gizmos.</span>
             <span>Use resize to drag the yellow handles.</span>
-            <span>Use measure to click two points on the grid.</span>
+            <span>Use measure to click two grid points or object corners.</span>
             <span>Units and snap live in the project settings.</span>
           </div>
         ) : null}
