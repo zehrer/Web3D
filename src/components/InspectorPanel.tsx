@@ -18,7 +18,7 @@ function FieldRow({
   onChange: (value: number) => void;
 }) {
   return (
-    <label className="field">
+    <label className="field inspector-field">
       <span>{label}</span>
       <input
         className="field__input"
@@ -55,10 +55,10 @@ function VectorFields({
 
   return (
     <div className="field-group">
-      <span className="field-group__label">
+      <span className="field-group__label inspector-section-label">
         {label} <small>{suffix}</small>
       </span>
-      <div className={`field-group__grid field-group__grid--${columns}`}>
+      <div className={`field-group__grid field-group__grid--${columns} inspector-vector-grid`}>
         {(["x", "y", "z"] as const).map((axis) => (
           <FieldRow
             key={axis}
@@ -109,7 +109,7 @@ export function InspectorPanel() {
         {selectedPart ? (
           <>
             {selectedPart.objectType === "sheet" ? (
-              <label className="field">
+              <label className="field inspector-field">
                 <span>Sheet profile</span>
                 <select
                   className="field__input"
@@ -124,7 +124,7 @@ export function InspectorPanel() {
                 </select>
               </label>
             ) : (
-              <label className="field">
+              <label className="field inspector-field">
                 <span>Timber profile</span>
                 <select
                   className="field__input"
@@ -162,7 +162,7 @@ export function InspectorPanel() {
                     })
                   }
                 />
-                <label className="field">
+                <label className="field inspector-field">
                   <span>Cross-section</span>
                   <div className="field__input field__input--readonly">
                     {(() => {
@@ -204,7 +204,7 @@ export function InspectorPanel() {
             />
 
             {selectedPart.objectType === "sheet" ? (
-              <label className="field">
+              <label className="field inspector-field">
                 <span>Thickness</span>
                 <div className="field__input field__input--readonly">
                   {getProfileById(selectedPart.profileId).label}
@@ -214,7 +214,7 @@ export function InspectorPanel() {
           </>
         ) : selectedMeasurement ? (
           <>
-            <label className="field">
+            <label className="field inspector-field">
               <span>Length</span>
               <div className="field__input field__input--readonly">{formatLength(measurementLength, unitPreference)}</div>
             </label>

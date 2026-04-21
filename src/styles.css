@@ -600,9 +600,40 @@ button {
   color: #42515d;
 }
 
+.inspector-field {
+  display: grid;
+  grid-template-columns: 5.6rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  margin-bottom: 0.45rem;
+}
+
+.inspector-field > span {
+  color: #42515d;
+  line-height: 1.2;
+}
+
+.inspector-field .field__input {
+  min-height: 34px;
+  padding: 0.42rem 0.55rem;
+}
+
+.inspector-field .field__input--readonly {
+  min-height: 34px;
+}
+
+.inspector-section-label {
+  display: block;
+  margin: 0.7rem 0 0.4rem;
+}
+
 .field-group__grid {
   display: grid;
   gap: 0.65rem;
+}
+
+.field-group__grid.inspector-vector-grid {
+  gap: 0.3rem;
 }
 
 .field-group__grid--1 {
