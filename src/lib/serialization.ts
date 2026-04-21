@@ -3,6 +3,9 @@ import { DEFAULT_OBJECT_COLOR } from "./materials";
 import { getProfileById } from "./profiles";
 import type { ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
 
+const WEB3D_PROJECT_FILE_FORMAT = "web3d-project";
+const WEB3D_PROJECT_FILE_FORMAT_VERSION = 1;
+
 type LegacyThicknessPreset = "board-18mm" | "board-24mm" | "sheet-12mm" | "sheet-18mm" | "custom";
 
 type LegacyProjectDocument = {
@@ -28,6 +31,14 @@ type LegacyProjectDocument = {
 type ProjectDocumentV2 = Omit<ProjectDocument, "groups" | "parts" | "version"> & {
   version: 2;
   parts: Array<Omit<PartNode, "groupId">>;
+};
+
+type Web3dProjectFile = {
+  format: typeof WEB3D_PROJECT_FILE_FORMAT;
+  formatVersion: typeof WEB3D_PROJECT_FILE_FORMAT_VERSION;
+  application: "Web3D Designer";
+  exportedAt: string;
+  project: ProjectDocument;
 };
 
 function mapLegacyThicknessPreset(preset: LegacyThicknessPreset): ObjectProfileId {
@@ -84,6 +95,18 @@ export function serializeProject(project: ProjectDocument): string {
   return JSON.stringify(project);
 }
 
+export function serializeProjectFile(project: ProjectDocument): string {
+  const projectFile: Web3dProjectFile = {
+    format: WEB3D_PROJECT_FILE_FORMAT,
+    formatVersion: WEB3D_PROJECT_FILE_FORMAT_VERSION,
+    application: "Web3D Designer",
+    exportedAt: new Date().toISOString(),
+    project,
+  };
+
+  return JSON.stringify(projectFile, null, 2);
+}
+
 export function deserializeProject(payload: string): ProjectDocument {
   const parsed = JSON.parse(payload) as ProjectDocument | LegacyProjectDocument;
 
@@ -104,4 +127,22 @@ export function deserializeProject(payload: string): ProjectDocument {
   }
 
   return parsed;
+}
+
+export function deserializeProjectFile(payload: string): ProjectDocument {
+  const parsed = JSON.parse(payload) as Partial<Web3dProjectFile> & {
+    extras?: {
+      web3dProjectDocument?: ProjectDocument;
+    };
+  };
+
+  if (parsed.format === WEB3D_PROJECT_FILE_FORMAT && parsed.project) {
+    return deserializeProject(JSON.stringify(parsed.project));
+  }
+
+  if (parsed.extras?.web3dProjectDocument) {
+    return deserializeProject(JSON.stringify(parsed.extras.web3dProjectDocument));
+  }
+
+  return deserializeProject(payload);
 }

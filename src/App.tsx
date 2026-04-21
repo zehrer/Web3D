@@ -3,7 +3,7 @@ import { Toolbar } from "./components/Toolbar";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { Viewport } from "./components/Viewport";
-import { downloadProjectAsGltf, downloadProjectAsStl } from "./lib/export";
+import { downloadProjectAsGltf, downloadProjectAsStl, downloadProjectAsWeb3d } from "./lib/export";
 import { createProject } from "./lib/project";
 import {
   listProjectSummaries,
@@ -11,6 +11,7 @@ import {
   loadProjectDocument,
   saveProjectDocument,
 } from "./lib/persistence";
+import { deserializeProjectFile } from "./lib/serialization";
 import { editorStore, useEditorStore } from "./store/editorStore";
 
 const AUTOSAVE_DELAY_MS = 350;
@@ -112,8 +113,29 @@ export default function App() {
     downloadProjectAsStl(editorStore.getState().project);
   }
 
+  function handleExportWeb3d() {
+    downloadProjectAsWeb3d(editorStore.getState().project);
+  }
+
   async function handleExportGltf() {
     await downloadProjectAsGltf(editorStore.getState().project);
+  }
+
+  async function handleImportProjectFile(file: File) {
+    setSaveState("saving");
+
+    try {
+      const payload = await file.text();
+      const importedProject = deserializeProjectFile(payload);
+      editorStore.getState().hydrateProject(importedProject);
+      await saveProjectDocument(importedProject);
+      const summaries = await listProjectSummaries();
+      editorStore.getState().setRecentProjects(summaries);
+      setSaveState("saved");
+      setLastSavedAt(new Date().toLocaleTimeString());
+    } catch {
+      setSaveState("error");
+    }
   }
 
   if (!hydrated) {
@@ -147,6 +169,8 @@ export default function App() {
       <Toolbar
         onNewProject={handleNewProject}
         onSaveProject={handleSaveNow}
+        onImportProjectFile={handleImportProjectFile}
+        onExportWeb3d={handleExportWeb3d}
         onExportStl={handleExportStl}
         onExportGltf={handleExportGltf}
         onOpenProject={handleOpenProject}

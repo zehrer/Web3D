@@ -1,7 +1,7 @@
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, type Object3D } from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
-import { serializeProject } from "./serialization";
+import { serializeProject, serializeProjectFile } from "./serialization";
 import type { PartNode, ProjectDocument } from "../types/model";
 
 function createPartExportGroup(part: PartNode): Group {
@@ -91,6 +91,10 @@ export function createGltfFilename(project: ProjectDocument): string {
   return `${sanitizeFilenameSegment(project.name)}.gltf`;
 }
 
+export function createWeb3dFilename(project: ProjectDocument): string {
+  return `${sanitizeFilenameSegment(project.name)}.web3d`;
+}
+
 export function exportProjectToStl(project: ProjectDocument): string {
   const sceneRoot = createProjectScene(project);
 
@@ -150,4 +154,8 @@ export function downloadProjectAsStl(project: ProjectDocument): void {
 export async function downloadProjectAsGltf(project: ProjectDocument): Promise<void> {
   const payload = await exportProjectToGltf(project);
   downloadTextFile(payload, createGltfFilename(project), "model/gltf+json");
+}
+
+export function downloadProjectAsWeb3d(project: ProjectDocument): void {
+  downloadTextFile(serializeProjectFile(project), createWeb3dFilename(project), "application/json");
 }

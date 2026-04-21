@@ -11,6 +11,8 @@ import type { ProjectSummary, UnitPreference } from "../types/model";
 
 interface ToolbarProps {
   onSaveProject: () => void | Promise<void>;
+  onImportProjectFile: (file: File) => void | Promise<void>;
+  onExportWeb3d: () => void;
   onExportStl: () => void;
   onExportGltf: () => void | Promise<void>;
   onNewProject: () => void;
@@ -67,6 +69,8 @@ function MenuButton({
 export function Toolbar({
   onNewProject,
   onSaveProject,
+  onImportProjectFile,
+  onExportWeb3d,
   onExportStl,
   onExportGltf,
   onOpenProject,
@@ -89,6 +93,7 @@ export function Toolbar({
   const [editingProjectName, setEditingProjectName] = useState(false);
   const [draftProjectName, setDraftProjectName] = useState(projectName);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!editingProjectName) {
@@ -177,12 +182,28 @@ export function Toolbar({
           )}
         </div>
         <div className="menu-bar" ref={menuRef}>
+          <input
+            ref={importInputRef}
+            accept=".web3d,.json,.gltf,application/json,model/gltf+json"
+            className="visually-hidden"
+            type="file"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+
+              if (file) {
+                void onImportProjectFile(file);
+              }
+            }}
+          />
           <div className="menu-bar__group">
             <MenuButton active={activeMenu === "file"} label="File" onClick={() => toggleMenu("file")} />
             {activeMenu === "file" ? (
               <div className="menu-dropdown">
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); onNewProject(); }} type="button">New Project</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); importInputRef.current?.click(); }} type="button">Import Web3D Project</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onSaveProject(); }} type="button">Save Now</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportWeb3d(); }} type="button">Export Web3D Project</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">Export STL Mesh</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onExportGltf(); }} type="button">Export glTF Project</button>
                 <div className="menu-dropdown__divider" />

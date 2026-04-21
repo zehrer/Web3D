@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { createGltfFilename, createStlFilename, exportProjectToGltf, exportProjectToStl } from "../lib/export";
+import {
+  createGltfFilename,
+  createStlFilename,
+  createWeb3dFilename,
+  exportProjectToGltf,
+  exportProjectToStl,
+} from "../lib/export";
 import { createObjectPart, PROJECT_SCHEMA_VERSION } from "../lib/project";
 import type { ProjectDocument } from "../types/model";
 
@@ -45,6 +51,7 @@ describe("3D export", () => {
     const project = { name: "Garden Shelf / Draft 1" } as ProjectDocument;
     expect(createStlFilename(project)).toBe("garden-shelf-draft-1.stl");
     expect(createGltfFilename(project)).toBe("garden-shelf-draft-1.gltf");
+    expect(createWeb3dFilename(project)).toBe("garden-shelf-draft-1.web3d");
   });
 
   it("exports glTF with complete Web3D project metadata", async () => {

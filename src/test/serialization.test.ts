@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createProject } from "../lib/project";
-import { deserializeProject, serializeProject } from "../lib/serialization";
+import { deserializeProject, deserializeProjectFile, serializeProject, serializeProjectFile } from "../lib/serialization";
 
 describe("project serialization", () => {
   it("round-trips a project document", () => {
@@ -63,5 +63,40 @@ describe("project serialization", () => {
     expect(parsed.version).toBe(3);
     expect(parsed.groups).toEqual([]);
     expect(parsed.parts.every((part) => part.groupId === null)).toBe(true);
+  });
+
+  it("round-trips native Web3D project files with group and object names", () => {
+    const project = createProject("Exported Project");
+    const firstGroup = project.groups[0];
+    const firstPart = project.parts[0];
+    firstGroup.name = "Custom Folder";
+    firstPart.name = "Custom Timber";
+    firstPart.groupId = firstGroup.id;
+
+    const parsed = deserializeProjectFile(serializeProjectFile(project));
+
+    expect(parsed.name).toBe("Exported Project");
+    expect(parsed.groups[0]).toMatchObject({ id: firstGroup.id, name: "Custom Folder" });
+    expect(parsed.parts[0]).toMatchObject({ id: firstPart.id, name: "Custom Timber", groupId: firstGroup.id });
+    expect(parsed.snapSettings).toEqual(project.snapSettings);
+    expect(parsed.cameraState).toEqual(project.cameraState);
+  });
+
+  it("imports Web3D project data embedded in glTF extras", () => {
+    const project = createProject("Embedded Project");
+    project.groups[0].name = "Embedded Folder";
+    project.parts[0].name = "Embedded Object";
+    const payload = JSON.stringify({
+      asset: { version: "2.0" },
+      extras: {
+        web3dProjectDocument: project,
+      },
+    });
+
+    const parsed = deserializeProjectFile(payload);
+
+    expect(parsed.name).toBe("Embedded Project");
+    expect(parsed.groups[0].name).toBe("Embedded Folder");
+    expect(parsed.parts[0].name).toBe("Embedded Object");
   });
 });
