@@ -80,6 +80,18 @@ function VectorFields({
   );
 }
 
+function getProfileFieldLabel(objectType: "sheet" | "timber" | "cladding") {
+  if (objectType === "sheet") {
+    return "Sheet profile";
+  }
+
+  if (objectType === "timber") {
+    return "Timber profile";
+  }
+
+  return "Cladding profile";
+}
+
 export function InspectorPanel() {
   const state = useEditorStore((store) => store);
   const selectedPart = getSelectedPart(state);
@@ -108,37 +120,20 @@ export function InspectorPanel() {
 
         {selectedPart ? (
           <>
-            {selectedPart.objectType === "sheet" ? (
-              <label className="field inspector-field">
-                <span>Sheet profile</span>
-                <select
-                  className="field__input"
-                  value={selectedPart.profileId}
-                  onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
-                >
-                  {getProfilesForType("sheet").map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <label className="field inspector-field">
-                <span>Timber profile</span>
-                <select
-                  className="field__input"
-                  value={selectedPart.profileId}
-                  onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
-                >
-                  {getProfilesForType("timber").map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label className="field inspector-field">
+              <span>{getProfileFieldLabel(selectedPart.objectType)}</span>
+              <select
+                className="field__input"
+                value={selectedPart.profileId}
+                onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
+              >
+                {getProfilesForType(selectedPart.objectType).map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             {selectedPart.objectType === "sheet" ? (
               <VectorFields

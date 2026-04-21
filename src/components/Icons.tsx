@@ -184,6 +184,16 @@ export function BeamIcon(props: IconProps) {
   );
 }
 
+export function CladdingIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M5 8h12l2 3H7z" />
+      <path d="M5 13h12l2 3H7z" />
+      <path d="M7 11v2M17 11v2" />
+    </BaseIcon>
+  );
+}
+
 export function FolderIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

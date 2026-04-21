@@ -1,5 +1,13 @@
 import { DEFAULT_OBJECT_COLOR } from "./materials";
-import type { ObjectProfileId, ObjectType, PartNode, SheetProfileId, TimberProfileId, Vector3Like } from "../types/model";
+import type {
+  CladdingProfileId,
+  ObjectProfileId,
+  ObjectType,
+  PartNode,
+  SheetProfileId,
+  TimberProfileId,
+  Vector3Like,
+} from "../types/model";
 
 type BaseProfile = {
   id: ObjectProfileId;
@@ -24,7 +32,16 @@ export type TimberProfile = BaseProfile & {
   defaultLengthMm: number;
 };
 
-export type ObjectProfile = SheetProfile | TimberProfile;
+export type CladdingProfile = BaseProfile & {
+  id: CladdingProfileId;
+  objectType: "cladding";
+  widthMm: number;
+  heightMm: number;
+  defaultLengthMm: number;
+  profileAngleDeg: number;
+};
+
+export type ObjectProfile = SheetProfile | TimberProfile | CladdingProfile;
 
 export const SHEET_PROFILES: SheetProfile[] = [
   { id: "osb3-12", objectType: "sheet", label: "OSB/3 12 mm", thicknessMm: 12, defaultLengthMm: 1200, defaultWidthMm: 600, color: DEFAULT_OBJECT_COLOR },
@@ -41,17 +58,34 @@ export const TIMBER_PROFILES: TimberProfile[] = [
   { id: "timber-120x120", objectType: "timber", label: "120 x 120 mm", widthMm: 120, heightMm: 120, defaultLengthMm: 2000, color: "#a77b4e" },
 ];
 
+export const CLADDING_PROFILES: CladdingProfile[] = [
+  { id: "rhombus-18x68", objectType: "cladding", label: "Rhombus 18 x 68 mm", widthMm: 68, heightMm: 18, defaultLengthMm: 2000, profileAngleDeg: 20, color: "#9a7958" },
+  { id: "rhombus-19x68", objectType: "cladding", label: "Rhombus 19 x 68 mm", widthMm: 68, heightMm: 19, defaultLengthMm: 2000, profileAngleDeg: 20, color: "#9a7958" },
+  { id: "rhombus-19x95", objectType: "cladding", label: "Rhombus 19 x 95 mm", widthMm: 95, heightMm: 19, defaultLengthMm: 2000, profileAngleDeg: 30, color: "#9a7958" },
+  { id: "rhombus-24x68", objectType: "cladding", label: "Rhombus 24 x 68 mm", widthMm: 68, heightMm: 24, defaultLengthMm: 2000, profileAngleDeg: 20, color: "#9a7958" },
+  { id: "rhombus-27x68", objectType: "cladding", label: "Rhombus 27 x 68 mm", widthMm: 68, heightMm: 27, defaultLengthMm: 2000, profileAngleDeg: 20, color: "#9a7958" },
+];
+
 export const OBJECT_TYPE_LABELS: Record<ObjectType, string> = {
   sheet: "Sheet Goods",
   timber: "Structural Timber",
+  cladding: "Rhombus Cladding",
 };
 
 export function getProfilesForType(objectType: ObjectType): ObjectProfile[] {
-  return objectType === "sheet" ? SHEET_PROFILES : TIMBER_PROFILES;
+  if (objectType === "sheet") {
+    return SHEET_PROFILES;
+  }
+
+  if (objectType === "timber") {
+    return TIMBER_PROFILES;
+  }
+
+  return CLADDING_PROFILES;
 }
 
 export function getProfileById(profileId: ObjectProfileId): ObjectProfile {
-  const profile = [...SHEET_PROFILES, ...TIMBER_PROFILES].find((entry) => entry.id === profileId);
+  const profile = [...SHEET_PROFILES, ...TIMBER_PROFILES, ...CLADDING_PROFILES].find((entry) => entry.id === profileId);
   if (!profile) {
     throw new Error(`Unknown object profile: ${profileId}`);
   }
@@ -60,7 +94,15 @@ export function getProfileById(profileId: ObjectProfileId): ObjectProfile {
 }
 
 export function getDefaultProfileId(objectType: ObjectType): ObjectProfileId {
-  return objectType === "sheet" ? "osb3-18" : "timber-100x100";
+  if (objectType === "sheet") {
+    return "osb3-18";
+  }
+
+  if (objectType === "timber") {
+    return "timber-100x100";
+  }
+
+  return "rhombus-19x68";
 }
 
 export function getObjectTypeLabel(objectType: ObjectType): string {
@@ -103,7 +145,8 @@ export function getProfileLabel(profileId: ObjectProfileId): string {
 }
 
 export function createObjectName(objectType: ObjectType, index: number): string {
-  return `${objectType === "sheet" ? "Sheet" : "Timber"} ${index + 1}`;
+  const prefix = objectType === "sheet" ? "Sheet" : objectType === "timber" ? "Timber" : "Cladding";
+  return `${prefix} ${index + 1}`;
 }
 
 export function isSheetObject(part: PartNode): boolean {

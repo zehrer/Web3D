@@ -20,8 +20,19 @@ describe("object profiles", () => {
     expect(size.z).toBe(120);
   });
 
+  it("creates rhombus cladding profiles with fixed cross-section and editable length", () => {
+    const profile = getProfileById("rhombus-19x68");
+    const size = createSizeFromProfile(profile);
+    const resized = applyProfileToSize(getProfileById("rhombus-27x68"), { ...size, x: 2400 });
+
+    expect(profile.objectType).toBe("cladding");
+    expect(size).toEqual({ x: 2000, y: 68, z: 19 });
+    expect(resized).toEqual({ x: 2400, y: 68, z: 27 });
+  });
+
   it("limits resize axes by object family", () => {
     expect(getResizableAxes(createObjectPart(0, { objectType: "sheet", profileId: "osb3-18" }))).toEqual(["x", "y"]);
     expect(getResizableAxes(createObjectPart(0, { objectType: "timber", profileId: "timber-100x100" }))).toEqual(["x"]);
+    expect(getResizableAxes(createObjectPart(0, { objectType: "cladding", profileId: "rhombus-19x68" }))).toEqual(["x"]);
   });
 });

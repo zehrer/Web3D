@@ -65,6 +65,26 @@ describe("editor store", () => {
     expect(updated.size.z).toBe(120);
   });
 
+  it("creates rhombus cladding objects with fixed profile and editable length", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+
+    store.getState().addObject("cladding", "rhombus-19x68");
+    const cladding = store.getState().project.parts.at(-1)!;
+
+    expect(cladding.objectType).toBe("cladding");
+    expect(cladding.size).toEqual({ x: 2000, y: 68, z: 19 });
+
+    store.getState().setPartGeometry(cladding.id, {
+      size: { ...cladding.size, x: 2400 },
+    });
+    expect(store.getState().project.parts.at(-1)?.size.x).toBe(2400);
+
+    store.getState().setPartProfile(cladding.id, "rhombus-27x68");
+    const updated = store.getState().project.parts.at(-1)!;
+    expect(updated.size).toEqual({ x: 2400, y: 68, z: 27 });
+  });
+
   it("commits transient geometry changes as a single undo step", () => {
     const store = createEditorStore();
     const project = createProject();

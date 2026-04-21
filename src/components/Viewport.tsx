@@ -4,6 +4,7 @@ import { Edges, Html, Line, OrbitControls, Text, TransformControls } from "@reac
 import { ArrowHelper, Euler, Vector3, type Object3D } from "three";
 import {
   BeamIcon,
+  CladdingIcon,
   DuplicateIcon,
   HelpIcon,
   MoveIcon,
@@ -637,6 +638,17 @@ export function Viewport() {
                 >
                   <BeamIcon width={16} height={16} />
                   <span>Timber</span>
+                </button>
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    addObject("cladding");
+                    setShowAddMenu(false);
+                  }}
+                  type="button"
+                >
+                  <CladdingIcon width={16} height={16} />
+                  <span>Cladding</span>
                 </button>
                 <button
                   className="viewport-add-menu__item"

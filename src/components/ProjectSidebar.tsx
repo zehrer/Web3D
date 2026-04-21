@@ -1,13 +1,25 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, RulerIcon, SheetIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CladdingIcon, FolderIcon, RulerIcon, SheetIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
-import type { GroupNode, MeasurementNode, PartNode } from "../types/model";
+import type { GroupNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
 type EditingItem = { kind: "part" | "group" | "measurement"; id: string } | null;
 type DraggedTreeItem = { kind: "part" | "group" | "measurement"; id: string };
 type DropTarget = "root" | string | null;
 
 const TREE_DRAG_MIME = "application/x-web3d-tree-item";
+
+function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
+  if (objectType === "sheet") {
+    return <SheetIcon width={14} height={14} />;
+  }
+
+  if (objectType === "cladding") {
+    return <CladdingIcon width={14} height={14} />;
+  }
+
+  return <BeamIcon width={14} height={14} />;
+}
 
 function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancestorGroupId: string): boolean {
   let current = groups.find((group) => group.id === candidateGroupId);
@@ -385,7 +397,7 @@ export function ProjectSidebar() {
       >
         <span className="object-row__disclosure object-row__disclosure--placeholder" />
         <span className="object-row__icon">
-          {part.objectType === "sheet" ? <SheetIcon width={14} height={14} /> : <BeamIcon width={14} height={14} />}
+          <PartTypeIcon objectType={part.objectType} />
         </span>
         <span className="object-row__content">
           {renderNameEditor("part", part.id, part.name)}
