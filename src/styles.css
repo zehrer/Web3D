@@ -636,6 +636,18 @@ button {
   gap: 0.3rem;
 }
 
+.inspector-action-button {
+  width: 100%;
+  border: 1px solid rgba(112, 124, 136, 0.55);
+  background: rgba(226, 231, 236, 0.9);
+  color: #22303c;
+  padding: 0.48rem 0.65rem;
+}
+
+.inspector-action-button:hover {
+  background: rgba(215, 221, 227, 0.98);
+}
+
 .field-group__grid--1 {
   grid-template-columns: 1fr;
 }

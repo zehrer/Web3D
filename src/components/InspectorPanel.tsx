@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
 import { formatLength, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
@@ -11,19 +12,24 @@ function numericOrNull(value: string): number | null {
 function FieldRow({
   label,
   value,
+  min,
   onChange,
+  step = "0.1",
 }: {
   label: string;
   value: number;
+  min?: number;
   onChange: (value: number) => void;
+  step?: string;
 }) {
   return (
     <label className="field inspector-field">
       <span>{label}</span>
       <input
         className="field__input"
+        min={min}
         type="number"
-        step="0.1"
+        step={step}
         value={Number(value.toFixed(2))}
         onChange={(event) => {
           const nextValue = numericOrNull(event.target.value);
@@ -99,7 +105,11 @@ export function InspectorPanel() {
   const unitPreference = state.project.unitPreference;
   const setPartGeometry = state.setPartGeometry;
   const setPartProfile = state.setPartProfile;
+  const createCladdingPattern = state.createCladdingPattern;
   const updateMeasurement = state.updateMeasurement;
+  const [patternAxis, setPatternAxis] = useState<keyof Vector3Like>("y");
+  const [patternCopies, setPatternCopies] = useState(5);
+  const [patternSpacing, setPatternSpacing] = useState(68);
   const measurementLength = selectedMeasurement
     ? Math.hypot(
         selectedMeasurement.end.x - selectedMeasurement.start.x,
@@ -107,6 +117,14 @@ export function InspectorPanel() {
         selectedMeasurement.end.z - selectedMeasurement.start.z,
       )
     : 0;
+
+  useEffect(() => {
+    if (selectedPart?.objectType === "cladding") {
+      setPatternAxis("y");
+      setPatternCopies(5);
+      setPatternSpacing(selectedPart.size.y);
+    }
+  }, [selectedPart?.id, selectedPart?.objectType, selectedPart?.size.y]);
 
   return (
     <aside className="inspector">
@@ -205,6 +223,52 @@ export function InspectorPanel() {
                   {getProfileById(selectedPart.profileId).label}
                 </div>
               </label>
+            ) : null}
+
+            {selectedPart.objectType === "cladding" ? (
+              <div className="field-group">
+                <span className="field-group__label inspector-section-label">
+                  Pattern <small>copies</small>
+                </span>
+                <label className="field inspector-field">
+                  <span>Direction</span>
+                  <select
+                    className="field__input"
+                    value={patternAxis}
+                    onChange={(event) => setPatternAxis(event.target.value as keyof Vector3Like)}
+                  >
+                    <option value="y">Local Y · profile width</option>
+                    <option value="z">Local Z · thickness</option>
+                    <option value="x">Local X · length</option>
+                  </select>
+                </label>
+                <FieldRow
+                  label="Copies"
+                  min={1}
+                  step="1"
+                  value={patternCopies}
+                  onChange={(value) => setPatternCopies(Math.max(1, Math.min(200, Math.round(value))))}
+                />
+                <FieldRow
+                  label={`Spacing (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                  min={0.1}
+                  value={toDisplayUnits(patternSpacing, unitPreference)}
+                  onChange={(value) => setPatternSpacing(fromDisplayUnits(value, unitPreference))}
+                />
+                <button
+                  className="inspector-action-button"
+                  onClick={() =>
+                    createCladdingPattern(selectedPart.id, {
+                      axis: patternAxis,
+                      copies: patternCopies,
+                      spacing: patternSpacing,
+                    })
+                  }
+                  type="button"
+                >
+                  Apply Pattern
+                </button>
+              </div>
             ) : null}
           </>
         ) : selectedMeasurement ? (

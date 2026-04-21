@@ -23,6 +23,12 @@ type HistoryState = {
   redoStack: ProjectDocument[];
 };
 
+type PatternOptions = {
+  axis: keyof Vector3Like;
+  copies: number;
+  spacing: number;
+};
+
 export interface EditorState extends HistoryState {
   hydrated: boolean;
   project: ProjectDocument;
@@ -51,6 +57,7 @@ export interface EditorActions {
   moveMeasurementToGroup: (measurementId: string, groupId: string | null) => void;
   moveGroupToGroup: (groupId: string, parentGroupId: string | null) => void;
   duplicateSelectedPart: () => void;
+  createCladdingPattern: (partId: string, options: PatternOptions) => void;
   deleteSelectedPart: () => void;
   deleteSelectedMeasurement: () => void;
   updatePart: (partId: string, updater: (part: PartNode) => PartNode) => void;
@@ -119,6 +126,48 @@ function isDescendantGroup(groups: GroupNode[], candidateGroupId: string, parent
   }
 
   return false;
+}
+
+function getLocalAxisVector(axis: keyof Vector3Like): Vector3Like {
+  return {
+    x: axis === "x" ? 1 : 0,
+    y: axis === "y" ? 1 : 0,
+    z: axis === "z" ? 1 : 0,
+  };
+}
+
+function rotateVectorByEuler(vector: Vector3Like, rotation: Vector3Like): Vector3Like {
+  const cosX = Math.cos(rotation.x);
+  const sinX = Math.sin(rotation.x);
+  const cosY = Math.cos(rotation.y);
+  const sinY = Math.sin(rotation.y);
+  const cosZ = Math.cos(rotation.z);
+  const sinZ = Math.sin(rotation.z);
+
+  const afterX = {
+    x: vector.x,
+    y: vector.y * cosX - vector.z * sinX,
+    z: vector.y * sinX + vector.z * cosX,
+  };
+  const afterY = {
+    x: afterX.x * cosY + afterX.z * sinY,
+    y: afterX.y,
+    z: -afterX.x * sinY + afterX.z * cosY,
+  };
+
+  return {
+    x: afterY.x * cosZ - afterY.y * sinZ,
+    y: afterY.x * sinZ + afterY.y * cosZ,
+    z: afterY.z,
+  };
+}
+
+function clampPatternCopies(copies: number): number {
+  if (!Number.isFinite(copies)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.min(200, Math.round(copies)));
 }
 
 export function createEditorStore() {
@@ -333,6 +382,42 @@ export function createEditorStore() {
         return {
           ...history,
           selectedPartId: duplicate.id,
+          selectedMeasurementId: null,
+        };
+      }),
+
+    createCladdingPattern: (partId, options) =>
+      set((state) => {
+        const selected = state.project.parts.find((part) => part.id === partId);
+        if (!selected || selected.objectType !== "cladding" || options.spacing <= 0 || !Number.isFinite(options.spacing)) {
+          return state;
+        }
+
+        const copies = clampPatternCopies(options.copies);
+        const direction = rotateVectorByEuler(getLocalAxisVector(options.axis), selected.rotation);
+        const patternParts = Array.from({ length: copies }, (_, index) => {
+          const step = index + 1;
+
+          return {
+            ...(JSON.parse(JSON.stringify(selected)) as PartNode),
+            id: randomId(),
+            name: `${selected.name} Pattern ${step}`,
+            position: {
+              x: selected.position.x + direction.x * options.spacing * step,
+              y: selected.position.y + direction.y * options.spacing * step,
+              z: selected.position.z + direction.z * options.spacing * step,
+            },
+          };
+        });
+
+        const history = withProjectHistory(state, (project) => ({
+          ...project,
+          parts: [...project.parts, ...patternParts],
+        }));
+
+        return {
+          ...history,
+          selectedPartId: patternParts.at(-1)?.id ?? selected.id,
           selectedMeasurementId: null,
         };
       }),
