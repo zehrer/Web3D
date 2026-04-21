@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CladdingIcon, FolderIcon, GlassIcon, RulerIcon, SheetIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -20,6 +20,14 @@ function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
 
   if (objectType === "glass") {
     return <GlassIcon width={14} height={14} />;
+  }
+
+  if (objectType === "rectangle") {
+    return <RectangleIcon width={14} height={14} />;
+  }
+
+  if (objectType === "circle") {
+    return <CircleIcon width={14} height={14} />;
   }
 
   return <BeamIcon width={14} height={14} />;

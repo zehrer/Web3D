@@ -243,6 +243,10 @@ export function Toolbar({
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("timber"); }} type="button">Timber Object</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("cladding"); }} type="button">Rhombus Cladding</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("glass"); }} type="button">Glass Object</button>
+                <div className="menu-dropdown__divider" />
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("rectangle"); }} type="button">Rectangle Shape</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("circle"); }} type="button">Circle Shape</button>
+                <div className="menu-dropdown__divider" />
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); setActiveTool("measure"); }} type="button">Measure Object</button>
               </div>
             ) : null}

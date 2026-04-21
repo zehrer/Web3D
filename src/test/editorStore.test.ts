@@ -105,6 +105,29 @@ describe("editor store", () => {
     expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 10 });
   });
 
+  it("creates flat shape objects and keeps them zero thickness", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+
+    store.getState().addObject("rectangle");
+    const rectangle = store.getState().project.parts.at(-1)!;
+    expect(rectangle.objectType).toBe("rectangle");
+    expect(rectangle.profileId).toBe("shape-rectangle");
+    expect(rectangle.size).toEqual({ x: 800, y: 0, z: 500 });
+
+    store.getState().setPartGeometry(rectangle.id, {
+      size: { x: 1200, y: 50, z: 700 },
+    });
+    expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 0, z: 700 });
+
+    store.getState().addObject("circle");
+    const circle = store.getState().project.parts.at(-1)!;
+    store.getState().setPartGeometry(circle.id, {
+      size: { x: 650, y: 50, z: 300 },
+    });
+    expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 650, y: 0, z: 650 });
+  });
+
   it("creates repeated cladding patterns from profile width plus gap", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());

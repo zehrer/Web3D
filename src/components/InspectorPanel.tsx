@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
 import { formatLength, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
-import type { ObjectProfileId, UnitPreference, Vector3Like } from "../types/model";
+import type { ObjectProfileId, ObjectType, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
   const parsed = Number(value);
@@ -92,7 +92,11 @@ function isPanelObject(objectType: string) {
   return objectType === "sheet" || objectType === "glass";
 }
 
-function getProfileFieldLabel(objectType: "sheet" | "timber" | "cladding" | "glass") {
+function isFlatShapeObject(objectType: string) {
+  return objectType === "rectangle" || objectType === "circle";
+}
+
+function getProfileFieldLabel(objectType: ObjectType) {
   if (objectType === "sheet") {
     return "Sheet profile";
   }
@@ -105,7 +109,11 @@ function getProfileFieldLabel(objectType: "sheet" | "timber" | "cladding" | "gla
     return "Cladding profile";
   }
 
-  return "Glass profile";
+  if (objectType === "glass") {
+    return "Glass profile";
+  }
+
+  return "Shape";
 }
 
 export function InspectorPanel() {
@@ -115,6 +123,7 @@ export function InspectorPanel() {
   const unitPreference = state.project.unitPreference;
   const setPartGeometry = state.setPartGeometry;
   const setPartProfile = state.setPartProfile;
+  const updatePart = state.updatePart;
   const createCladdingPattern = state.createCladdingPattern;
   const updateMeasurement = state.updateMeasurement;
   const [patternAxis, setPatternAxis] = useState<keyof Vector3Like>("y");
@@ -148,22 +157,48 @@ export function InspectorPanel() {
 
         {selectedPart ? (
           <>
-            <label className="field inspector-field">
-              <span>{getProfileFieldLabel(selectedPart.objectType)}</span>
-              <select
-                className="field__input"
-                value={selectedPart.profileId}
-                onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
-              >
-                {getProfilesForType(selectedPart.objectType).map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {profile.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!isFlatShapeObject(selectedPart.objectType) ? (
+              <label className="field inspector-field">
+                <span>{getProfileFieldLabel(selectedPart.objectType)}</span>
+                <select
+                  className="field__input"
+                  value={selectedPart.profileId}
+                  onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
+                >
+                  {getProfilesForType(selectedPart.objectType).map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
 
-            {isPanelObject(selectedPart.objectType) ? (
+            {selectedPart.objectType === "circle" ? (
+              <FieldRow
+                label={`Diameter (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                value={toDisplayUnits(selectedPart.size.x, unitPreference)}
+                onChange={(value) => {
+                  const diameter = fromDisplayUnits(value, unitPreference);
+                  setPartGeometry(selectedPart.id, {
+                    size: {
+                      x: diameter,
+                      y: 0,
+                      z: diameter,
+                    },
+                  });
+                }}
+              />
+            ) : isFlatShapeObject(selectedPart.objectType) ? (
+              <VectorFields
+                label="Size"
+                vector={selectedPart.size}
+                unitPreference={unitPreference}
+                columns={1}
+                axes={["x", "z"]}
+                onChange={(vector) => setPartGeometry(selectedPart.id, { size: { ...vector, y: 0 } })}
+              />
+            ) : isPanelObject(selectedPart.objectType) ? (
               <VectorFields
                 label="Size"
                 vector={selectedPart.size}
@@ -197,6 +232,23 @@ export function InspectorPanel() {
                 </label>
               </>
             )}
+
+            {isFlatShapeObject(selectedPart.objectType) ? (
+              <label className="field inspector-field">
+                <span>Color</span>
+                <input
+                  className="field__input"
+                  type="color"
+                  value={selectedPart.color}
+                  onChange={(event) =>
+                    updatePart(selectedPart.id, (part) => ({
+                      ...part,
+                      color: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+            ) : null}
 
             <VectorFields
               label="Position"

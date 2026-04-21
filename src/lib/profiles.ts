@@ -51,7 +51,23 @@ export type GlassProfile = BaseProfile & {
   opacity: number;
 };
 
-export type ObjectProfile = SheetProfile | TimberProfile | CladdingProfile | GlassProfile;
+export type RectangleProfile = BaseProfile & {
+  id: "shape-rectangle";
+  objectType: "rectangle";
+  defaultWidthMm: number;
+  defaultDepthMm: number;
+};
+
+export type CircleProfile = BaseProfile & {
+  id: "shape-circle";
+  objectType: "circle";
+  defaultWidthMm: number;
+  defaultDepthMm: number;
+};
+
+export type ShapeProfile = RectangleProfile | CircleProfile;
+
+export type ObjectProfile = SheetProfile | TimberProfile | CladdingProfile | GlassProfile | ShapeProfile;
 
 export const SHEET_PROFILES: SheetProfile[] = [
   { id: "osb3-12", objectType: "sheet", label: "OSB/3 12 mm", thicknessMm: 12, defaultLengthMm: 1200, defaultWidthMm: 600, color: DEFAULT_OBJECT_COLOR },
@@ -83,11 +99,18 @@ export const GLASS_PROFILES: GlassProfile[] = [
   { id: "plexiglass-10", objectType: "glass", label: "Plexiglass 10 mm", thicknessMm: 10, defaultLengthMm: 900, defaultWidthMm: 600, opacity: 0.32, color: "#86cfff" },
 ];
 
+export const SHAPE_PROFILES: ShapeProfile[] = [
+  { id: "shape-rectangle", objectType: "rectangle", label: "Rectangle", defaultWidthMm: 800, defaultDepthMm: 500, color: "#7f8a96" },
+  { id: "shape-circle", objectType: "circle", label: "Circle", defaultWidthMm: 500, defaultDepthMm: 500, color: "#7f8a96" },
+];
+
 export const OBJECT_TYPE_LABELS: Record<ObjectType, string> = {
   sheet: "Sheet Goods",
   timber: "Structural Timber",
   cladding: "Rhombus Cladding",
   glass: "Glass",
+  rectangle: "Rectangle",
+  circle: "Circle",
 };
 
 export function getProfilesForType(objectType: ObjectType): ObjectProfile[] {
@@ -103,11 +126,15 @@ export function getProfilesForType(objectType: ObjectType): ObjectProfile[] {
     return CLADDING_PROFILES;
   }
 
-  return GLASS_PROFILES;
+  if (objectType === "glass") {
+    return GLASS_PROFILES;
+  }
+
+  return SHAPE_PROFILES.filter((profile) => profile.objectType === objectType);
 }
 
 export function getProfileById(profileId: ObjectProfileId): ObjectProfile {
-  const profile = [...SHEET_PROFILES, ...TIMBER_PROFILES, ...CLADDING_PROFILES, ...GLASS_PROFILES].find((entry) => entry.id === profileId);
+  const profile = [...SHEET_PROFILES, ...TIMBER_PROFILES, ...CLADDING_PROFILES, ...GLASS_PROFILES, ...SHAPE_PROFILES].find((entry) => entry.id === profileId);
   if (!profile) {
     throw new Error(`Unknown object profile: ${profileId}`);
   }
@@ -128,7 +155,11 @@ export function getDefaultProfileId(objectType: ObjectType): ObjectProfileId {
     return "rhombus-19x68";
   }
 
-  return "plexiglass-3";
+  if (objectType === "glass") {
+    return "plexiglass-3";
+  }
+
+  return objectType === "circle" ? "shape-circle" : "shape-rectangle";
 }
 
 export function getObjectTypeLabel(objectType: ObjectType): string {
@@ -144,6 +175,14 @@ export function createSizeFromProfile(profile: ObjectProfile): Vector3Like {
     };
   }
 
+  if (profile.objectType === "rectangle" || profile.objectType === "circle") {
+    return {
+      x: profile.defaultWidthMm,
+      y: 0,
+      z: profile.defaultDepthMm,
+    };
+  }
+
   return {
     x: profile.defaultLengthMm,
     y: profile.widthMm,
@@ -156,6 +195,22 @@ export function applyProfileToSize(profile: ObjectProfile, size: Vector3Like): V
     return {
       ...size,
       z: profile.thicknessMm,
+    };
+  }
+
+  if (profile.objectType === "rectangle") {
+    return {
+      x: size.x,
+      y: 0,
+      z: size.z,
+    };
+  }
+
+  if (profile.objectType === "circle") {
+    return {
+      x: size.x,
+      y: 0,
+      z: size.x,
     };
   }
 
@@ -178,7 +233,11 @@ export function createObjectName(objectType: ObjectType, index: number): string 
         ? "Timber"
         : objectType === "cladding"
           ? "Cladding"
-          : "Glass";
+          : objectType === "glass"
+            ? "Glass"
+            : objectType === "rectangle"
+              ? "Rectangle"
+              : "Circle";
   return `${prefix} ${index + 1}`;
 }
 
@@ -187,5 +246,13 @@ export function isSheetObject(part: PartNode): boolean {
 }
 
 export function getResizableAxes(part: PartNode): Array<keyof Vector3Like> {
-  return part.objectType === "sheet" || part.objectType === "glass" ? ["x", "y"] : ["x"];
+  if (part.objectType === "sheet" || part.objectType === "glass") {
+    return ["x", "y"];
+  }
+
+  if (part.objectType === "rectangle") {
+    return ["x", "z"];
+  }
+
+  return ["x"];
 }

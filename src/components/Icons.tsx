@@ -205,6 +205,31 @@ export function GlassIcon(props: IconProps) {
   );
 }
 
+export function ShapeIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="4.5" y="5" width="7" height="7" />
+      <circle cx="16" cy="15.5" r="4" />
+    </BaseIcon>
+  );
+}
+
+export function RectangleIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="4" y="7" width="16" height="10" />
+    </BaseIcon>
+  );
+}
+
+export function CircleIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="7" />
+    </BaseIcon>
+  );
+}
+
 export function FolderIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

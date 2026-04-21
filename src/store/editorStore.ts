@@ -174,6 +174,39 @@ function getPatternProfileStep(part: PartNode, axis: keyof Vector3Like): number 
   return Math.abs(part.size[axis]);
 }
 
+function normalizePartSize(part: PartNode, size: Vector3Like): Vector3Like {
+  if (part.objectType === "rectangle") {
+    return {
+      x: clampLength(size.x),
+      y: 0,
+      z: clampLength(size.z),
+    };
+  }
+
+  if (part.objectType === "circle") {
+    const diameter = clampLength(size.x);
+    return {
+      x: diameter,
+      y: 0,
+      z: diameter,
+    };
+  }
+
+  return {
+    x: clampLength(size.x),
+    y: clampLength(size.y),
+    z: clampLength(size.z),
+  };
+}
+
+function mergePartSize(part: PartNode, size: Vector3Like): Vector3Like {
+  return normalizePartSize(part, {
+    x: size.x ?? part.size.x,
+    y: size.y ?? part.size.y,
+    z: size.z ?? part.size.z,
+  });
+}
+
 export function createEditorStore() {
   return createStore<EditorState & EditorActions>((set) => ({
     hydrated: false,
@@ -487,13 +520,7 @@ export function createEditorStore() {
           ...project,
           parts: replacePart(project.parts, partId, (part) => ({
             ...part,
-            size: geometry.size
-              ? {
-                  x: clampLength(geometry.size.x ?? part.size.x),
-                  y: clampLength(geometry.size.y ?? part.size.y),
-                  z: clampLength(geometry.size.z ?? part.size.z),
-                }
-              : part.size,
+            size: geometry.size ? mergePartSize(part, geometry.size) : part.size,
             position: geometry.position ? { ...part.position, ...geometry.position } : part.position,
             rotation: geometry.rotation ? { ...part.rotation, ...geometry.rotation } : part.rotation,
           })),
@@ -506,13 +533,7 @@ export function createEditorStore() {
           ...state.project,
           parts: replacePart(state.project.parts, partId, (part) => ({
             ...part,
-            size: geometry.size
-              ? {
-                  x: clampLength(geometry.size.x ?? part.size.x),
-                  y: clampLength(geometry.size.y ?? part.size.y),
-                  z: clampLength(geometry.size.z ?? part.size.z),
-                }
-              : part.size,
+            size: geometry.size ? mergePartSize(part, geometry.size) : part.size,
             position: geometry.position ? { ...part.position, ...geometry.position } : part.position,
             rotation: geometry.rotation ? { ...part.rotation, ...geometry.rotation } : part.rotation,
           })),

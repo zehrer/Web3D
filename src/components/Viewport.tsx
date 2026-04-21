@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { Edges, Html, Line, OrbitControls, Text, TransformControls } from "@react-three/drei";
-import { ArrowHelper, Euler, Vector3, type Object3D } from "three";
+import { ArrowHelper, DoubleSide, Euler, Vector3, type Object3D } from "three";
 import {
   BeamIcon,
+  CircleIcon,
   CladdingIcon,
   DuplicateIcon,
   GlassIcon,
@@ -12,10 +13,12 @@ import {
   PerspectiveIcon,
   PlusIcon,
   RedoIcon,
+  RectangleIcon,
   ResizeIcon,
   RulerIcon,
   RotateIcon,
   SheetIcon,
+  ShapeIcon,
   TopViewIcon,
   TrashIcon,
   UndoIcon,
@@ -70,8 +73,45 @@ function distanceBetween(start: Vector3Like, end: Vector3Like): number {
   return Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z);
 }
 
+function isFlatShape(part: PartNode): boolean {
+  return part.objectType === "rectangle" || part.objectType === "circle";
+}
+
+function transformLocalPoint(part: PartNode, local: [number, number, number], rotation: Euler): PartCornerDefinition {
+  const world = new Vector3(...local).applyEuler(rotation).add(new Vector3(part.position.x, part.position.y, part.position.z));
+
+  return {
+    key: local.join("-"),
+    local,
+    world: {
+      x: world.x,
+      y: world.y,
+      z: world.z,
+    },
+  };
+}
+
 function getPartCorners(part: PartNode): PartCornerDefinition[] {
   const rotation = new Euler(part.rotation.x, part.rotation.y, part.rotation.z);
+
+  if (part.objectType === "rectangle") {
+    return ([
+      [0, 0, 0],
+      [part.size.x, 0, 0],
+      [part.size.x, 0, part.size.z],
+      [0, 0, part.size.z],
+    ] as Array<[number, number, number]>).map((local) => transformLocalPoint(part, local, rotation));
+  }
+
+  if (part.objectType === "circle") {
+    const radius = part.size.x / 2;
+    return ([
+      [0, 0, radius],
+      [radius, 0, 0],
+      [part.size.x, 0, radius],
+      [radius, 0, part.size.z],
+    ] as Array<[number, number, number]>).map((local) => transformLocalPoint(part, local, rotation));
+  }
 
   return ([0, part.size.x] as const).flatMap((x) =>
     ([0, part.size.y] as const).flatMap((y) =>
@@ -231,7 +271,55 @@ function ObjectMaterial({ part }: { part: PartNode }) {
     );
   }
 
+  if (isFlatShape(part)) {
+    return (
+      <meshStandardMaterial
+        color={part.color}
+        metalness={0.02}
+        polygonOffset
+        polygonOffsetFactor={-1}
+        polygonOffsetUnits={-1}
+        roughness={0.72}
+        side={DoubleSide}
+      />
+    );
+  }
+
   return <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />;
+}
+
+function PartShapeMesh({ part, selected }: { part: PartNode; selected: boolean }) {
+  if (part.objectType === "rectangle") {
+    return (
+      <mesh position={[part.size.x / 2, 0, part.size.z / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[part.size.x, part.size.z]} />
+        <ObjectMaterial part={part} />
+        <Edges color={selected ? "#eef1f4" : "#53606d"} />
+      </mesh>
+    );
+  }
+
+  if (part.objectType === "circle") {
+    return (
+      <mesh position={[part.size.x / 2, 0, part.size.z / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[part.size.x / 2, 64]} />
+        <ObjectMaterial part={part} />
+        <Edges color={selected ? "#eef1f4" : "#53606d"} />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh
+      position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]}
+      castShadow={part.objectType !== "glass"}
+      receiveShadow={part.objectType !== "glass"}
+    >
+      <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
+      <ObjectMaterial part={part} />
+      <Edges color={selected ? "#eef1f4" : "#53606d"} />
+    </mesh>
+  );
 }
 
 function AxisArrow({
@@ -468,15 +556,7 @@ function Scene() {
               selectPart(part.id);
             }}
           >
-            <mesh
-              position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]}
-              castShadow={part.objectType !== "glass"}
-              receiveShadow={part.objectType !== "glass"}
-            >
-              <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
-              <ObjectMaterial part={part} />
-              <Edges color={isSelected ? "#eef1f4" : "#53606d"} />
-            </mesh>
+            <PartShapeMesh part={part} selected={isSelected} />
             {isSelected ? <KeyDimensionGuide part={part} /> : null}
 
             {activeTool === "measure"
@@ -575,8 +655,8 @@ function Scene() {
 
 export function Viewport() {
   const [showHelp, setShowHelp] = useState(false);
-  const [showAddMenu, setShowAddMenu] = useState(false);
-  const addMenuRef = useRef<HTMLDivElement | null>(null);
+  const [openAddMenu, setOpenAddMenu] = useState<"objects" | "shapes" | null>(null);
+  const railMenuRef = useRef<HTMLDivElement | null>(null);
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const addObject = useEditorStore((state) => state.addObject);
@@ -596,8 +676,8 @@ export function Viewport() {
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
-      if (!addMenuRef.current?.contains(event.target as Node)) {
-        setShowAddMenu(false);
+      if (!railMenuRef.current?.contains(event.target as Node)) {
+        setOpenAddMenu(null);
       }
     }
 
@@ -627,23 +707,23 @@ export function Viewport() {
   return (
     <section className="viewport-panel">
       <div className="viewport-canvas">
-        <div className="viewport-rail viewport-rail--left">
-          <div className="viewport-rail__menu-wrapper" ref={addMenuRef}>
+        <div className="viewport-rail viewport-rail--left" ref={railMenuRef}>
+          <div className="viewport-rail__menu-wrapper">
             <button
-              className={`viewport-rail__button ${showAddMenu ? "viewport-rail__button--active" : ""}`}
-              onClick={() => setShowAddMenu((value) => !value)}
+              className={`viewport-rail__button ${openAddMenu === "objects" ? "viewport-rail__button--active" : ""}`}
+              onClick={() => setOpenAddMenu((value) => (value === "objects" ? null : "objects"))}
               title="Add object"
               type="button"
             >
               <PlusIcon width={18} height={18} />
             </button>
-            {showAddMenu ? (
+            {openAddMenu === "objects" ? (
               <div className="viewport-add-menu">
                 <button
                   className="viewport-add-menu__item"
                   onClick={() => {
                     addObject("sheet");
-                    setShowAddMenu(false);
+                    setOpenAddMenu(null);
                   }}
                   type="button"
                 >
@@ -654,7 +734,7 @@ export function Viewport() {
                   className="viewport-add-menu__item"
                   onClick={() => {
                     addObject("timber");
-                    setShowAddMenu(false);
+                    setOpenAddMenu(null);
                   }}
                   type="button"
                 >
@@ -665,7 +745,7 @@ export function Viewport() {
                   className="viewport-add-menu__item"
                   onClick={() => {
                     addObject("cladding");
-                    setShowAddMenu(false);
+                    setOpenAddMenu(null);
                   }}
                   type="button"
                 >
@@ -676,12 +756,48 @@ export function Viewport() {
                   className="viewport-add-menu__item"
                   onClick={() => {
                     addObject("glass");
-                    setShowAddMenu(false);
+                    setOpenAddMenu(null);
                   }}
                   type="button"
                 >
                   <GlassIcon width={16} height={16} />
                   <span>Glass</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
+          <div className="viewport-rail__menu-wrapper">
+            <button
+              className={`viewport-rail__button ${openAddMenu === "shapes" ? "viewport-rail__button--active" : ""}`}
+              onClick={() => setOpenAddMenu((value) => (value === "shapes" ? null : "shapes"))}
+              title="Add basic shape"
+              type="button"
+            >
+              <ShapeIcon width={18} height={18} />
+            </button>
+            {openAddMenu === "shapes" ? (
+              <div className="viewport-add-menu">
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    addObject("rectangle");
+                    setOpenAddMenu(null);
+                  }}
+                  type="button"
+                >
+                  <RectangleIcon width={16} height={16} />
+                  <span>Rectangle</span>
+                </button>
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    addObject("circle");
+                    setOpenAddMenu(null);
+                  }}
+                  type="button"
+                >
+                  <CircleIcon width={16} height={16} />
+                  <span>Circle</span>
                 </button>
               </div>
             ) : null}
@@ -695,7 +811,10 @@ export function Viewport() {
             <button
               key={tool}
               className={`viewport-rail__button ${activeTool === tool ? "viewport-rail__button--active" : ""}`}
-              onClick={() => setActiveTool(tool)}
+              onClick={() => {
+                setOpenAddMenu(null);
+                setActiveTool(tool);
+              }}
               title={label}
               type="button"
             >
@@ -703,10 +822,26 @@ export function Viewport() {
             </button>
           ))}
           <div className="viewport-rail__divider" />
-          <button className="viewport-rail__button" onClick={undo} title="Undo" type="button">
+          <button
+            className="viewport-rail__button"
+            onClick={() => {
+              setOpenAddMenu(null);
+              undo();
+            }}
+            title="Undo"
+            type="button"
+          >
             <UndoIcon width={18} height={18} />
           </button>
-          <button className="viewport-rail__button" onClick={redo} title="Redo" type="button">
+          <button
+            className="viewport-rail__button"
+            onClick={() => {
+              setOpenAddMenu(null);
+              redo();
+            }}
+            title="Redo"
+            type="button"
+          >
             <RedoIcon width={18} height={18} />
           </button>
         </div>

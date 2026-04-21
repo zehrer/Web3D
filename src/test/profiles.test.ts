@@ -50,10 +50,22 @@ describe("object profiles", () => {
     expect(resizedWithProfileThickness).toEqual({ x: 1200, y: 800, z: 10 });
   });
 
+  it("creates flat shape profiles without thickness", () => {
+    const rectangleSize = createSizeFromProfile(getProfileById("shape-rectangle"));
+    const circleSize = createSizeFromProfile(getProfileById("shape-circle"));
+    const resizedCircle = applyProfileToSize(getProfileById("shape-circle"), { x: 750, y: 30, z: 500 });
+
+    expect(rectangleSize).toEqual({ x: 800, y: 0, z: 500 });
+    expect(circleSize).toEqual({ x: 500, y: 0, z: 500 });
+    expect(resizedCircle).toEqual({ x: 750, y: 0, z: 750 });
+  });
+
   it("limits resize axes by object family", () => {
     expect(getResizableAxes(createObjectPart(0, { objectType: "sheet", profileId: "osb3-18" }))).toEqual(["x", "y"]);
     expect(getResizableAxes(createObjectPart(0, { objectType: "timber", profileId: "timber-100x100" }))).toEqual(["x"]);
     expect(getResizableAxes(createObjectPart(0, { objectType: "cladding", profileId: "rhombus-19x68" }))).toEqual(["x"]);
     expect(getResizableAxes(createObjectPart(0, { objectType: "glass", profileId: "plexiglass-3" }))).toEqual(["x", "y"]);
+    expect(getResizableAxes(createObjectPart(0, { objectType: "rectangle", profileId: "shape-rectangle" }))).toEqual(["x", "z"]);
+    expect(getResizableAxes(createObjectPart(0, { objectType: "circle", profileId: "shape-circle" }))).toEqual(["x"]);
   });
 });

@@ -1,4 +1,4 @@
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial, type Object3D } from "three";
+import { BoxGeometry, CircleGeometry, DoubleSide, Group, Mesh, MeshStandardMaterial, PlaneGeometry, type Object3D } from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { serializeProject, serializeProjectFile } from "./serialization";
@@ -15,6 +15,10 @@ function createExportMaterial(part: PartNode) {
       roughness: 0.08,
       transparent: true,
     });
+  }
+
+  if (part.objectType === "rectangle" || part.objectType === "circle") {
+    return new MeshStandardMaterial({ color: part.color, side: DoubleSide });
   }
 
   return new MeshStandardMaterial({ color: part.color });
@@ -36,16 +40,26 @@ function createPartExportGroup(part: PartNode, unitScale = 1): Group {
     },
   };
 
-  const mesh = new Mesh(
-    new BoxGeometry(part.size.x * unitScale, part.size.y * unitScale, part.size.z * unitScale),
-    createExportMaterial(part),
-  );
+  const mesh =
+    part.objectType === "rectangle"
+      ? new Mesh(new PlaneGeometry(part.size.x * unitScale, part.size.z * unitScale), createExportMaterial(part))
+      : part.objectType === "circle"
+        ? new Mesh(new CircleGeometry((part.size.x * unitScale) / 2, 64), createExportMaterial(part))
+        : new Mesh(
+            new BoxGeometry(part.size.x * unitScale, part.size.y * unitScale, part.size.z * unitScale),
+            createExportMaterial(part),
+          );
   mesh.name = `${part.name} Mesh`;
-  mesh.position.set(
-    (part.size.x * unitScale) / 2,
-    (part.size.y * unitScale) / 2,
-    (part.size.z * unitScale) / 2,
-  );
+  if (part.objectType === "rectangle" || part.objectType === "circle") {
+    mesh.position.set((part.size.x * unitScale) / 2, 0, (part.size.z * unitScale) / 2);
+    mesh.rotation.set(-Math.PI / 2, 0, 0);
+  } else {
+    mesh.position.set(
+      (part.size.x * unitScale) / 2,
+      (part.size.y * unitScale) / 2,
+      (part.size.z * unitScale) / 2,
+    );
+  }
   mesh.userData = {
     web3d: {
       kind: "part-mesh",
