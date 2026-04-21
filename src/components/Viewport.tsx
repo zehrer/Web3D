@@ -197,14 +197,14 @@ function MeasurementGuide({
 
   return (
     <>
-      <Line points={[start, end]} color={selected ? "#c68a3b" : measurement.color} lineWidth={selected ? 2.2 : 1.5} />
+      <Line points={[start, end]} color={selected ? "#5f6b76" : measurement.color} lineWidth={selected ? 2.2 : 1.5} />
       <mesh position={start}>
         <sphereGeometry args={[11, 18, 18]} />
-        <meshStandardMaterial color={selected ? "#c68a3b" : measurement.color} />
+        <meshStandardMaterial color={selected ? "#5f6b76" : measurement.color} />
       </mesh>
       <mesh position={end}>
         <sphereGeometry args={[11, 18, 18]} />
-        <meshStandardMaterial color={selected ? "#c68a3b" : measurement.color} />
+        <meshStandardMaterial color={selected ? "#5f6b76" : measurement.color} />
       </mesh>
       <Html position={midpoint} center style={{ pointerEvents: "none" }}>
         <div className={`measurement-chip ${selected ? "measurement-chip--selected" : ""}`}>
@@ -452,7 +452,7 @@ function Scene() {
             <mesh position={[part.size.x / 2, part.size.y / 2, part.size.z / 2]} castShadow receiveShadow>
               <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
               <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />
-              <Edges color={isSelected ? "#f4ead4" : "#53606d"} />
+              <Edges color={isSelected ? "#eef1f4" : "#53606d"} />
             </mesh>
             {isSelected ? <KeyDimensionGuide part={part} /> : null}
 
@@ -486,7 +486,7 @@ function Scene() {
                     onPointerDown={(event) => beginResizeDrag(event, part, handle.axis, handle.direction)}
                   >
                     <sphereGeometry args={[16, 18, 18]} />
-                    <meshStandardMaterial color="#dfa249" emissive="#9f6410" />
+                    <meshStandardMaterial color="#6f7b87" emissive="#3f4852" />
                   </mesh>
                 ))
               : null}

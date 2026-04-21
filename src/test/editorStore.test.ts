@@ -30,12 +30,13 @@ describe("editor store", () => {
     store.getState().hydrateProject(createProject());
 
     const selectedPartId = store.getState().project.parts[0].id;
+    const originalSizeX = store.getState().project.parts[0].size.x;
     store.getState().selectPart(selectedPartId);
     store.getState().setPartGeometry(selectedPartId, { size: { x: 700, y: 300, z: 18 } });
     expect(store.getState().project.parts[0].size.x).toBe(700);
 
     store.getState().undo();
-    expect(store.getState().project.parts[0].size.x).toBe(1800);
+    expect(store.getState().project.parts[0].size.x).toBe(originalSizeX);
 
     store.getState().redo();
     expect(store.getState().project.parts[0].size.x).toBe(700);
@@ -70,6 +71,7 @@ describe("editor store", () => {
     store.getState().hydrateProject(project);
 
     const selectedPartId = store.getState().project.parts[0].id;
+    const originalPositionX = store.getState().project.parts[0].position.x;
     const snapshot = JSON.parse(JSON.stringify(store.getState().project));
 
     store.getState().previewPartGeometry(selectedPartId, {
@@ -84,7 +86,7 @@ describe("editor store", () => {
     expect(store.getState().undoStack).toHaveLength(1);
 
     store.getState().undo();
-    expect(store.getState().project.parts[0].position.x).toBe(0);
+    expect(store.getState().project.parts[0].position.x).toBe(originalPositionX);
   });
 
   it("organizes objects in nested groups", () => {
@@ -112,26 +114,27 @@ describe("editor store", () => {
   it("adds and organizes measurement objects", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());
+    const initialMeasurementCount = store.getState().project.measurements.length;
 
     store.getState().addMeasurement({ x: 0, y: 0, z: 0 }, { x: 300, y: 0, z: 400 });
-    const measurement = store.getState().project.measurements[0];
+    const measurement = store.getState().project.measurements.at(-1)!;
 
-    expect(measurement.name).toBe("Measure 1");
+    expect(measurement.name).toBe(`Measure ${initialMeasurementCount + 1}`);
     expect(store.getState().selectedMeasurementId).toBe(measurement.id);
     expect(store.getState().selectedPartId).toBeNull();
 
     store.getState().addGroup();
     const group = store.getState().project.groups.at(-1)!;
     store.getState().moveMeasurementToGroup(measurement.id, group.id);
-    expect(store.getState().project.measurements[0].groupId).toBe(group.id);
+    expect(store.getState().project.measurements.find((item) => item.id === measurement.id)?.groupId).toBe(group.id);
 
     store.getState().updateMeasurement(measurement.id, (current) => ({
       ...current,
       name: "Shelf Width",
     }));
-    expect(store.getState().project.measurements[0].name).toBe("Shelf Width");
+    expect(store.getState().project.measurements.find((item) => item.id === measurement.id)?.name).toBe("Shelf Width");
 
     store.getState().deleteSelectedMeasurement();
-    expect(store.getState().project.measurements).toHaveLength(0);
+    expect(store.getState().project.measurements).toHaveLength(initialMeasurementCount);
   });
 });

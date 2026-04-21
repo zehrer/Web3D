@@ -15,7 +15,9 @@ describe("project serialization", () => {
     expect(parsed.parts[0].size.x).toBe(project.parts[0].size.x);
     expect(parsed.parts[0].groupId).toBe(project.parts[0].groupId);
     expect(parsed.measurements).toEqual(project.measurements);
-    expect(parsed.parts.some((part) => part.objectType === "sheet")).toBe(true);
+    expect(parsed.groups.some((group) => group.name === "Shed")).toBe(true);
+    expect(parsed.parts).toHaveLength(16);
+    expect(parsed.measurements).toHaveLength(4);
     expect(parsed.parts.some((part) => part.objectType === "timber")).toBe(true);
   });
 
@@ -104,7 +106,11 @@ describe("project serialization", () => {
     expect(parsed.name).toBe("Exported Project");
     expect(parsed.groups[0]).toMatchObject({ id: firstGroup.id, name: "Custom Folder" });
     expect(parsed.parts[0]).toMatchObject({ id: firstPart.id, name: "Custom Timber", groupId: firstGroup.id });
-    expect(parsed.measurements[0]).toMatchObject({ id: "measure-1", name: "Custom Measure", groupId: firstGroup.id });
+    expect(parsed.measurements.find((measurement) => measurement.id === "measure-1")).toMatchObject({
+      id: "measure-1",
+      name: "Custom Measure",
+      groupId: firstGroup.id,
+    });
     expect(parsed.snapSettings).toEqual(project.snapSettings);
     expect(parsed.cameraState).toEqual(project.cameraState);
   });
@@ -133,6 +139,6 @@ describe("project serialization", () => {
     expect(parsed.name).toBe("Embedded Project");
     expect(parsed.groups[0].name).toBe("Embedded Folder");
     expect(parsed.parts[0].name).toBe("Embedded Object");
-    expect(parsed.measurements[0].name).toBe("Embedded Measure");
+    expect(parsed.measurements.find((measurement) => measurement.id === "embedded-measure")?.name).toBe("Embedded Measure");
   });
 });
