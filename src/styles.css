@@ -636,6 +636,12 @@ button {
   gap: 0.3rem;
 }
 
+.inspector-note {
+  color: #65737f;
+  font-size: 0.82rem;
+  margin: -0.1rem 0 0.45rem;
+}
+
 .inspector-action-button {
   width: 100%;
   border: 1px solid rgba(112, 124, 136, 0.55);

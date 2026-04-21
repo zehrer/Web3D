@@ -85,7 +85,7 @@ describe("editor store", () => {
     expect(updated.size).toEqual({ x: 2400, y: 68, z: 27 });
   });
 
-  it("creates repeated cladding patterns in a selected local direction", () => {
+  it("creates repeated cladding patterns from profile width plus gap", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());
     const initialCount = store.getState().project.parts.length;
@@ -96,7 +96,7 @@ describe("editor store", () => {
     store.getState().createCladdingPattern(cladding.id, {
       axis: "y",
       copies: 3,
-      spacing: 80,
+      gap: 12,
     });
 
     const copies = store.getState().project.parts.slice(initialCount + 1);
@@ -107,6 +107,26 @@ describe("editor store", () => {
       { x: 0, y: 240, z: 0 },
     ]);
     expect(copies.every((part) => part.objectType === "cladding")).toBe(true);
+  });
+
+  it("supports negative cladding pattern gaps for reverse direction", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+
+    store.getState().addObject("cladding", "rhombus-19x68");
+    const cladding = store.getState().project.parts.at(-1)!;
+
+    store.getState().createCladdingPattern(cladding.id, {
+      axis: "y",
+      copies: 2,
+      gap: -12,
+    });
+
+    const copies = store.getState().project.parts.slice(-2);
+    expect(copies.map((part) => part.position)).toEqual([
+      { x: 0, y: -80, z: 0 },
+      { x: 0, y: -160, z: 0 },
+    ]);
   });
 
   it("applies cladding patterns in rotated local coordinates", () => {
@@ -120,7 +140,7 @@ describe("editor store", () => {
     store.getState().createCladdingPattern(cladding.id, {
       axis: "y",
       copies: 1,
-      spacing: 80,
+      gap: 12,
     });
 
     const copy = store.getState().project.parts.at(-1)!;

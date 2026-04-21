@@ -109,7 +109,7 @@ export function InspectorPanel() {
   const updateMeasurement = state.updateMeasurement;
   const [patternAxis, setPatternAxis] = useState<keyof Vector3Like>("y");
   const [patternCopies, setPatternCopies] = useState(5);
-  const [patternSpacing, setPatternSpacing] = useState(68);
+  const [patternGap, setPatternGap] = useState(12);
   const measurementLength = selectedMeasurement
     ? Math.hypot(
         selectedMeasurement.end.x - selectedMeasurement.start.x,
@@ -122,9 +122,9 @@ export function InspectorPanel() {
     if (selectedPart?.objectType === "cladding") {
       setPatternAxis("y");
       setPatternCopies(5);
-      setPatternSpacing(selectedPart.size.y);
+      setPatternGap(12);
     }
-  }, [selectedPart?.id, selectedPart?.objectType, selectedPart?.size.y]);
+  }, [selectedPart?.id, selectedPart?.objectType]);
 
   return (
     <aside className="inspector">
@@ -250,18 +250,21 @@ export function InspectorPanel() {
                   onChange={(value) => setPatternCopies(Math.max(1, Math.min(200, Math.round(value))))}
                 />
                 <FieldRow
-                  label={`Spacing (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
-                  min={0.1}
-                  value={toDisplayUnits(patternSpacing, unitPreference)}
-                  onChange={(value) => setPatternSpacing(fromDisplayUnits(value, unitPreference))}
+                  label={`Gap (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                  value={toDisplayUnits(patternGap, unitPreference)}
+                  onChange={(value) => setPatternGap(fromDisplayUnits(value, unitPreference))}
                 />
+                <p className="inspector-note">
+                  Step: {formatLength(selectedPart.size[patternAxis] + Math.abs(patternGap), unitPreference)}
+                  {patternGap < 0 ? " in negative direction" : ""}
+                </p>
                 <button
                   className="inspector-action-button"
                   onClick={() =>
                     createCladdingPattern(selectedPart.id, {
                       axis: patternAxis,
                       copies: patternCopies,
-                      spacing: patternSpacing,
+                      gap: patternGap,
                     })
                   }
                   type="button"

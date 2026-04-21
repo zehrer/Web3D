@@ -26,7 +26,7 @@ type HistoryState = {
 type PatternOptions = {
   axis: keyof Vector3Like;
   copies: number;
-  spacing: number;
+  gap: number;
 };
 
 export interface EditorState extends HistoryState {
@@ -168,6 +168,10 @@ function clampPatternCopies(copies: number): number {
   }
 
   return Math.max(1, Math.min(200, Math.round(copies)));
+}
+
+function getPatternProfileStep(part: PartNode, axis: keyof Vector3Like): number {
+  return Math.abs(part.size[axis]);
 }
 
 export function createEditorStore() {
@@ -389,12 +393,13 @@ export function createEditorStore() {
     createCladdingPattern: (partId, options) =>
       set((state) => {
         const selected = state.project.parts.find((part) => part.id === partId);
-        if (!selected || selected.objectType !== "cladding" || options.spacing <= 0 || !Number.isFinite(options.spacing)) {
+        if (!selected || selected.objectType !== "cladding" || !Number.isFinite(options.gap)) {
           return state;
         }
 
         const copies = clampPatternCopies(options.copies);
         const direction = rotateVectorByEuler(getLocalAxisVector(options.axis), selected.rotation);
+        const stepDistance = Math.sign(options.gap || 1) * (getPatternProfileStep(selected, options.axis) + Math.abs(options.gap));
         const patternParts = Array.from({ length: copies }, (_, index) => {
           const step = index + 1;
 
@@ -403,9 +408,9 @@ export function createEditorStore() {
             id: randomId(),
             name: `${selected.name} Pattern ${step}`,
             position: {
-              x: selected.position.x + direction.x * options.spacing * step,
-              y: selected.position.y + direction.y * options.spacing * step,
-              z: selected.position.z + direction.z * options.spacing * step,
+              x: selected.position.x + direction.x * stepDistance * step,
+              y: selected.position.y + direction.y * stepDistance * step,
+              z: selected.position.z + direction.z * stepDistance * step,
             },
           };
         });
