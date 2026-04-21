@@ -14,6 +14,7 @@ describe("project serialization", () => {
     expect(parsed.parts).toHaveLength(project.parts.length);
     expect(parsed.parts[0].size.x).toBe(project.parts[0].size.x);
     expect(parsed.parts[0].groupId).toBe(project.parts[0].groupId);
+    expect(parsed.measurements).toEqual(project.measurements);
     expect(parsed.parts.some((part) => part.objectType === "sheet")).toBe(true);
     expect(parsed.parts.some((part) => part.objectType === "timber")).toBe(true);
   });
@@ -42,8 +43,9 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(4);
     expect(parsed.groups).toEqual([]);
+    expect(parsed.measurements).toEqual([]);
     expect(parsed.parts[0].groupId).toBeNull();
     expect(parsed.parts[0].objectType).toBe("sheet");
     expect(parsed.parts[0].profileId).toBe("osb3-18");
@@ -60,9 +62,25 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(4);
     expect(parsed.groups).toEqual([]);
+    expect(parsed.measurements).toEqual([]);
     expect(parsed.parts.every((part) => part.groupId === null)).toBe(true);
+  });
+
+  it("migrates v3 grouped projects into measurement-capable projects", () => {
+    const project = createProject("V3");
+    const payload = JSON.stringify({
+      ...project,
+      version: 3,
+      measurements: undefined,
+    });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(4);
+    expect(parsed.measurements).toEqual([]);
+    expect(parsed.groups).toHaveLength(project.groups.length);
   });
 
   it("round-trips native Web3D project files with group and object names", () => {
@@ -72,12 +90,21 @@ describe("project serialization", () => {
     firstGroup.name = "Custom Folder";
     firstPart.name = "Custom Timber";
     firstPart.groupId = firstGroup.id;
+    project.measurements.push({
+      id: "measure-1",
+      name: "Custom Measure",
+      groupId: firstGroup.id,
+      start: { x: 0, y: 0, z: 0 },
+      end: { x: 300, y: 0, z: 400 },
+      color: "#276f9f",
+    });
 
     const parsed = deserializeProjectFile(serializeProjectFile(project));
 
     expect(parsed.name).toBe("Exported Project");
     expect(parsed.groups[0]).toMatchObject({ id: firstGroup.id, name: "Custom Folder" });
     expect(parsed.parts[0]).toMatchObject({ id: firstPart.id, name: "Custom Timber", groupId: firstGroup.id });
+    expect(parsed.measurements[0]).toMatchObject({ id: "measure-1", name: "Custom Measure", groupId: firstGroup.id });
     expect(parsed.snapSettings).toEqual(project.snapSettings);
     expect(parsed.cameraState).toEqual(project.cameraState);
   });
@@ -86,6 +113,14 @@ describe("project serialization", () => {
     const project = createProject("Embedded Project");
     project.groups[0].name = "Embedded Folder";
     project.parts[0].name = "Embedded Object";
+    project.measurements.push({
+      id: "embedded-measure",
+      name: "Embedded Measure",
+      groupId: project.groups[0].id,
+      start: { x: 0, y: 0, z: 0 },
+      end: { x: 100, y: 0, z: 0 },
+      color: "#276f9f",
+    });
     const payload = JSON.stringify({
       asset: { version: "2.0" },
       extras: {
@@ -98,5 +133,6 @@ describe("project serialization", () => {
     expect(parsed.name).toBe("Embedded Project");
     expect(parsed.groups[0].name).toBe("Embedded Folder");
     expect(parsed.parts[0].name).toBe("Embedded Object");
+    expect(parsed.measurements[0].name).toBe("Embedded Measure");
   });
 });

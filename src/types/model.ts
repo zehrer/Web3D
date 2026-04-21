@@ -8,7 +8,7 @@ export type TimberProfileId = "timber-60x80" | "timber-80x100" | "timber-100x100
 
 export type ObjectProfileId = SheetProfileId | TimberProfileId;
 
-export type ActiveTool = "move" | "rotate" | "resize";
+export type ActiveTool = "move" | "rotate" | "resize" | "measure";
 
 export interface Vector3Like {
   x: number;
@@ -40,6 +40,15 @@ export interface PartNode {
   color: string;
 }
 
+export interface MeasurementNode {
+  id: string;
+  name: string;
+  groupId: string | null;
+  start: Vector3Like;
+  end: Vector3Like;
+  color: string;
+}
+
 export interface GroupNode {
   id: string;
   name: string;
@@ -55,6 +64,7 @@ export interface ProjectDocument {
   cameraState: CameraState;
   groups: GroupNode[];
   parts: PartNode[];
+  measurements: MeasurementNode[];
   createdAt: string;
   updatedAt: string;
 }

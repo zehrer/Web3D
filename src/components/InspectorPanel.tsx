@@ -1,6 +1,6 @@
 import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
-import { fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
-import { getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
+import { formatLength, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
+import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
 import type { ObjectProfileId, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
@@ -83,16 +83,27 @@ function VectorFields({
 export function InspectorPanel() {
   const state = useEditorStore((store) => store);
   const selectedPart = getSelectedPart(state);
+  const selectedMeasurement = getSelectedMeasurement(state);
   const unitPreference = state.project.unitPreference;
   const setPartGeometry = state.setPartGeometry;
   const setPartProfile = state.setPartProfile;
+  const updateMeasurement = state.updateMeasurement;
+  const measurementLength = selectedMeasurement
+    ? Math.hypot(
+        selectedMeasurement.end.x - selectedMeasurement.start.x,
+        selectedMeasurement.end.y - selectedMeasurement.start.y,
+        selectedMeasurement.end.z - selectedMeasurement.start.z,
+      )
+    : 0;
 
   return (
     <aside className="inspector">
       <section className="panel-card">
         <div className="panel-card__header">
           <span className="panel-card__title">Object</span>
-          <span className="panel-card__meta">{selectedPart ? getObjectTypeLabel(selectedPart.objectType) : "None"}</span>
+          <span className="panel-card__meta">
+            {selectedPart ? getObjectTypeLabel(selectedPart.objectType) : selectedMeasurement ? "Measure" : "None"}
+          </span>
         </div>
 
         {selectedPart ? (
@@ -200,6 +211,39 @@ export function InspectorPanel() {
                 </div>
               </label>
             ) : null}
+          </>
+        ) : selectedMeasurement ? (
+          <>
+            <label className="field">
+              <span>Length</span>
+              <div className="field__input field__input--readonly">{formatLength(measurementLength, unitPreference)}</div>
+            </label>
+
+            <VectorFields
+              label="Start"
+              vector={selectedMeasurement.start}
+              unitPreference={unitPreference}
+              columns={1}
+              onChange={(vector) =>
+                updateMeasurement(selectedMeasurement.id, (measurement) => ({
+                  ...measurement,
+                  start: vector,
+                }))
+              }
+            />
+
+            <VectorFields
+              label="End"
+              vector={selectedMeasurement.end}
+              unitPreference={unitPreference}
+              columns={1}
+              onChange={(vector) =>
+                updateMeasurement(selectedMeasurement.id, (measurement) => ({
+                  ...measurement,
+                  end: vector,
+                }))
+              }
+            />
           </>
         ) : (
           <p className="panel-card__empty">Select an object to inspect its dimensions.</p>

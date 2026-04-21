@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, SheetIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, FolderIcon, RulerIcon, SheetIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
-import type { GroupNode, PartNode } from "../types/model";
+import type { GroupNode, MeasurementNode, PartNode } from "../types/model";
 
-type EditingItem = { kind: "part" | "group"; id: string } | null;
-type DraggedTreeItem = { kind: "part" | "group"; id: string };
+type EditingItem = { kind: "part" | "group" | "measurement"; id: string } | null;
+type DraggedTreeItem = { kind: "part" | "group" | "measurement"; id: string };
 type DropTarget = "root" | string | null;
 
 const TREE_DRAG_MIME = "application/x-web3d-tree-item";
@@ -32,11 +32,15 @@ export function ProjectSidebar() {
   const knownGroupIdsRef = useRef<Set<string>>(new Set());
   const project = useEditorStore((state) => state.project);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
+  const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
   const selectPart = useEditorStore((state) => state.selectPart);
+  const selectMeasurement = useEditorStore((state) => state.selectMeasurement);
   const addGroup = useEditorStore((state) => state.addGroup);
   const updatePart = useEditorStore((state) => state.updatePart);
+  const updateMeasurement = useEditorStore((state) => state.updateMeasurement);
   const updateGroupName = useEditorStore((state) => state.updateGroupName);
   const movePartToGroup = useEditorStore((state) => state.movePartToGroup);
+  const moveMeasurementToGroup = useEditorStore((state) => state.moveMeasurementToGroup);
   const moveGroupToGroup = useEditorStore((state) => state.moveGroupToGroup);
 
   useEffect(() => {
@@ -45,11 +49,19 @@ export function ProjectSidebar() {
       setDraftName("");
     }
 
+    if (
+      editingItem?.kind === "measurement" &&
+      !project.measurements.some((measurement) => measurement.id === editingItem.id)
+    ) {
+      setEditingItem(null);
+      setDraftName("");
+    }
+
     if (editingItem?.kind === "group" && !project.groups.some((group) => group.id === editingItem.id)) {
       setEditingItem(null);
       setDraftName("");
     }
-  }, [editingItem, project.groups, project.parts]);
+  }, [editingItem, project.groups, project.measurements, project.parts]);
 
   useEffect(() => {
     const nextKnownGroupIds = new Set(project.groups.map((group) => group.id));
@@ -90,6 +102,12 @@ export function ProjectSidebar() {
     selectPart(null);
   }
 
+  function beginRenameMeasurement(measurementId: string, currentName: string) {
+    setEditingItem({ kind: "measurement", id: measurementId });
+    setDraftName(currentName);
+    selectMeasurement(measurementId);
+  }
+
   function commitRename() {
     if (!editingItem) {
       return;
@@ -99,6 +117,13 @@ export function ProjectSidebar() {
     if (nextName && editingItem.kind === "part") {
       updatePart(editingItem.id, (part) => ({
         ...part,
+        name: nextName,
+      }));
+    }
+
+    if (nextName && editingItem.kind === "measurement") {
+      updateMeasurement(editingItem.id, (measurement) => ({
+        ...measurement,
         name: nextName,
       }));
     }
@@ -119,6 +144,10 @@ export function ProjectSidebar() {
     return project.parts.filter((part) => part.groupId === groupId);
   }
 
+  function measurementChildren(groupId: string | null): MeasurementNode[] {
+    return project.measurements.filter((measurement) => measurement.groupId === groupId);
+  }
+
   function parseDraggedItem(event: DragEvent): DraggedTreeItem | null {
     const payload = event.dataTransfer.getData(TREE_DRAG_MIME);
     if (!payload) {
@@ -127,7 +156,7 @@ export function ProjectSidebar() {
 
     try {
       const parsed = JSON.parse(payload) as DraggedTreeItem;
-      return parsed.kind === "part" || parsed.kind === "group" ? parsed : null;
+      return parsed.kind === "part" || parsed.kind === "group" || parsed.kind === "measurement" ? parsed : null;
     } catch {
       return null;
     }
@@ -144,6 +173,10 @@ export function ProjectSidebar() {
 
     if (item.kind === "part") {
       return project.parts.some((part) => part.id === item.id);
+    }
+
+    if (item.kind === "measurement") {
+      return project.measurements.some((measurement) => measurement.id === item.id);
     }
 
     return item.id !== groupId && !isGroupDescendant(project.groups, groupId, item.id);
@@ -171,12 +204,22 @@ export function ProjectSidebar() {
       return;
     }
 
+    if (item.kind === "measurement") {
+      moveMeasurementToGroup(item.id, groupId);
+      return;
+    }
+
     moveGroupToGroup(item.id, groupId);
   }
 
   function dropItemAtRoot(item: DraggedTreeItem) {
     if (item.kind === "part") {
       movePartToGroup(item.id, null);
+      return;
+    }
+
+    if (item.kind === "measurement") {
+      moveMeasurementToGroup(item.id, null);
       return;
     }
 
@@ -242,7 +285,7 @@ export function ProjectSidebar() {
     });
   }
 
-  function renderNameEditor(kind: "part" | "group", id: string, name: string) {
+  function renderNameEditor(kind: "part" | "group" | "measurement", id: string, name: string) {
     if (editingItem?.kind === kind && editingItem.id === id) {
       return (
         <input
@@ -276,6 +319,8 @@ export function ProjectSidebar() {
           event.stopPropagation();
           if (kind === "part") {
             beginRenamePart(id, name);
+          } else if (kind === "measurement") {
+            beginRenameMeasurement(id, name);
           } else {
             beginRenameGroup(id, name);
           }
@@ -284,6 +329,36 @@ export function ProjectSidebar() {
       >
         <strong>{name}</strong>
       </button>
+    );
+  }
+
+  function renderMeasurement(measurement: MeasurementNode, depth: number) {
+    const isDragging = draggingItem?.kind === "measurement" && draggingItem.id === measurement.id;
+
+    return (
+      <div
+        key={measurement.id}
+        className={`object-row ${selectedMeasurementId === measurement.id ? "object-row--selected" : ""} ${isDragging ? "object-row--dragging" : ""}`}
+        draggable
+        onClick={() => selectMeasurement(measurement.id)}
+        onDragEnd={endDrag}
+        onDragStart={(event) => beginDrag(event, { kind: "measurement", id: measurement.id })}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectMeasurement(measurement.id);
+          }
+        }}
+        role="button"
+        style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
+        tabIndex={0}
+      >
+        <span className="object-row__disclosure object-row__disclosure--placeholder" />
+        <span className="object-row__icon">
+          <RulerIcon width={14} height={14} />
+        </span>
+        <span className="object-row__content">{renderNameEditor("measurement", measurement.id, measurement.name)}</span>
+      </div>
     );
   }
 
@@ -322,7 +397,8 @@ export function ProjectSidebar() {
   function renderGroup(group: GroupNode, depth: number) {
     const childrenGroups = groupChildren(group.id);
     const childrenParts = partChildren(group.id);
-    const hasChildren = childrenGroups.length > 0 || childrenParts.length > 0;
+    const childrenMeasurements = measurementChildren(group.id);
+    const hasChildren = childrenGroups.length > 0 || childrenParts.length > 0 || childrenMeasurements.length > 0;
     const isExpanded = expandedGroupIds.has(group.id);
     const isDragging = draggingItem?.kind === "group" && draggingItem.id === group.id;
     const isDropTarget = dropTarget === group.id;
@@ -368,13 +444,15 @@ export function ProjectSidebar() {
         </div>
         {isExpanded ? childrenGroups.map((childGroup) => renderGroup(childGroup, depth + 1)) : null}
         {isExpanded ? childrenParts.map((part) => renderPart(part, depth + 1)) : null}
+        {isExpanded ? childrenMeasurements.map((measurement) => renderMeasurement(measurement, depth + 1)) : null}
       </div>
     );
   }
 
   const rootGroups = groupChildren(null);
   const rootParts = partChildren(null);
-  const hasVisibleItems = rootGroups.length > 0 || rootParts.length > 0;
+  const rootMeasurements = measurementChildren(null);
+  const hasVisibleItems = rootGroups.length > 0 || rootParts.length > 0 || rootMeasurements.length > 0;
 
   return (
     <aside className="sidebar">
@@ -383,7 +461,7 @@ export function ProjectSidebar() {
           <div>
             <span className="panel-card__title">Objects</span>
             <p className="browser-card__subtitle">
-              {project.parts.length} objects · {project.groups.length} groups
+              {project.parts.length + project.measurements.length} objects · {project.groups.length} groups
             </p>
           </div>
           <button
@@ -411,6 +489,7 @@ export function ProjectSidebar() {
             <>
               {rootGroups.map((group) => renderGroup(group, 0))}
               {rootParts.map((part) => renderPart(part, 0))}
+              {rootMeasurements.map((measurement) => renderMeasurement(measurement, 0))}
             </>
           ) : (
             <p className="panel-card__empty">No objects or groups yet.</p>

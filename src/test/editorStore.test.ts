@@ -108,4 +108,30 @@ describe("editor store", () => {
     store.getState().updateGroupName(childGroup.id, "Door Frame");
     expect(store.getState().project.groups.find((group) => group.id === childGroup.id)?.name).toBe("Door Frame");
   });
+
+  it("adds and organizes measurement objects", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+
+    store.getState().addMeasurement({ x: 0, y: 0, z: 0 }, { x: 300, y: 0, z: 400 });
+    const measurement = store.getState().project.measurements[0];
+
+    expect(measurement.name).toBe("Measure 1");
+    expect(store.getState().selectedMeasurementId).toBe(measurement.id);
+    expect(store.getState().selectedPartId).toBeNull();
+
+    store.getState().addGroup();
+    const group = store.getState().project.groups.at(-1)!;
+    store.getState().moveMeasurementToGroup(measurement.id, group.id);
+    expect(store.getState().project.measurements[0].groupId).toBe(group.id);
+
+    store.getState().updateMeasurement(measurement.id, (current) => ({
+      ...current,
+      name: "Shelf Width",
+    }));
+    expect(store.getState().project.measurements[0].name).toBe("Shelf Width");
+
+    store.getState().deleteSelectedMeasurement();
+    expect(store.getState().project.measurements).toHaveLength(0);
+  });
 });

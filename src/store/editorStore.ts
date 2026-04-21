@@ -1,12 +1,13 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
-import { cloneProject, createObjectPart, createProject, touchProject } from "../lib/project";
+import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
 import { applyProfileToSize, getDefaultProfileId, getProfileById } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
   CameraState,
   GroupNode,
+  MeasurementNode,
   ObjectProfileId,
   ObjectType,
   PartNode,
@@ -27,6 +28,7 @@ export interface EditorState extends HistoryState {
   project: ProjectDocument;
   recentProjects: ProjectSummary[];
   selectedPartId: string | null;
+  selectedMeasurementId: string | null;
   activeTool: ActiveTool;
 }
 
@@ -36,18 +38,23 @@ export interface EditorActions {
   setRecentProjects: (projects: ProjectSummary[]) => void;
   createNewProject: () => void;
   selectPart: (partId: string | null) => void;
+  selectMeasurement: (measurementId: string | null) => void;
   setActiveTool: (tool: ActiveTool) => void;
   renameProject: (name: string) => void;
   updateUnitPreference: (unitPreference: UnitPreference) => void;
   updateSnapSettings: (partial: Partial<SnapSettings>) => void;
   addObject: (objectType: ObjectType, profileId?: ObjectProfileId) => void;
+  addMeasurement: (start: Vector3Like, end: Vector3Like) => void;
   addGroup: (parentGroupId?: string | null) => void;
   updateGroupName: (groupId: string, name: string) => void;
   movePartToGroup: (partId: string, groupId: string | null) => void;
+  moveMeasurementToGroup: (measurementId: string, groupId: string | null) => void;
   moveGroupToGroup: (groupId: string, parentGroupId: string | null) => void;
   duplicateSelectedPart: () => void;
   deleteSelectedPart: () => void;
+  deleteSelectedMeasurement: () => void;
   updatePart: (partId: string, updater: (part: PartNode) => PartNode) => void;
+  updateMeasurement: (measurementId: string, updater: (measurement: MeasurementNode) => MeasurementNode) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   setPartProfile: (partId: string, profileId: ObjectProfileId) => void;
@@ -92,6 +99,14 @@ function replaceGroup(groups: GroupNode[], groupId: string, updater: (group: Gro
   return groups.map((group) => (group.id === groupId ? updater(group) : group));
 }
 
+function replaceMeasurement(
+  measurements: MeasurementNode[],
+  measurementId: string,
+  updater: (measurement: MeasurementNode) => MeasurementNode,
+): MeasurementNode[] {
+  return measurements.map((measurement) => (measurement.id === measurementId ? updater(measurement) : measurement));
+}
+
 function isDescendantGroup(groups: GroupNode[], candidateGroupId: string, parentGroupId: string): boolean {
   let current = groups.find((group) => group.id === candidateGroupId);
 
@@ -112,6 +127,7 @@ export function createEditorStore() {
     project: createProject(),
     recentProjects: [],
     selectedPartId: null,
+    selectedMeasurementId: null,
     activeTool: "move",
     undoStack: [],
     redoStack: [],
@@ -121,6 +137,7 @@ export function createEditorStore() {
         project,
         hydrated: true,
         selectedPartId: project.parts[0]?.id ?? null,
+        selectedMeasurementId: null,
         undoStack: [],
         redoStack: [],
       }),
@@ -134,12 +151,14 @@ export function createEditorStore() {
         return {
           project,
           selectedPartId: project.parts[0]?.id ?? null,
+          selectedMeasurementId: null,
           undoStack: [],
           redoStack: [],
         };
       }),
 
-    selectPart: (partId) => set({ selectedPartId: partId }),
+    selectPart: (partId) => set({ selectedPartId: partId, selectedMeasurementId: null }),
+    selectMeasurement: (measurementId) => set({ selectedMeasurementId: measurementId, selectedPartId: null }),
     setActiveTool: (tool) => set({ activeTool: tool }),
     renameProject: (name) =>
       set((state) => ({
@@ -186,6 +205,24 @@ export function createEditorStore() {
         return {
           ...history,
           selectedPartId: nextPart.id,
+          selectedMeasurementId: null,
+        };
+      }),
+
+    addMeasurement: (start, end) =>
+      set((state) => {
+        const nextMeasurement = createMeasurementNode(state.project.measurements.length, start, end);
+
+        const history = withProjectHistory(state, (project) => ({
+          ...project,
+          measurements: [...project.measurements, nextMeasurement],
+        }));
+
+        return {
+          ...history,
+          selectedPartId: null,
+          selectedMeasurementId: nextMeasurement.id,
+          activeTool: "measure",
         };
       }),
 
@@ -226,6 +263,21 @@ export function createEditorStore() {
             ...project,
             parts: replacePart(project.parts, partId, (part) => ({
               ...part,
+              groupId: nextGroupId,
+            })),
+          })),
+        };
+      }),
+
+    moveMeasurementToGroup: (measurementId, groupId) =>
+      set((state) => {
+        const nextGroupId = groupId && state.project.groups.some((group) => group.id === groupId) ? groupId : null;
+
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            measurements: replaceMeasurement(project.measurements, measurementId, (measurement) => ({
+              ...measurement,
               groupId: nextGroupId,
             })),
           })),
@@ -281,6 +333,7 @@ export function createEditorStore() {
         return {
           ...history,
           selectedPartId: duplicate.id,
+          selectedMeasurementId: null,
         };
       }),
 
@@ -299,6 +352,26 @@ export function createEditorStore() {
         return {
           ...history,
           selectedPartId: nextParts[0]?.id ?? null,
+          selectedMeasurementId: null,
+        };
+      }),
+
+    deleteSelectedMeasurement: () =>
+      set((state) => {
+        if (!state.selectedMeasurementId) {
+          return state;
+        }
+
+        const nextMeasurements = state.project.measurements.filter((measurement) => measurement.id !== state.selectedMeasurementId);
+        const history = withProjectHistory(state, (project) => ({
+          ...project,
+          measurements: nextMeasurements,
+        }));
+
+        return {
+          ...history,
+          selectedMeasurementId: nextMeasurements[0]?.id ?? null,
+          selectedPartId: null,
         };
       }),
 
@@ -307,6 +380,14 @@ export function createEditorStore() {
         ...withProjectHistory(state, (project) => ({
           ...project,
           parts: replacePart(project.parts, partId, updater),
+        })),
+      })),
+
+    updateMeasurement: (measurementId, updater) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          measurements: replaceMeasurement(project.measurements, measurementId, updater),
         })),
       })),
 
@@ -390,11 +471,18 @@ export function createEditorStore() {
           return state;
         }
 
+        const selectedMeasurementId =
+          previous.measurements.find((measurement) => measurement.id === state.selectedMeasurementId)?.id ?? null;
+        const selectedPartId = selectedMeasurementId
+          ? null
+          : previous.parts.find((part) => part.id === state.selectedPartId)?.id ?? previous.parts[0]?.id ?? null;
+
         return {
           project: previous,
           undoStack: state.undoStack.slice(0, -1),
           redoStack: [...state.redoStack, cloneHistoryProject(state.project)],
-          selectedPartId: previous.parts.find((part) => part.id === state.selectedPartId)?.id ?? previous.parts[0]?.id ?? null,
+          selectedPartId,
+          selectedMeasurementId,
         };
       }),
 
@@ -405,11 +493,17 @@ export function createEditorStore() {
           return state;
         }
 
+        const selectedMeasurementId = next.measurements.find((measurement) => measurement.id === state.selectedMeasurementId)?.id ?? null;
+        const selectedPartId = selectedMeasurementId
+          ? null
+          : next.parts.find((part) => part.id === state.selectedPartId)?.id ?? next.parts[0]?.id ?? null;
+
         return {
           project: next,
           undoStack: [...state.undoStack, cloneHistoryProject(state.project)],
           redoStack: state.redoStack.slice(0, -1),
-          selectedPartId: next.parts.find((part) => part.id === state.selectedPartId)?.id ?? next.parts[0]?.id ?? null,
+          selectedPartId,
+          selectedMeasurementId,
         };
       }),
   }));
@@ -423,6 +517,10 @@ export function useEditorStore<T>(selector: (state: EditorState & EditorActions)
 
 export function getSelectedPart(state: EditorState): PartNode | null {
   return state.project.parts.find((part) => part.id === state.selectedPartId) ?? null;
+}
+
+export function getSelectedMeasurement(state: EditorState): MeasurementNode | null {
+  return state.project.measurements.find((measurement) => measurement.id === state.selectedMeasurementId) ?? null;
 }
 
 export function updateVector(

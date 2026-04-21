@@ -2,6 +2,7 @@ import { getDefaultUnitPreference } from "./locale";
 import { createObjectName, createSizeFromProfile, getDefaultProfileId, getProfileById } from "./profiles";
 import type {
   GroupNode,
+  MeasurementNode,
   ObjectProfileId,
   ObjectType,
   PartNode,
@@ -10,7 +11,7 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 3;
+export const PROJECT_SCHEMA_VERSION = 4;
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
 
@@ -49,6 +50,17 @@ export function createObjectPart(
     position: options?.position ?? makeVector3(0, 0, 0),
     rotation: makeVector3(0, 0, 0),
     color: profile.color,
+  };
+}
+
+export function createMeasurementNode(index: number, start: Vector3Like, end: Vector3Like): MeasurementNode {
+  return {
+    id: randomId(),
+    name: `Measure ${index + 1}`,
+    groupId: null,
+    start,
+    end,
+    color: "#276f9f",
   };
 }
 
@@ -218,6 +230,7 @@ export function createProject(name = "Garden Shed Demo"): ProjectDocument {
     },
     groups,
     parts,
+    measurements: [],
     createdAt: now,
     updatedAt: now,
   };

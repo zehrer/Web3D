@@ -86,6 +86,17 @@ export function ResizeIcon(props: IconProps) {
   );
 }
 
+export function RulerIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 17 17 4l3 3L7 20z" />
+      <path d="m14 7 1.5 1.5" />
+      <path d="m11 10 1.5 1.5" />
+      <path d="m8 13 1.5 1.5" />
+    </BaseIcon>
+  );
+}
+
 export function DuplicateIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

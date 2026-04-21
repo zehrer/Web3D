@@ -27,6 +27,7 @@ describe("3D export", () => {
         target: { x: 0, y: 0, z: 0 },
       },
       groups: [],
+      measurements: [],
       parts: [
         createObjectPart(0, {
           objectType: "timber",
@@ -71,6 +72,16 @@ describe("3D export", () => {
         target: { x: 0, y: 0, z: 0 },
       },
       groups: [{ id: "group-1", name: "Frame", parentGroupId: null }],
+      measurements: [
+        {
+          id: "measure-1",
+          name: "Opening Width",
+          groupId: "group-1",
+          start: { x: 0, y: 0, z: 0 },
+          end: { x: 100, y: 0, z: 0 },
+          color: "#276f9f",
+        },
+      ],
       parts: [
         {
           ...createObjectPart(0, {
@@ -93,6 +104,7 @@ describe("3D export", () => {
     expect(gltf.extras.web3dProjectDocument).toMatchObject({
       id: "project-1",
       groups: [{ id: "group-1", name: "Frame", parentGroupId: null }],
+      measurements: [{ id: "measure-1", name: "Opening Width", groupId: "group-1" }],
       parts: [{ id: "part-1", groupId: "group-1", objectType: "timber", profileId: "timber-100x100" }],
     });
     expect(JSON.stringify(gltf.nodes)).toContain("Frame");

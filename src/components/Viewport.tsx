@@ -11,6 +11,7 @@ import {
   PlusIcon,
   RedoIcon,
   ResizeIcon,
+  RulerIcon,
   RotateIcon,
   SheetIcon,
   TopViewIcon,
@@ -23,7 +24,7 @@ import { cloneProject, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ } from 
 import { snapValue, toRadians } from "../lib/snap";
 import { formatLength } from "../lib/units";
 import { editorStore, useEditorStore } from "../store/editorStore";
-import type { PartNode, ProjectDocument, Vector3Like } from "../types/model";
+import type { MeasurementNode, PartNode, ProjectDocument, Vector3Like } from "../types/model";
 
 const GRID_STEP = 100;
 const BUILD_AREA_SIZE = 6000;
@@ -48,8 +49,17 @@ type HandleDefinition = {
   position: [number, number, number];
 };
 
+type MeasurementDraft = {
+  start: Vector3Like;
+  end: Vector3Like;
+};
+
 function vectorToTuple(vector: Vector3Like): [number, number, number] {
   return [vector.x, vector.y, vector.z];
+}
+
+function distanceBetween(start: Vector3Like, end: Vector3Like): number {
+  return Math.hypot(end.x - start.x, end.y - start.y, end.z - start.z);
 }
 
 function CameraController({
@@ -139,6 +149,43 @@ function KeyDimensionGuide({ part }: { part: PartNode }) {
   );
 }
 
+function MeasurementGuide({
+  measurement,
+  selected,
+}: {
+  measurement: Pick<MeasurementNode, "start" | "end" | "color">;
+  selected?: boolean;
+}) {
+  const unitPreference = useEditorStore((state) => state.project.unitPreference);
+  const start: [number, number, number] = [measurement.start.x, measurement.start.y + 18, measurement.start.z];
+  const end: [number, number, number] = [measurement.end.x, measurement.end.y + 18, measurement.end.z];
+  const midpoint: [number, number, number] = [
+    (start[0] + end[0]) / 2,
+    (start[1] + end[1]) / 2 + 42,
+    (start[2] + end[2]) / 2,
+  ];
+  const length = distanceBetween(measurement.start, measurement.end);
+
+  return (
+    <>
+      <Line points={[start, end]} color={selected ? "#c68a3b" : measurement.color} lineWidth={selected ? 2.2 : 1.5} />
+      <mesh position={start}>
+        <sphereGeometry args={[11, 18, 18]} />
+        <meshStandardMaterial color={selected ? "#c68a3b" : measurement.color} />
+      </mesh>
+      <mesh position={end}>
+        <sphereGeometry args={[11, 18, 18]} />
+        <meshStandardMaterial color={selected ? "#c68a3b" : measurement.color} />
+      </mesh>
+      <Html position={midpoint} center style={{ pointerEvents: "none" }}>
+        <div className={`measurement-chip ${selected ? "measurement-chip--selected" : ""}`}>
+          {formatLength(length, unitPreference)}
+        </div>
+      </Html>
+    </>
+  );
+}
+
 function AxisArrow({
   direction,
   length,
@@ -178,12 +225,17 @@ function AxisGuide() {
 
 function Scene() {
   const parts = useEditorStore((state) => state.project.parts);
+  const measurements = useEditorStore((state) => state.project.measurements);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
+  const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
   const activeTool = useEditorStore((state) => state.activeTool);
   const snapSettings = useEditorStore((state) => state.project.snapSettings);
   const selectPart = useEditorStore((state) => state.selectPart);
+  const selectMeasurement = useEditorStore((state) => state.selectMeasurement);
+  const addMeasurement = useEditorStore((state) => state.addMeasurement);
   const previewPartGeometry = useEditorStore((state) => state.previewPartGeometry);
   const finalizeTransientChange = useEditorStore((state) => state.finalizeTransientChange);
+  const [measurementDraft, setMeasurementDraft] = useState<MeasurementDraft | null>(null);
   const objectRefs = useRef<Record<string, Object3D | null>>({});
   const orbitRef = useRef<{ target: Vector3; update: () => void; enabled: boolean } | null>(null);
   const transformSnapshotRef = useRef<ProjectDocument | null>(null);
@@ -192,6 +244,30 @@ function Scene() {
   const handleUpRef = useRef<(() => void) | null>(null);
   const selectedPart = parts.find((part) => part.id === selectedPartId) ?? null;
   const selectedObject = selectedPart ? objectRefs.current[selectedPart.id] : null;
+
+  function snapGroundPoint(point: Vector3): Vector3Like {
+    return {
+      x: snapValue(point.x, snapSettings.moveIncrement, snapSettings.enabled),
+      y: 0,
+      z: snapValue(point.z, snapSettings.moveIncrement, snapSettings.enabled),
+    };
+  }
+
+  function handleMeasurePoint(point: Vector3) {
+    const nextPoint = snapGroundPoint(point);
+
+    if (!measurementDraft) {
+      selectPart(null);
+      setMeasurementDraft({ start: nextPoint, end: nextPoint });
+      return;
+    }
+
+    if (distanceBetween(measurementDraft.start, nextPoint) > 0) {
+      addMeasurement(measurementDraft.start, nextPoint);
+    }
+
+    setMeasurementDraft(null);
+  }
 
   useEffect(() => {
     return () => {
@@ -204,6 +280,12 @@ function Scene() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTool !== "measure") {
+      setMeasurementDraft(null);
+    }
+  }, [activeTool]);
 
   function beginResizeDrag(event: ThreeEvent<PointerEvent>, part: PartNode, axis: keyof Vector3Like, direction: 1 | -1) {
     event.stopPropagation();
@@ -304,9 +386,20 @@ function Scene() {
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[WORKSPACE_CENTER, -0.5, WORKSPACE_CENTER]}
+        onPointerMove={(event) => {
+          if (activeTool === "measure" && measurementDraft) {
+            event.stopPropagation();
+            setMeasurementDraft((draft) => (draft ? { ...draft, end: snapGroundPoint(event.point) } : draft));
+          }
+        }}
         onClick={(event) => {
           event.stopPropagation();
-          selectPart(null);
+          if (activeTool === "measure") {
+            handleMeasurePoint(event.point);
+          } else {
+            selectPart(null);
+            setMeasurementDraft(null);
+          }
         }}
       >
         <planeGeometry args={[GROUND_PLANE_SIZE, GROUND_PLANE_SIZE]} />
@@ -351,6 +444,20 @@ function Scene() {
           </group>
         );
       })}
+
+      {measurements.map((measurement) => (
+        <group
+          key={measurement.id}
+          onClick={(event) => {
+            event.stopPropagation();
+            selectMeasurement(measurement.id);
+          }}
+        >
+          <MeasurementGuide measurement={measurement} selected={measurement.id === selectedMeasurementId} />
+        </group>
+      ))}
+
+      {measurementDraft ? <MeasurementGuide measurement={{ ...measurementDraft, color: "#276f9f" }} selected /> : null}
 
       {selectedObject && selectedPart ? (
         <TransformControls
@@ -403,11 +510,15 @@ export function Viewport() {
   const addObject = useEditorStore((state) => state.addObject);
   const duplicateSelectedPart = useEditorStore((state) => state.duplicateSelectedPart);
   const deleteSelectedPart = useEditorStore((state) => state.deleteSelectedPart);
+  const deleteSelectedMeasurement = useEditorStore((state) => state.deleteSelectedMeasurement);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
   const commitCameraState = useEditorStore((state) => state.commitCameraState);
   const selectedPart = useEditorStore((state) =>
     state.project.parts.find((part) => part.id === state.selectedPartId) ?? null,
+  );
+  const selectedMeasurement = useEditorStore((state) =>
+    state.project.measurements.find((measurement) => measurement.id === state.selectedMeasurementId) ?? null,
   );
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
 
@@ -478,6 +589,17 @@ export function Viewport() {
                   <BeamIcon width={16} height={16} />
                   <span>Timber</span>
                 </button>
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    setActiveTool("measure");
+                    setShowAddMenu(false);
+                  }}
+                  type="button"
+                >
+                  <RulerIcon width={16} height={16} />
+                  <span>Measure</span>
+                </button>
               </div>
             ) : null}
           </div>
@@ -485,6 +607,7 @@ export function Viewport() {
             ["move", MoveIcon, "Move"],
             ["rotate", RotateIcon, "Rotate"],
             ["resize", ResizeIcon, "Resize"],
+            ["measure", RulerIcon, "Measure"],
           ] as const).map(([tool, Icon, label]) => (
             <button
               key={tool}
@@ -523,6 +646,7 @@ export function Viewport() {
             <span>Drag to orbit the camera.</span>
             <span>Use move and rotate for gizmos.</span>
             <span>Use resize to drag the yellow handles.</span>
+            <span>Use measure to click two points on the grid.</span>
             <span>Units and snap live in the project settings.</span>
           </div>
         ) : null}
@@ -534,6 +658,13 @@ export function Viewport() {
               <span>Duplicate</span>
             </button>
             <button className="viewport-context-bar__button viewport-context-bar__button--danger" onClick={deleteSelectedPart} type="button">
+              <TrashIcon width={16} height={16} />
+              <span>Delete</span>
+            </button>
+          </div>
+        ) : selectedMeasurement ? (
+          <div className="viewport-context-bar">
+            <button className="viewport-context-bar__button viewport-context-bar__button--danger" onClick={deleteSelectedMeasurement} type="button">
               <TrashIcon width={16} height={16} />
               <span>Delete</span>
             </button>

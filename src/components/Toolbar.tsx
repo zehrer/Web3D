@@ -85,6 +85,7 @@ export function Toolbar({
   const renameProject = useEditorStore((state) => state.renameProject);
   const recentProjects = useEditorStore((state) => state.recentProjects);
   const addObject = useEditorStore((state) => state.addObject);
+  const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const updateUnitPreference = useEditorStore((state) => state.updateUnitPreference);
   const updateSnapSettings = useEditorStore((state) => state.updateSnapSettings);
   const undo = useEditorStore((state) => state.undo);
@@ -229,6 +230,7 @@ export function Toolbar({
               <div className="menu-dropdown">
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("sheet"); }} type="button">Sheet Object</button>
                 <button className="menu-dropdown__item" onClick={() => { closeMenu(); addObject("timber"); }} type="button">Timber Object</button>
+                <button className="menu-dropdown__item" onClick={() => { closeMenu(); setActiveTool("measure"); }} type="button">Measure Object</button>
               </div>
             ) : null}
           </div>

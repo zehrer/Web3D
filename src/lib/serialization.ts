@@ -1,7 +1,7 @@
 import { PROJECT_SCHEMA_VERSION } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
 import { getProfileById } from "./profiles";
-import type { ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
+import type { MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
 
 const WEB3D_PROJECT_FILE_FORMAT = "web3d-project";
 const WEB3D_PROJECT_FILE_FORMAT_VERSION = 1;
@@ -28,9 +28,13 @@ type LegacyProjectDocument = {
   updatedAt: string;
 };
 
-type ProjectDocumentV2 = Omit<ProjectDocument, "groups" | "parts" | "version"> & {
+type ProjectDocumentV2 = Omit<ProjectDocument, "groups" | "measurements" | "parts" | "version"> & {
   version: 2;
   parts: Array<Omit<PartNode, "groupId">>;
+};
+
+type ProjectDocumentV3 = Omit<ProjectDocument, "measurements" | "version"> & {
+  version: 3;
 };
 
 type Web3dProjectFile = {
@@ -60,6 +64,7 @@ function migrateProjectV1ToCurrent(legacy: LegacyProjectDocument): ProjectDocume
     ...legacy,
     version: PROJECT_SCHEMA_VERSION,
     groups: [],
+    measurements: [],
     parts: legacy.parts.map((part) => {
       const profileId = mapLegacyThicknessPreset(part.thicknessPreset);
       const profile = getProfileById(profileId);
@@ -84,10 +89,19 @@ function migrateProjectV2ToCurrent(project: ProjectDocumentV2): ProjectDocument 
     ...project,
     version: PROJECT_SCHEMA_VERSION,
     groups: [],
+    measurements: [],
     parts: project.parts.map((part) => ({
       ...part,
       groupId: null,
     })),
+  };
+}
+
+function migrateProjectV3ToCurrent(project: ProjectDocumentV3): ProjectDocument {
+  return {
+    ...project,
+    version: PROJECT_SCHEMA_VERSION,
+    measurements: [],
   };
 }
 
@@ -118,11 +132,21 @@ export function deserializeProject(payload: string): ProjectDocument {
     return migrateProjectV2ToCurrent(parsed as ProjectDocumentV2);
   }
 
+  if (parsed.version === 3) {
+    return migrateProjectV3ToCurrent(parsed as ProjectDocumentV3);
+  }
+
   if (parsed.version !== PROJECT_SCHEMA_VERSION) {
     throw new Error(`Unsupported project version: ${parsed.version}`);
   }
 
-  if (!parsed.id || !parsed.name || !Array.isArray(parsed.parts) || !Array.isArray(parsed.groups)) {
+  if (
+    !parsed.id ||
+    !parsed.name ||
+    !Array.isArray(parsed.parts) ||
+    !Array.isArray(parsed.groups) ||
+    !Array.isArray((parsed as ProjectDocument & { measurements?: MeasurementNode[] }).measurements)
+  ) {
     throw new Error("Invalid project payload");
   }
 
