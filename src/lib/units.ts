@@ -47,6 +47,14 @@ export function formatArea(valueMm2: number, unit: UnitPreference, digits = 2): 
   return `${displayValue.toFixed(digits)} ${unitDefinition.shortLabel}^2`;
 }
 
+export function formatMeters(valueMm: number, digits = 2): string {
+  return `${(valueMm / 1000).toFixed(digits)} m`;
+}
+
+export function formatSquareMeters(valueMm2: number, digits = 2): string {
+  return `${(valueMm2 / 1_000_000).toFixed(digits)} m^2`;
+}
+
 export function clampLength(valueMm: number, min = 1): number {
   return Number.isFinite(valueMm) ? Math.max(min, valueMm) : min;
 }

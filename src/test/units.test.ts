@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fromDisplayUnits, formatLength, toDisplayUnits } from "../lib/units";
+import { formatMeters, formatSquareMeters, fromDisplayUnits, formatLength, toDisplayUnits } from "../lib/units";
 
 describe("unit conversion", () => {
   it("converts millimeters to centimeters and back", () => {
@@ -14,5 +14,10 @@ describe("unit conversion", () => {
 
   it("formats lengths with unit labels", () => {
     expect(formatLength(600, "metric-cm")).toBe("60.0 cm");
+  });
+
+  it("formats material summary totals in meters", () => {
+    expect(formatMeters(2500)).toBe("2.50 m");
+    expect(formatSquareMeters(1500000)).toBe("1.50 m^2");
   });
 });

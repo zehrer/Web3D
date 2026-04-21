@@ -16,9 +16,12 @@ describe("project serialization", () => {
     expect(parsed.parts[0].groupId).toBe(project.parts[0].groupId);
     expect(parsed.measurements).toEqual(project.measurements);
     expect(parsed.groups.some((group) => group.name === "Shed")).toBe(true);
-    expect(parsed.parts).toHaveLength(16);
-    expect(parsed.measurements).toHaveLength(4);
+    expect(parsed.groups).toHaveLength(13);
+    expect(parsed.parts).toHaveLength(169);
+    expect(parsed.measurements).toHaveLength(3);
     expect(parsed.parts.some((part) => part.objectType === "timber")).toBe(true);
+    expect(parsed.parts.some((part) => part.objectType === "glass")).toBe(true);
+    expect(parsed.parts.some((part) => part.objectType === "rectangle")).toBe(true);
   });
 
   it("migrates legacy thickness-based projects into sheet objects", () => {

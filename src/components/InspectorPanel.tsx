@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMaterialUsageSummary } from "../lib/materialSummary";
 import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
-import { formatArea, formatLength, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
+import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
 import type { ObjectProfileId, ObjectType, UnitPreference, Vector3Like } from "../types/model";
 
@@ -117,7 +117,7 @@ function getProfileFieldLabel(objectType: ObjectType) {
   return "Shape";
 }
 
-function MaterialOverview({ unitPreference }: { unitPreference: UnitPreference }) {
+function MaterialOverview() {
   const parts = useEditorStore((store) => store.project.parts);
   const materialSummary = useMemo(() => getMaterialUsageSummary(parts), [parts]);
 
@@ -139,8 +139,8 @@ function MaterialOverview({ unitPreference }: { unitPreference: UnitPreference }
           <div className="material-summary__total">
             <strong>
               {item.kind === "linear"
-                ? formatLength(item.totalLengthMm, unitPreference)
-                : formatArea(item.totalAreaMm2, unitPreference)}
+                ? formatMeters(item.totalLengthMm)
+                : formatSquareMeters(item.totalAreaMm2)}
             </strong>
             <small>{item.kind === "linear" ? "total length" : "total area"}</small>
           </div>
@@ -405,7 +405,7 @@ export function InspectorPanel() {
             />
           </>
         ) : (
-          <MaterialOverview unitPreference={unitPreference} />
+          <MaterialOverview />
         )}
       </section>
     </aside>
