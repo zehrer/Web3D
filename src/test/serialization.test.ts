@@ -10,8 +10,10 @@ describe("project serialization", () => {
 
     expect(parsed.id).toBe(project.id);
     expect(parsed.name).toBe("Workbench");
+    expect(parsed.groups).toHaveLength(project.groups.length);
     expect(parsed.parts).toHaveLength(project.parts.length);
     expect(parsed.parts[0].size.x).toBe(project.parts[0].size.x);
+    expect(parsed.parts[0].groupId).toBe(project.parts[0].groupId);
     expect(parsed.parts.some((part) => part.objectType === "sheet")).toBe(true);
     expect(parsed.parts.some((part) => part.objectType === "timber")).toBe(true);
   });
@@ -40,8 +42,26 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
+    expect(parsed.groups).toEqual([]);
+    expect(parsed.parts[0].groupId).toBeNull();
     expect(parsed.parts[0].objectType).toBe("sheet");
     expect(parsed.parts[0].profileId).toBe("osb3-18");
+  });
+
+  it("migrates v2 object projects into grouped-capable projects", () => {
+    const project = createProject("V2");
+    const payload = JSON.stringify({
+      ...project,
+      version: 2,
+      parts: project.parts.map(({ groupId: _groupId, ...part }) => part),
+      groups: undefined,
+    });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(3);
+    expect(parsed.groups).toEqual([]);
+    expect(parsed.parts.every((part) => part.groupId === null)).toBe(true);
   });
 });

@@ -173,6 +173,15 @@ export function BeamIcon(props: IconProps) {
   );
 }
 
+export function FolderIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 7h6l2 2h8v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+      <path d="M4 7V5.5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2V9" />
+    </BaseIcon>
+  );
+}
+
 export function SettingsIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

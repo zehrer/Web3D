@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { exportProjectToStl, createStlFilename } from "../lib/export";
-import { createObjectPart } from "../lib/project";
+import { createObjectPart, PROJECT_SCHEMA_VERSION } from "../lib/project";
 import type { ProjectDocument } from "../types/model";
 
 describe("STL export", () => {
@@ -8,7 +8,7 @@ describe("STL export", () => {
     const project: ProjectDocument = {
       id: "project-1",
       name: "Workbench Prototype",
-      version: 2,
+      version: PROJECT_SCHEMA_VERSION,
       unitPreference: "metric-mm",
       snapSettings: {
         enabled: true,
@@ -20,6 +20,7 @@ describe("STL export", () => {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },
       },
+      groups: [],
       parts: [
         createObjectPart(0, {
           objectType: "timber",

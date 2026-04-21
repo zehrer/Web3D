@@ -86,4 +86,26 @@ describe("editor store", () => {
     store.getState().undo();
     expect(store.getState().project.parts[0].position.x).toBe(0);
   });
+
+  it("organizes objects in nested groups", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+    const partId = store.getState().project.parts[0].id;
+
+    store.getState().addGroup();
+    const parentGroup = store.getState().project.groups.at(-1)!;
+    store.getState().addGroup(parentGroup.id);
+    const childGroup = store.getState().project.groups.at(-1)!;
+
+    expect(childGroup.parentGroupId).toBe(parentGroup.id);
+
+    store.getState().movePartToGroup(partId, childGroup.id);
+    expect(store.getState().project.parts[0].groupId).toBe(childGroup.id);
+
+    store.getState().moveGroupToGroup(parentGroup.id, childGroup.id);
+    expect(store.getState().project.groups.find((group) => group.id === parentGroup.id)?.parentGroupId).toBeNull();
+
+    store.getState().updateGroupName(childGroup.id, "Door Frame");
+    expect(store.getState().project.groups.find((group) => group.id === childGroup.id)?.name).toBe("Door Frame");
+  });
 });

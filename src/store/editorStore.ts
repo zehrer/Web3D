@@ -6,6 +6,7 @@ import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
   CameraState,
+  GroupNode,
   ObjectProfileId,
   ObjectType,
   PartNode,
@@ -40,6 +41,10 @@ export interface EditorActions {
   updateUnitPreference: (unitPreference: UnitPreference) => void;
   updateSnapSettings: (partial: Partial<SnapSettings>) => void;
   addObject: (objectType: ObjectType, profileId?: ObjectProfileId) => void;
+  addGroup: (parentGroupId?: string | null) => void;
+  updateGroupName: (groupId: string, name: string) => void;
+  movePartToGroup: (partId: string, groupId: string | null) => void;
+  moveGroupToGroup: (groupId: string, parentGroupId: string | null) => void;
   duplicateSelectedPart: () => void;
   deleteSelectedPart: () => void;
   updatePart: (partId: string, updater: (part: PartNode) => PartNode) => void;
@@ -56,6 +61,10 @@ export type EditorStore = ReturnType<typeof createEditorStore>;
 
 const MAX_HISTORY = 50;
 const DUPLICATE_OFFSET_MM = 10;
+
+function randomId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function cloneHistoryProject(project: ProjectDocument): ProjectDocument {
   return cloneProject(project);
@@ -77,6 +86,24 @@ function withProjectHistory(
 
 function replacePart(parts: PartNode[], partId: string, updater: (part: PartNode) => PartNode): PartNode[] {
   return parts.map((part) => (part.id === partId ? updater(part) : part));
+}
+
+function replaceGroup(groups: GroupNode[], groupId: string, updater: (group: GroupNode) => GroupNode): GroupNode[] {
+  return groups.map((group) => (group.id === groupId ? updater(group) : group));
+}
+
+function isDescendantGroup(groups: GroupNode[], candidateGroupId: string, parentGroupId: string): boolean {
+  let current = groups.find((group) => group.id === candidateGroupId);
+
+  while (current) {
+    if (current.parentGroupId === parentGroupId) {
+      return true;
+    }
+
+    current = current.parentGroupId ? groups.find((group) => group.id === current?.parentGroupId) : undefined;
+  }
+
+  return false;
 }
 
 export function createEditorStore() {
@@ -162,6 +189,68 @@ export function createEditorStore() {
         };
       }),
 
+    addGroup: (parentGroupId = null) =>
+      set((state) => {
+        const parentExists = parentGroupId ? state.project.groups.some((group) => group.id === parentGroupId) : true;
+        const nextGroup: GroupNode = {
+          id: randomId(),
+          name: `Group ${state.project.groups.length + 1}`,
+          parentGroupId: parentExists ? parentGroupId : null,
+        };
+
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            groups: [...project.groups, nextGroup],
+          })),
+        };
+      }),
+
+    updateGroupName: (groupId, name) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          groups: replaceGroup(project.groups, groupId, (group) => ({
+            ...group,
+            name: name.trim() || group.name,
+          })),
+        })),
+      })),
+
+    movePartToGroup: (partId, groupId) =>
+      set((state) => {
+        const nextGroupId = groupId && state.project.groups.some((group) => group.id === groupId) ? groupId : null;
+
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            parts: replacePart(project.parts, partId, (part) => ({
+              ...part,
+              groupId: nextGroupId,
+            })),
+          })),
+        };
+      }),
+
+    moveGroupToGroup: (groupId, parentGroupId) =>
+      set((state) => {
+        const parentExists = parentGroupId ? state.project.groups.some((group) => group.id === parentGroupId) : true;
+        const isInvalidParent =
+          parentGroupId === groupId ||
+          (parentGroupId ? isDescendantGroup(state.project.groups, parentGroupId, groupId) : false);
+        const nextParentGroupId = parentExists && !isInvalidParent ? parentGroupId : null;
+
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            groups: replaceGroup(project.groups, groupId, (group) => ({
+              ...group,
+              parentGroupId: nextParentGroupId,
+            })),
+          })),
+        };
+      }),
+
     duplicateSelectedPart: () =>
       set((state) => {
         const selected = state.project.parts.find((part) => part.id === state.selectedPartId);
@@ -171,7 +260,7 @@ export function createEditorStore() {
 
         const duplicate: PartNode = {
           ...(JSON.parse(JSON.stringify(selected)) as PartNode),
-          id: globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`,
+          id: randomId(),
           name: `${selected.name} Copy`,
           position: {
             x: selected.position.x + DUPLICATE_OFFSET_MM,

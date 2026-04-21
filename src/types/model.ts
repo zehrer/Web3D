@@ -33,10 +33,17 @@ export interface PartNode {
   name: string;
   objectType: ObjectType;
   profileId: ObjectProfileId;
+  groupId: string | null;
   size: Vector3Like;
   position: Vector3Like;
   rotation: Vector3Like;
   color: string;
+}
+
+export interface GroupNode {
+  id: string;
+  name: string;
+  parentGroupId: string | null;
 }
 
 export interface ProjectDocument {
@@ -46,6 +53,7 @@ export interface ProjectDocument {
   unitPreference: UnitPreference;
   snapSettings: SnapSettings;
   cameraState: CameraState;
+  groups: GroupNode[];
   parts: PartNode[];
   createdAt: string;
   updatedAt: string;

@@ -1,6 +1,7 @@
 import { getDefaultUnitPreference } from "./locale";
 import { createObjectName, createSizeFromProfile, getDefaultProfileId, getProfileById } from "./profiles";
 import type {
+  GroupNode,
   ObjectProfileId,
   ObjectType,
   PartNode,
@@ -9,7 +10,7 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 2;
+export const PROJECT_SCHEMA_VERSION = 3;
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
 
@@ -43,6 +44,7 @@ export function createObjectPart(
     name: createObjectName(objectType, index),
     objectType,
     profileId,
+    groupId: null,
     size: options?.size ?? createSizeFromProfile(profile),
     position: options?.position ?? makeVector3(0, 0, 0),
     rotation: makeVector3(0, 0, 0),
@@ -149,22 +151,26 @@ function createSheetPanel(
 }
 
 export function createGardenShedDemoParts(): PartNode[] {
+  const floorFrameGroupId = randomId();
+  const postsGroupId = randomId();
+  const roofFrameGroupId = randomId();
+  const panelsGroupId = randomId();
   const parts = [
-    createTimberMember("Front Sill", makeVector3(0, 0, 0), "x", 1800),
-    createTimberMember("Back Sill", makeVector3(0, 0, 1100), "x", 1800),
-    createTimberMember("Left Sill", makeVector3(0, 0, 0), "z", 1200),
-    createTimberMember("Right Sill", makeVector3(1700, 0, 0), "z", 1200),
-    createTimberMember("Front Left Post", makeVector3(0, 100, 0), "y", 2000),
-    createTimberMember("Front Right Post", makeVector3(1700, 100, 0), "y", 2000),
-    createTimberMember("Back Left Post", makeVector3(0, 100, 1100), "y", 2000),
-    createTimberMember("Back Right Post", makeVector3(1700, 100, 1100), "y", 2000),
-    createTimberMember("Front Plate", makeVector3(0, 2100, 0), "x", 1800),
-    createTimberMember("Back Plate", makeVector3(0, 2100, 1100), "x", 1800),
-    createTimberMember("Left Plate", makeVector3(0, 2100, 0), "z", 1200),
-    createTimberMember("Right Plate", makeVector3(1700, 2100, 0), "z", 1200),
-    createTimberMember("Roof Beam", makeVector3(0, 2500, 550), "x", 1800),
-    createSheetPanel("Back Wall Panel", makeVector3(100, 100, 0), 1600, 2000, "xy"),
-    createSheetPanel("Side Wall Panel", makeVector3(1700, 100, 100), 1000, 2000, "zy"),
+    { ...createTimberMember("Front Sill", makeVector3(0, 0, 0), "x", 1800), groupId: floorFrameGroupId },
+    { ...createTimberMember("Back Sill", makeVector3(0, 0, 1100), "x", 1800), groupId: floorFrameGroupId },
+    { ...createTimberMember("Left Sill", makeVector3(0, 0, 0), "z", 1200), groupId: floorFrameGroupId },
+    { ...createTimberMember("Right Sill", makeVector3(1700, 0, 0), "z", 1200), groupId: floorFrameGroupId },
+    { ...createTimberMember("Front Left Post", makeVector3(0, 100, 0), "y", 2000), groupId: postsGroupId },
+    { ...createTimberMember("Front Right Post", makeVector3(1700, 100, 0), "y", 2000), groupId: postsGroupId },
+    { ...createTimberMember("Back Left Post", makeVector3(0, 100, 1100), "y", 2000), groupId: postsGroupId },
+    { ...createTimberMember("Back Right Post", makeVector3(1700, 100, 1100), "y", 2000), groupId: postsGroupId },
+    { ...createTimberMember("Front Plate", makeVector3(0, 2100, 0), "x", 1800), groupId: roofFrameGroupId },
+    { ...createTimberMember("Back Plate", makeVector3(0, 2100, 1100), "x", 1800), groupId: roofFrameGroupId },
+    { ...createTimberMember("Left Plate", makeVector3(0, 2100, 0), "z", 1200), groupId: roofFrameGroupId },
+    { ...createTimberMember("Right Plate", makeVector3(1700, 2100, 0), "z", 1200), groupId: roofFrameGroupId },
+    { ...createTimberMember("Roof Beam", makeVector3(0, 2500, 550), "x", 1800), groupId: roofFrameGroupId },
+    { ...createSheetPanel("Back Wall Panel", makeVector3(100, 100, 0), 1600, 2000, "xy"), groupId: panelsGroupId },
+    { ...createSheetPanel("Side Wall Panel", makeVector3(1700, 100, 100), 1000, 2000, "zy"), groupId: panelsGroupId },
   ];
 
   return parts.map((part) => ({
@@ -173,9 +179,27 @@ export function createGardenShedDemoParts(): PartNode[] {
   }));
 }
 
+export function createGardenShedDemoGroups(parts?: PartNode[]): GroupNode[] {
+  const groupIds = new Map<string, string>();
+  parts?.forEach((part) => {
+    if (part.groupId) {
+      groupIds.set(part.groupId, part.groupId);
+    }
+  });
+
+  const ids = Array.from(groupIds.keys());
+  return [
+    { id: ids[0] ?? randomId(), name: "Floor Frame", parentGroupId: null },
+    { id: ids[1] ?? randomId(), name: "Wall Posts", parentGroupId: null },
+    { id: ids[2] ?? randomId(), name: "Roof Frame", parentGroupId: null },
+    { id: ids[3] ?? randomId(), name: "Wall Panels", parentGroupId: null },
+  ];
+}
+
 export function createProject(name = "Garden Shed Demo"): ProjectDocument {
   const now = new Date().toISOString();
   const parts = createGardenShedDemoParts();
+  const groups = createGardenShedDemoGroups(parts);
 
   return {
     id: randomId(),
@@ -192,6 +216,7 @@ export function createProject(name = "Garden Shed Demo"): ProjectDocument {
       position: makeVector3(2600, 1700, 2600),
       target: makeVector3(DEFAULT_WORKSPACE_FOCUS_XZ, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ),
     },
+    groups,
     parts,
     createdAt: now,
     updatedAt: now,
