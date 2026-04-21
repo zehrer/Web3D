@@ -8,7 +8,7 @@ export type TimberProfileId = "timber-56x56" | "timber-60x80" | "timber-80x100" 
 
 export type CladdingProfileId = "rhombus-18x68" | "rhombus-19x68" | "rhombus-19x95" | "rhombus-24x68" | "rhombus-27x68";
 
-export type GlassProfileId = "plexiglass-3";
+export type GlassProfileId = "plexiglass-3" | "plexiglass-5" | "plexiglass-10";
 
 export type ObjectProfileId = SheetProfileId | TimberProfileId | CladdingProfileId | GlassProfileId;
 

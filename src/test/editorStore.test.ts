@@ -100,6 +100,9 @@ describe("editor store", () => {
       size: { x: 1200, y: 800, z: 3 },
     });
     expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 3 });
+
+    store.getState().setPartProfile(glass.id, "plexiglass-10");
+    expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 10 });
   });
 
   it("creates repeated cladding patterns from profile width plus gap", () => {

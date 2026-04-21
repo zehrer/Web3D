@@ -79,6 +79,8 @@ export const CLADDING_PROFILES: CladdingProfile[] = [
 
 export const GLASS_PROFILES: GlassProfile[] = [
   { id: "plexiglass-3", objectType: "glass", label: "Plexiglass 3 mm", thicknessMm: 3, defaultLengthMm: 900, defaultWidthMm: 600, opacity: 0.38, color: "#86cfff" },
+  { id: "plexiglass-5", objectType: "glass", label: "Plexiglass 5 mm", thicknessMm: 5, defaultLengthMm: 900, defaultWidthMm: 600, opacity: 0.36, color: "#86cfff" },
+  { id: "plexiglass-10", objectType: "glass", label: "Plexiglass 10 mm", thicknessMm: 10, defaultLengthMm: 900, defaultWidthMm: 600, opacity: 0.32, color: "#86cfff" },
 ];
 
 export const OBJECT_TYPE_LABELS: Record<ObjectType, string> = {

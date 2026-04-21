@@ -38,12 +38,16 @@ describe("object profiles", () => {
 
   it("creates plexiglass as a thin resizeable panel", () => {
     const profile = getProfileById("plexiglass-3");
+    const thickerProfile = getProfileById("plexiglass-10");
     const size = createSizeFromProfile(profile);
     const resized = applyProfileToSize(profile, { x: 1200, y: 800, z: 20 });
+    const resizedWithProfileThickness = applyProfileToSize(thickerProfile, { x: 1200, y: 800, z: 3 });
 
     expect(profile.objectType).toBe("glass");
     expect(size).toEqual({ x: 900, y: 600, z: 3 });
     expect(resized).toEqual({ x: 1200, y: 800, z: 3 });
+    expect(createSizeFromProfile(getProfileById("plexiglass-5")).z).toBe(5);
+    expect(resizedWithProfileThickness).toEqual({ x: 1200, y: 800, z: 10 });
   });
 
   it("limits resize axes by object family", () => {

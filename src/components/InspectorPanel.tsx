@@ -48,6 +48,7 @@ function VectorFields({
   unitPreference,
   convertFromMm = true,
   columns = 1,
+  axes = ["x", "y", "z"],
   onChange,
 }: {
   label: string;
@@ -55,6 +56,7 @@ function VectorFields({
   unitPreference: UnitPreference;
   convertFromMm?: boolean;
   columns?: 1 | 2 | 3;
+  axes?: ReadonlyArray<keyof Vector3Like>;
   onChange: (vector: Vector3Like) => void;
 }) {
   const suffix = convertFromMm ? UNIT_DEFINITIONS[unitPreference].shortLabel : "deg";
@@ -65,7 +67,7 @@ function VectorFields({
         {label} <small>{suffix}</small>
       </span>
       <div className={`field-group__grid field-group__grid--${columns} inspector-vector-grid`}>
-        {(["x", "y", "z"] as const).map((axis) => (
+        {axes.map((axis) => (
           <FieldRow
             key={axis}
             label={axis.toUpperCase()}
@@ -167,6 +169,7 @@ export function InspectorPanel() {
                 vector={selectedPart.size}
                 unitPreference={unitPreference}
                 columns={1}
+                axes={selectedPart.objectType === "glass" ? ["x", "y"] : undefined}
                 onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
               />
             ) : (
@@ -224,7 +227,7 @@ export function InspectorPanel() {
               }
             />
 
-            {isPanelObject(selectedPart.objectType) ? (
+            {isPanelObject(selectedPart.objectType) && selectedPart.objectType !== "glass" ? (
               <label className="field inspector-field">
                 <span>Thickness</span>
                 <div className="field__input field__input--readonly">
