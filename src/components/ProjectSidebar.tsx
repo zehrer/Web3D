@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { BeamIcon, FolderIcon, SheetIcon } from "./Icons";
 import { getObjectTypeLabel } from "../lib/profiles";
 import { toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
@@ -6,6 +6,10 @@ import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, PartNode, UnitPreference } from "../types/model";
 
 type EditingItem = { kind: "part" | "group"; id: string } | null;
+type DraggedTreeItem = { kind: "part" | "group"; id: string };
+type DropTarget = "root" | string | null;
+
+const TREE_DRAG_MIME = "application/x-web3d-tree-item";
 
 function formatObjectSize(valueMm: number, unitPreference: UnitPreference): string {
   return `${Number(toDisplayUnits(valueMm, unitPreference).toFixed(1))} ${UNIT_DEFINITIONS[unitPreference].shortLabel}`;
@@ -25,21 +29,11 @@ function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancest
   return false;
 }
 
-function groupDepth(groups: GroupNode[], group: GroupNode): number {
-  let depth = 0;
-  let current = group.parentGroupId ? groups.find((entry) => entry.id === group.parentGroupId) : undefined;
-
-  while (current) {
-    depth += 1;
-    current = current.parentGroupId ? groups.find((entry) => entry.id === current?.parentGroupId) : undefined;
-  }
-
-  return depth;
-}
-
 export function ProjectSidebar() {
   const [editingItem, setEditingItem] = useState<EditingItem>(null);
   const [draftName, setDraftName] = useState("");
+  const [draggingItem, setDraggingItem] = useState<DraggedTreeItem | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const project = useEditorStore((state) => state.project);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectPart = useEditorStore((state) => state.selectPart);
@@ -103,14 +97,114 @@ export function ProjectSidebar() {
     return project.parts.filter((part) => part.groupId === groupId);
   }
 
-  function renderGroupOptions(excludeGroupId?: string) {
-    return project.groups
-      .filter((group) => group.id !== excludeGroupId && (!excludeGroupId || !isGroupDescendant(project.groups, group.id, excludeGroupId)))
-      .map((group) => (
-        <option key={group.id} value={group.id}>
-          {"--".repeat(groupDepth(project.groups, group))} {group.name}
-        </option>
-      ));
+  function parseDraggedItem(event: DragEvent): DraggedTreeItem | null {
+    const payload = event.dataTransfer.getData(TREE_DRAG_MIME);
+    if (!payload) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(payload) as DraggedTreeItem;
+      return parsed.kind === "part" || parsed.kind === "group" ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function getDraggedItem(event: DragEvent): DraggedTreeItem | null {
+    return draggingItem ?? parseDraggedItem(event);
+  }
+
+  function canDropOnGroup(item: DraggedTreeItem | null, groupId: string): boolean {
+    if (!item) {
+      return false;
+    }
+
+    if (item.kind === "part") {
+      return project.parts.some((part) => part.id === item.id);
+    }
+
+    return item.id !== groupId && !isGroupDescendant(project.groups, groupId, item.id);
+  }
+
+  function isEventOnObjectRow(event: DragEvent): boolean {
+    return event.target instanceof Element && Boolean(event.target.closest(".object-row"));
+  }
+
+  function beginDrag(event: DragEvent, item: DraggedTreeItem) {
+    event.stopPropagation();
+    setDraggingItem(item);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(TREE_DRAG_MIME, JSON.stringify(item));
+  }
+
+  function endDrag() {
+    setDraggingItem(null);
+    setDropTarget(null);
+  }
+
+  function dropItemIntoGroup(item: DraggedTreeItem, groupId: string) {
+    if (item.kind === "part") {
+      movePartToGroup(item.id, groupId);
+      return;
+    }
+
+    moveGroupToGroup(item.id, groupId);
+  }
+
+  function dropItemAtRoot(item: DraggedTreeItem) {
+    if (item.kind === "part") {
+      movePartToGroup(item.id, null);
+      return;
+    }
+
+    moveGroupToGroup(item.id, null);
+  }
+
+  function handleGroupDragOver(event: DragEvent, groupId: string) {
+    const item = getDraggedItem(event);
+    if (!canDropOnGroup(item, groupId)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    setDropTarget(groupId);
+  }
+
+  function handleGroupDrop(event: DragEvent, groupId: string) {
+    const item = getDraggedItem(event);
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (item && canDropOnGroup(item, groupId)) {
+      dropItemIntoGroup(item, groupId);
+    }
+
+    endDrag();
+  }
+
+  function handleRootDragOver(event: DragEvent) {
+    const item = getDraggedItem(event);
+    if (!item || isEventOnObjectRow(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDropTarget("root");
+  }
+
+  function handleRootDrop(event: DragEvent) {
+    const item = getDraggedItem(event);
+    if (!item || isEventOnObjectRow(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    dropItemAtRoot(item);
+    endDrag();
   }
 
   function renderNameEditor(kind: "part" | "group", id: string, name: string) {
@@ -159,11 +253,16 @@ export function ProjectSidebar() {
   }
 
   function renderPart(part: PartNode, depth: number) {
+    const isDragging = draggingItem?.kind === "part" && draggingItem.id === part.id;
+
     return (
       <div
         key={part.id}
-        className={`object-row ${selectedPartId === part.id ? "object-row--selected" : ""}`}
+        className={`object-row ${selectedPartId === part.id ? "object-row--selected" : ""} ${isDragging ? "object-row--dragging" : ""}`}
+        draggable
         onClick={() => selectPart(part.id)}
+        onDragEnd={endDrag}
+        onDragStart={(event) => beginDrag(event, { kind: "part", id: part.id })}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
@@ -183,16 +282,6 @@ export function ProjectSidebar() {
             {getObjectTypeLabel(part.objectType)} · {formatObjectSize(part.size.x, unitPreference)}
           </small>
         </span>
-        <select
-          aria-label={`Move ${part.name} to group`}
-          className="object-row__group-select"
-          value={part.groupId ?? ""}
-          onChange={(event) => movePartToGroup(part.id, event.target.value || null)}
-          onClick={(event) => event.stopPropagation()}
-        >
-          <option value="">No group</option>
-          {renderGroupOptions()}
-        </select>
       </div>
     );
   }
@@ -201,10 +290,25 @@ export function ProjectSidebar() {
     const childrenGroups = groupChildren(group.id);
     const childrenParts = partChildren(group.id);
     const childCount = project.parts.filter((part) => part.groupId === group.id).length + childrenGroups.length;
+    const isDragging = draggingItem?.kind === "group" && draggingItem.id === group.id;
+    const isDropTarget = dropTarget === group.id;
 
     return (
       <div className="object-tree__group" key={group.id}>
-        <div className="object-row object-row--group" style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}>
+        <div
+          className={`object-row object-row--group ${isDragging ? "object-row--dragging" : ""} ${isDropTarget ? "object-row--drop-target" : ""}`}
+          draggable
+          onDragEnd={endDrag}
+          onDragLeave={() => {
+            if (dropTarget === group.id) {
+              setDropTarget(null);
+            }
+          }}
+          onDragOver={(event) => handleGroupDragOver(event, group.id)}
+          onDragStart={(event) => beginDrag(event, { kind: "group", id: group.id })}
+          onDrop={(event) => handleGroupDrop(event, group.id)}
+          style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
+        >
           <span className="object-row__icon object-row__icon--group">
             <FolderIcon width={15} height={15} />
           </span>
@@ -212,16 +316,6 @@ export function ProjectSidebar() {
             {renderNameEditor("group", group.id, group.name)}
             <small>{childCount} direct items</small>
           </span>
-          <select
-            aria-label={`Move ${group.name} to parent group`}
-            className="object-row__group-select"
-            value={group.parentGroupId ?? ""}
-            onChange={(event) => moveGroupToGroup(group.id, event.target.value || null)}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <option value="">Root</option>
-            {renderGroupOptions(group.id)}
-          </select>
         </div>
         {childrenGroups.map((childGroup) => renderGroup(childGroup, depth + 1))}
         {childrenParts.map((part) => renderPart(part, depth + 1))}
@@ -254,7 +348,16 @@ export function ProjectSidebar() {
           </button>
         </div>
 
-        <div className="object-browser">
+        <div
+          className={`object-browser ${dropTarget === "root" ? "object-browser--drop-target" : ""}`}
+          onDragLeave={(event) => {
+            if (event.currentTarget === event.target && dropTarget === "root") {
+              setDropTarget(null);
+            }
+          }}
+          onDragOver={handleRootDragOver}
+          onDrop={handleRootDrop}
+        >
           {hasVisibleItems ? (
             <>
               {rootGroups.map((group) => renderGroup(group, 0))}

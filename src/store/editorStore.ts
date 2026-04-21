@@ -234,18 +234,22 @@ export function createEditorStore() {
 
     moveGroupToGroup: (groupId, parentGroupId) =>
       set((state) => {
+        const groupExists = state.project.groups.some((group) => group.id === groupId);
         const parentExists = parentGroupId ? state.project.groups.some((group) => group.id === parentGroupId) : true;
         const isInvalidParent =
           parentGroupId === groupId ||
           (parentGroupId ? isDescendantGroup(state.project.groups, parentGroupId, groupId) : false);
-        const nextParentGroupId = parentExists && !isInvalidParent ? parentGroupId : null;
+
+        if (!groupExists || !parentExists || isInvalidParent) {
+          return state;
+        }
 
         return {
           ...withProjectHistory(state, (project) => ({
             ...project,
             groups: replaceGroup(project.groups, groupId, (group) => ({
               ...group,
-              parentGroupId: nextParentGroupId,
+              parentGroupId: parentGroupId ?? null,
             })),
           })),
         };
