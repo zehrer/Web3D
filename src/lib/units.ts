@@ -41,6 +41,12 @@ export function formatLength(valueMm: number, unit: UnitPreference, digits = 1):
   return `${displayValue.toFixed(digits)} ${UNIT_DEFINITIONS[unit].shortLabel}`;
 }
 
+export function formatArea(valueMm2: number, unit: UnitPreference, digits = 2): string {
+  const unitDefinition = UNIT_DEFINITIONS[unit];
+  const displayValue = valueMm2 / unitDefinition.millimetersPerUnit ** 2;
+  return `${displayValue.toFixed(digits)} ${unitDefinition.shortLabel}^2`;
+}
+
 export function clampLength(valueMm: number, min = 1): number {
   return Number.isFinite(valueMm) ? Math.max(min, valueMm) : min;
 }

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getMaterialUsageSummary } from "../lib/materialSummary";
 import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
-import { formatLength, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
+import { formatArea, formatLength, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
 import type { ObjectProfileId, ObjectType, UnitPreference, Vector3Like } from "../types/model";
 
@@ -116,6 +117,39 @@ function getProfileFieldLabel(objectType: ObjectType) {
   return "Shape";
 }
 
+function MaterialOverview({ unitPreference }: { unitPreference: UnitPreference }) {
+  const parts = useEditorStore((store) => store.project.parts);
+  const materialSummary = useMemo(() => getMaterialUsageSummary(parts), [parts]);
+
+  if (!materialSummary.length) {
+    return <p className="panel-card__empty">No material objects in this project yet.</p>;
+  }
+
+  return (
+    <div className="material-summary">
+      <p className="material-summary__intro">Used material by type and profile.</p>
+      {materialSummary.map((item) => (
+        <div className="material-summary__row" key={item.key}>
+          <div className="material-summary__label">
+            <strong>{item.label}</strong>
+            <small>
+              {item.objectTypeLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
+            </small>
+          </div>
+          <div className="material-summary__total">
+            <strong>
+              {item.kind === "linear"
+                ? formatLength(item.totalLengthMm, unitPreference)
+                : formatArea(item.totalAreaMm2, unitPreference)}
+            </strong>
+            <small>{item.kind === "linear" ? "total length" : "total area"}</small>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function InspectorPanel() {
   const state = useEditorStore((store) => store);
   const selectedPart = getSelectedPart(state);
@@ -149,9 +183,9 @@ export function InspectorPanel() {
     <aside className="inspector">
       <section className="panel-card">
         <div className="panel-card__header">
-          <span className="panel-card__title">Object</span>
+          <span className="panel-card__title">{selectedPart ? "Object" : selectedMeasurement ? "Measure" : "Material Overview"}</span>
           <span className="panel-card__meta">
-            {selectedPart ? getObjectTypeLabel(selectedPart.objectType) : selectedMeasurement ? "Measure" : "None"}
+            {selectedPart ? getObjectTypeLabel(selectedPart.objectType) : selectedMeasurement ? "Measure" : `${state.project.parts.length} objects`}
           </span>
         </div>
 
@@ -371,7 +405,7 @@ export function InspectorPanel() {
             />
           </>
         ) : (
-          <p className="panel-card__empty">Select an object to inspect its dimensions.</p>
+          <MaterialOverview unitPreference={unitPreference} />
         )}
       </section>
     </aside>

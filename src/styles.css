@@ -334,6 +334,50 @@ button {
   color: #73818c;
 }
 
+.material-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.material-summary__intro {
+  margin: 0 0 0.2rem;
+  color: #65737f;
+  font-size: 0.86rem;
+}
+
+.material-summary__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: start;
+  border-top: 1px solid rgba(174, 182, 190, 0.34);
+  padding-top: 0.6rem;
+}
+
+.material-summary__label,
+.material-summary__total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.material-summary__label strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-summary__total {
+  text-align: right;
+}
+
+.material-summary__row small {
+  color: #73818c;
+  font-size: 0.78rem;
+}
+
 .browser-card {
   display: flex;
   flex-direction: column;
