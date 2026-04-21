@@ -396,6 +396,8 @@ function Scene() {
 
 export function Viewport() {
   const [showHelp, setShowHelp] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const addObject = useEditorStore((state) => state.addObject);
@@ -408,6 +410,17 @@ export function Viewport() {
     state.project.parts.find((part) => part.id === state.selectedPartId) ?? null,
   );
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (!addMenuRef.current?.contains(event.target as Node)) {
+        setShowAddMenu(false);
+      }
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
 
   function setCameraPreset(preset: "perspective" | "top" | "front" | "right") {
     const target = {
@@ -432,15 +445,42 @@ export function Viewport() {
     <section className="viewport-panel">
       <div className="viewport-canvas">
         <div className="viewport-rail viewport-rail--left">
-          <button className="viewport-rail__button" onClick={() => addObject("sheet")} title="Add sheet" type="button">
-            <SheetIcon width={18} height={18} />
-          </button>
-          <button className="viewport-rail__button" onClick={() => addObject("timber")} title="Add timber" type="button">
-            <BeamIcon width={18} height={18} />
-          </button>
-          <button className="viewport-rail__button" onClick={() => addObject(selectedPart?.objectType ?? "sheet")} title="Add same type" type="button">
-            <PlusIcon width={18} height={18} />
-          </button>
+          <div className="viewport-rail__menu-wrapper" ref={addMenuRef}>
+            <button
+              className={`viewport-rail__button ${showAddMenu ? "viewport-rail__button--active" : ""}`}
+              onClick={() => setShowAddMenu((value) => !value)}
+              title="Add object"
+              type="button"
+            >
+              <PlusIcon width={18} height={18} />
+            </button>
+            {showAddMenu ? (
+              <div className="viewport-add-menu">
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    addObject("sheet");
+                    setShowAddMenu(false);
+                  }}
+                  type="button"
+                >
+                  <SheetIcon width={16} height={16} />
+                  <span>Sheet</span>
+                </button>
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    addObject("timber");
+                    setShowAddMenu(false);
+                  }}
+                  type="button"
+                >
+                  <BeamIcon width={16} height={16} />
+                  <span>Timber</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
           {([
             ["move", MoveIcon, "Move"],
             ["rotate", RotateIcon, "Rotate"],

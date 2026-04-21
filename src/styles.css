@@ -653,6 +653,42 @@ button {
   margin: 0.15rem 0;
 }
 
+.viewport-rail__menu-wrapper {
+  position: relative;
+}
+
+.viewport-add-menu {
+  position: absolute;
+  left: calc(100% + 0.5rem);
+  top: 0;
+  z-index: 3;
+  min-width: 128px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  padding: 0.35rem;
+  border-radius: 14px;
+  border: 1px solid rgba(205, 191, 159, 0.34);
+  background: rgba(255, 252, 246, 0.98);
+  box-shadow: 0 12px 28px rgba(95, 108, 120, 0.14);
+}
+
+.viewport-add-menu__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #22303c;
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+}
+
+.viewport-add-menu__item:hover {
+  background: rgba(247, 236, 213, 0.78);
+}
+
 .viewport-context-bar {
   position: absolute;
   left: 50%;
