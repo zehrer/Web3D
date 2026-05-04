@@ -26,8 +26,8 @@ export default function App() {
   const createNewProject = useEditorStore((state) => state.createNewProject);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-  const [leftPanelVisible, setLeftPanelVisible] = useState(true);
-  const [rightPanelVisible, setRightPanelVisible] = useState(true);
+  const [leftPanelVisible, setLeftPanelVisible] = useState(() => window.innerWidth >= 768);
+  const [rightPanelVisible, setRightPanelVisible] = useState(() => window.innerWidth >= 768);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +64,17 @@ export default function App() {
       cancelled = true;
     };
   }, [hydrateProject, setHydrated, setRecentProjects]);
+
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 768) {
+        setLeftPanelVisible(false);
+        setRightPanelVisible(false);
+      }
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) {
