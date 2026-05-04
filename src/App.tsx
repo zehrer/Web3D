@@ -26,6 +26,7 @@ export default function App() {
   const createNewProject = useEditorStore((state) => state.createNewProject);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [leftPanelVisible, setLeftPanelVisible] = useState(() => window.innerWidth >= 768);
   const [rightPanelVisible, setRightPanelVisible] = useState(() => window.innerWidth >= 768);
 
@@ -67,7 +68,9 @@ export default function App() {
 
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth < 768) {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
         setLeftPanelVisible(false);
         setRightPanelVisible(false);
       }
@@ -226,7 +229,7 @@ export default function App() {
         rightPanelVisible={rightPanelVisible}
         saveStatusLabel={saveStatusLabel}
       />
-      <section className="workspace" style={{ gridTemplateColumns: workspaceColumns }}>
+      <section className="workspace" style={isMobile ? undefined : { gridTemplateColumns: workspaceColumns }}>
         {leftPanelVisible ? <ProjectSidebar /> : null}
         <Viewport />
         {rightPanelVisible ? <InspectorPanel /> : null}

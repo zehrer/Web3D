@@ -222,7 +222,7 @@ export function createEditorStore() {
       set({
         project,
         hydrated: true,
-        selectedPartId: project.parts[0]?.id ?? null,
+        selectedPartId: null,
         selectedMeasurementId: null,
         undoStack: [],
         redoStack: [],
