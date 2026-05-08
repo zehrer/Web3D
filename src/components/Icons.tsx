@@ -290,3 +290,13 @@ export function TopViewIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function ArIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4" />
+      <path d="m12 8 3.5 2v4L12 16l-3.5-2v-4L12 8Z" />
+      <path d="M12 8v4M15.5 10 12 12l-3.5-2" />
+    </BaseIcon>
+  );
+}

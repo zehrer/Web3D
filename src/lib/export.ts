@@ -1,6 +1,7 @@
 import { BoxGeometry, CircleGeometry, DoubleSide, Group, Mesh, MeshStandardMaterial, PlaneGeometry, type Object3D } from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
+import { USDZExporter } from "three/examples/jsm/exporters/USDZExporter.js";
 import { serializeProject, serializeProjectFile } from "./serialization";
 import type { PartNode, ProjectDocument } from "../types/model";
 
@@ -133,6 +134,10 @@ export function createWeb3dFilename(project: ProjectDocument): string {
   return `${sanitizeFilenameSegment(project.name)}.web3d`;
 }
 
+export function createUsdzFilename(project: ProjectDocument): string {
+  return `${sanitizeFilenameSegment(project.name)}.usdz`;
+}
+
 export function exportProjectToStl(project: ProjectDocument): string {
   const sceneRoot = createProjectScene(project);
 
@@ -201,4 +206,36 @@ export async function downloadProjectAsGltf(project: ProjectDocument): Promise<v
 
 export function downloadProjectAsWeb3d(project: ProjectDocument): void {
   downloadTextFile(serializeProjectFile(project), createWeb3dFilename(project), "application/json");
+}
+
+export async function exportProjectToUsdz(project: ProjectDocument): Promise<Uint8Array> {
+  const sceneRoot = createProjectScene(project, GLTF_METERS_PER_MILLIMETER);
+  const exporter = new USDZExporter();
+  return exporter.parseAsync(sceneRoot as Object3D);
+}
+
+export async function downloadProjectAsUsdz(project: ProjectDocument): Promise<void> {
+  const buffer = await exportProjectToUsdz(project);
+  const blob = new Blob([buffer.buffer as ArrayBuffer], { type: "model/vnd.usdz+zip" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = createUsdzFilename(project);
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function openProjectInArQuickLook(project: ProjectDocument): Promise<void> {
+  const buffer = await exportProjectToUsdz(project);
+  const blob = new Blob([buffer.buffer as ArrayBuffer], { type: "model/vnd.usdz+zip" });
+  const url = URL.createObjectURL(blob);
+
+  const anchor = document.createElement("a");
+  anchor.setAttribute("rel", "ar");
+  anchor.setAttribute("href", url);
+  // AR Quick Look requires a child element to open in AR mode rather than trigger a download
+  anchor.appendChild(document.createElement("img"));
+  anchor.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

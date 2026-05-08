@@ -15,6 +15,7 @@ interface ToolbarProps {
   onExportWeb3d: () => void;
   onExportStl: () => void;
   onExportGltf: () => void | Promise<void>;
+  onExportUsdz: () => void | Promise<void>;
   onDeleteCurrentProject: () => void | Promise<void>;
   onNewProject: () => void;
   onOpenProject: (projectId: string) => void | Promise<void>;
@@ -74,6 +75,7 @@ export function Toolbar({
   onExportWeb3d,
   onExportStl,
   onExportGltf,
+  onExportUsdz,
   onDeleteCurrentProject,
   onOpenProject,
   onToggleLeftPanel,
@@ -215,6 +217,7 @@ export function Toolbar({
                     <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportWeb3d(); }} type="button">Web3D Project</button>
                     <button className="menu-dropdown__item" onClick={() => { closeMenu(); onExportStl(); }} type="button">STL Mesh</button>
                     <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onExportGltf(); }} type="button">glTF Project</button>
+                    <button className="menu-dropdown__item" onClick={() => { closeMenu(); void onExportUsdz(); }} type="button">USDZ Model</button>
                   </div>
                 </div>
                 <button className="menu-dropdown__item menu-dropdown__item--danger" onClick={() => { closeMenu(); void onDeleteCurrentProject(); }} type="button">Delete Current Project</button>

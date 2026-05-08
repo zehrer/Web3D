@@ -3,7 +3,7 @@ import { Toolbar } from "./components/Toolbar";
 import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { Viewport } from "./components/Viewport";
-import { downloadProjectAsGltf, downloadProjectAsStl, downloadProjectAsWeb3d } from "./lib/export";
+import { downloadProjectAsGltf, downloadProjectAsStl, downloadProjectAsUsdz, downloadProjectAsWeb3d } from "./lib/export";
 import { createProject } from "./lib/project";
 import {
   deleteProjectDocument,
@@ -169,6 +169,10 @@ export default function App() {
     await downloadProjectAsGltf(editorStore.getState().project);
   }
 
+  async function handleExportUsdz() {
+    await downloadProjectAsUsdz(editorStore.getState().project);
+  }
+
   async function handleImportProjectFile(file: File) {
     setSaveState("saving");
 
@@ -221,6 +225,7 @@ export default function App() {
         onExportWeb3d={handleExportWeb3d}
         onExportStl={handleExportStl}
         onExportGltf={handleExportGltf}
+        onExportUsdz={handleExportUsdz}
         onDeleteCurrentProject={handleDeleteCurrentProject}
         onOpenProject={handleOpenProject}
         onToggleLeftPanel={() => setLeftPanelVisible((value) => !value)}

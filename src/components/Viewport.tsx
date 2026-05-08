@@ -3,6 +3,7 @@ import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { Edges, Html, Line, OrbitControls, Text, TransformControls } from "@react-three/drei";
 import { ArrowHelper, DoubleSide, Euler, Vector3, type Object3D } from "three";
 import {
+  ArIcon,
   BeamIcon,
   CircleIcon,
   CladdingIcon,
@@ -25,6 +26,7 @@ import {
 } from "./Icons";
 import { getResizableAxes } from "../lib/profiles";
 import { applyResizeFromHandle } from "../lib/geometry";
+import { openProjectInArQuickLook } from "../lib/export";
 import { cloneProject, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ } from "../lib/project";
 import { snapValue, toRadians } from "../lib/snap";
 import { formatLength } from "../lib/units";
@@ -653,9 +655,18 @@ function Scene() {
   );
 }
 
+function isIosDevice(): boolean {
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 && /MacIntel/.test(navigator.platform))
+  );
+}
+
 export function Viewport() {
   const [showHelp, setShowHelp] = useState(false);
   const [openAddMenu, setOpenAddMenu] = useState<"objects" | "shapes" | null>(null);
+  const [isIos] = useState(() => isIosDevice());
+  const [arExporting, setArExporting] = useState(false);
   const railMenuRef = useRef<HTMLDivElement | null>(null);
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
@@ -684,6 +695,20 @@ export function Viewport() {
     window.addEventListener("pointerdown", handlePointerDown);
     return () => window.removeEventListener("pointerdown", handlePointerDown);
   }, []);
+
+  async function handleOpenArView() {
+    if (arExporting) {
+      return;
+    }
+
+    setArExporting(true);
+
+    try {
+      await openProjectInArQuickLook(editorStore.getState().project);
+    } finally {
+      setArExporting(false);
+    }
+  }
 
   function setCameraPreset(preset: "perspective" | "top" | "front" | "right") {
     const target = {
@@ -853,6 +878,17 @@ export function Viewport() {
           <button className="viewport-rail__button" onClick={() => setCameraPreset("top")} title="Top view" type="button">
             <TopViewIcon width={18} height={18} />
           </button>
+          {isIos ? (
+            <button
+              className="viewport-rail__button"
+              disabled={arExporting}
+              onClick={() => void handleOpenArView()}
+              title={arExporting ? "Preparing AR…" : "View in AR"}
+              type="button"
+            >
+              <ArIcon width={18} height={18} />
+            </button>
+          ) : null}
           <button className={`viewport-rail__button ${showHelp ? "viewport-rail__button--active" : ""}`} onClick={() => setShowHelp((value) => !value)} title="Help" type="button">
             <HelpIcon width={18} height={18} />
           </button>
