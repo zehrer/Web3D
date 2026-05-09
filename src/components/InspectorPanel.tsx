@@ -3,7 +3,7 @@ import { getMaterialUsageSummary } from "../lib/materialSummary";
 import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
-import type { ObjectProfileId, ObjectType, UnitPreference, Vector3Like } from "../types/model";
+import type { ObjectProfileId, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
   const parsed = Number(value);
@@ -117,9 +117,28 @@ function getProfileFieldLabel(objectType: ObjectType) {
   return "Shape";
 }
 
+function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): string {
+  if (part.objectType === "circle") {
+    return `⌀ ${formatLength(part.size.x, unitPreference)}`;
+  }
+
+  if (part.objectType === "rectangle") {
+    return `${formatLength(part.size.x, unitPreference)} × ${formatLength(part.size.z, unitPreference)}`;
+  }
+
+  if (part.objectType === "sheet" || part.objectType === "glass") {
+    return `${formatLength(part.size.x, unitPreference)} × ${formatLength(part.size.y, unitPreference)}`;
+  }
+
+  return formatLength(part.size.x, unitPreference);
+}
+
 function MaterialOverview() {
   const parts = useEditorStore((store) => store.project.parts);
+  const unitPreference = useEditorStore((store) => store.project.unitPreference);
+  const selectPart = useEditorStore((store) => store.selectPart);
   const materialSummary = useMemo(() => getMaterialUsageSummary(parts), [parts]);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (!materialSummary.length) {
     return <p className="panel-card__empty">No material objects in this project yet.</p>;
@@ -128,24 +147,52 @@ function MaterialOverview() {
   return (
     <div className="material-summary">
       <p className="material-summary__intro">Used material by type and profile.</p>
-      {materialSummary.map((item) => (
-        <div className="material-summary__row" key={item.key}>
-          <div className="material-summary__label">
-            <strong>{item.label}</strong>
-            <small>
-              {item.objectTypeLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
-            </small>
+      {materialSummary.map((item) => {
+        const isExpanded = expandedKey === item.key;
+        const itemParts = parts.filter((part) => `${part.objectType}:${part.profileId}` === item.key);
+
+        return (
+          <div className="material-summary__row" key={item.key}>
+            <button
+              className="material-summary__row-header"
+              onClick={() => setExpandedKey(isExpanded ? null : item.key)}
+              type="button"
+            >
+              <div className="material-summary__label">
+                <strong>{item.label}</strong>
+                <small>
+                  {item.objectTypeLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
+                </small>
+              </div>
+              <div className="material-summary__total">
+                <strong>
+                  {item.kind === "linear"
+                    ? formatMeters(item.totalLengthMm)
+                    : formatSquareMeters(item.totalAreaMm2)}
+                </strong>
+                <small>{item.kind === "linear" ? "total length" : "total area"}</small>
+              </div>
+            </button>
+            {isExpanded ? (
+              <div className="material-summary__part-list">
+                {itemParts.map((part) => (
+                  <button
+                    key={part.id}
+                    className="material-summary__part-row"
+                    onClick={() => selectPart(part.id)}
+                    type="button"
+                  >
+                    <span>{part.name}</span>
+                    <span className="material-summary__part-dim">
+                      {formatPartDimensions(part, unitPreference)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
-          <div className="material-summary__total">
-            <strong>
-              {item.kind === "linear"
-                ? formatMeters(item.totalLengthMm)
-                : formatSquareMeters(item.totalAreaMm2)}
-            </strong>
-            <small>{item.kind === "linear" ? "total length" : "total area"}</small>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
