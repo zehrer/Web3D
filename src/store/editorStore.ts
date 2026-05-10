@@ -60,6 +60,7 @@ export interface EditorActions {
   addMeasurement: (start: Vector3Like, end: Vector3Like) => void;
   addGroup: (parentGroupId?: string | null) => void;
   updateGroupName: (groupId: string, name: string) => void;
+  deleteGroup: (groupId: string) => void;
   movePartToGroup: (partId: string, groupId: string | null) => void;
   moveMeasurementToGroup: (measurementId: string, groupId: string | null) => void;
   moveGroupToGroup: (groupId: string, parentGroupId: string | null) => void;
@@ -397,6 +398,24 @@ export function createEditorStore() {
           })),
         })),
       })),
+
+    deleteGroup: (groupId) =>
+      set((state) => {
+        const group = state.project.groups.find((g) => g.id === groupId);
+        if (!group) return state;
+        const parentGroupId = group.parentGroupId;
+
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            groups: project.groups
+              .filter((g) => g.id !== groupId)
+              .map((g) => (g.parentGroupId === groupId ? { ...g, parentGroupId } : g)),
+            parts: project.parts.map((p) => (p.groupId === groupId ? { ...p, groupId: parentGroupId } : p)),
+            measurements: project.measurements.map((m) => (m.groupId === groupId ? { ...m, groupId: parentGroupId } : m)),
+          })),
+        };
+      }),
 
     movePartToGroup: (partId, groupId) =>
       set((state) => {
