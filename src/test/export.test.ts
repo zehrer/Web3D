@@ -39,6 +39,8 @@ describe("3D export", () => {
       },
       groups: [],
       measurements: [],
+      materialGroups: [],
+      materials: [],
       parts: [
         createObjectPart(0, {
           objectType: "timber",
@@ -93,6 +95,8 @@ describe("3D export", () => {
           color: "#276f9f",
         },
       ],
+      materialGroups: [],
+      materials: [],
       parts: [
         {
           ...createObjectPart(0, {
@@ -139,6 +143,8 @@ describe("3D export", () => {
       },
       groups: [],
       measurements: [],
+      materialGroups: [],
+      materials: [],
       parts: [
         {
           ...createObjectPart(0, {

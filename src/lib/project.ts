@@ -1,8 +1,21 @@
 import { getDefaultUnitPreference } from "./locale";
-import { createObjectName, createSizeFromProfile, getDefaultProfileId, getProfileById } from "./profiles";
+import {
+  CLADDING_PROFILES,
+  GLASS_PROFILES,
+  OBJECT_TYPE_LABELS,
+  SHAPE_PROFILES,
+  SHEET_PROFILES,
+  TIMBER_PROFILES,
+  createObjectName,
+  createSizeFromProfile,
+  getDefaultProfileId,
+  getProfileById,
+} from "./profiles";
 import gardenShedDemo from "../data/gardenShedDemo.json";
 import type {
   GroupNode,
+  MaterialGroupNode,
+  MaterialNode,
   MeasurementNode,
   ObjectProfileId,
   ObjectType,
@@ -12,7 +25,7 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 4;
+export const PROJECT_SCHEMA_VERSION = 5;
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
 
@@ -37,6 +50,7 @@ export function createObjectPart(
     profileId?: ObjectProfileId;
     size?: Vector3Like;
     position?: Vector3Like;
+    materialId?: string | null;
   },
 ): PartNode {
   const objectType = options?.objectType ?? "sheet";
@@ -49,6 +63,7 @@ export function createObjectPart(
     objectType,
     profileId,
     groupId: null,
+    materialId: options?.materialId ?? null,
     size: options?.size ?? createSizeFromProfile(profile),
     position: options?.position ?? makeVector3(0, 0, 0),
     rotation: makeVector3(0, 0, 0),
@@ -84,11 +99,49 @@ function createDemoGroups(sourceGroups: GroupNode[]) {
   return { groups, groupIdMap };
 }
 
-function createDemoParts(sourceParts: PartNode[], groupIdMap: Map<string, string>): PartNode[] {
+type InitialMaterials = {
+  materialGroups: MaterialGroupNode[];
+  materials: MaterialNode[];
+  profileToMaterialId: Map<string, string>;
+};
+
+export function createInitialMaterials(): InitialMaterials {
+  const materialGroups: MaterialGroupNode[] = [];
+  const materials: MaterialNode[] = [];
+  const profileToMaterialId = new Map<string, string>();
+  const objectTypeGroupId = new Map<ObjectType, string>();
+
+  const ORDER: ObjectType[] = ["timber", "sheet", "cladding", "glass", "rectangle", "circle"];
+  const ALL_PROFILES = [...TIMBER_PROFILES, ...SHEET_PROFILES, ...CLADDING_PROFILES, ...GLASS_PROFILES, ...SHAPE_PROFILES];
+
+  for (const objectType of ORDER) {
+    const groupId = randomId();
+    objectTypeGroupId.set(objectType, groupId);
+    materialGroups.push({ id: groupId, name: OBJECT_TYPE_LABELS[objectType], parentGroupId: null });
+  }
+
+  for (const profile of ALL_PROFILES) {
+    const materialId = randomId();
+    materials.push({
+      id: materialId,
+      name: profile.label,
+      groupId: objectTypeGroupId.get(profile.objectType) ?? null,
+      objectType: profile.objectType,
+      profileId: profile.id,
+      color: profile.color,
+    });
+    profileToMaterialId.set(profile.id, materialId);
+  }
+
+  return { materialGroups, materials, profileToMaterialId };
+}
+
+function createDemoParts(sourceParts: PartNode[], groupIdMap: Map<string, string>, profileToMaterialId: Map<string, string>): PartNode[] {
   return sourceParts.map((part) => ({
     ...part,
     id: randomId(),
     groupId: part.groupId ? (groupIdMap.get(part.groupId) ?? null) : null,
+    materialId: profileToMaterialId.get(part.profileId) ?? null,
     size: cloneVector(part.size),
     position: cloneVector(part.position),
     rotation: cloneVector(part.rotation),
@@ -108,7 +161,8 @@ function createDemoMeasurements(sourceMeasurements: MeasurementNode[], groupIdMa
 export function createProject(name?: string): ProjectDocument {
   const now = new Date().toISOString();
   const { groups, groupIdMap } = createDemoGroups(gardenShedDemoProject.groups);
-  const parts = createDemoParts(gardenShedDemoProject.parts, groupIdMap);
+  const { materialGroups, materials, profileToMaterialId } = createInitialMaterials();
+  const parts = createDemoParts(gardenShedDemoProject.parts, groupIdMap, profileToMaterialId);
   const measurements = createDemoMeasurements(gardenShedDemoProject.measurements, groupIdMap);
 
   return {
@@ -126,6 +180,8 @@ export function createProject(name?: string): ProjectDocument {
     groups,
     parts,
     measurements,
+    materialGroups,
+    materials,
     createdAt: now,
     updatedAt: now,
   };

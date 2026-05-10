@@ -48,7 +48,7 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.groups).toEqual([]);
     expect(parsed.measurements).toEqual([]);
     expect(parsed.parts[0].groupId).toBeNull();
@@ -67,7 +67,7 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.groups).toEqual([]);
     expect(parsed.measurements).toEqual([]);
     expect(parsed.parts.every((part) => part.groupId === null)).toBe(true);
@@ -83,7 +83,7 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.measurements).toEqual([]);
     expect(parsed.groups).toHaveLength(project.groups.length);
   });

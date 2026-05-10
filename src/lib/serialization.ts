@@ -1,4 +1,4 @@
-import { PROJECT_SCHEMA_VERSION } from "./project";
+import { PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
 import { getProfileById } from "./profiles";
 import type { MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
@@ -37,6 +37,11 @@ type ProjectDocumentV3 = Omit<ProjectDocument, "measurements" | "version"> & {
   version: 3;
 };
 
+type ProjectDocumentV4 = Omit<ProjectDocument, "materialGroups" | "materials" | "version"> & {
+  version: 4;
+  parts: Array<Omit<PartNode, "materialId">>;
+};
+
 type Web3dProjectFile = {
   format: typeof WEB3D_PROJECT_FILE_FORMAT;
   formatVersion: typeof WEB3D_PROJECT_FILE_FORMAT_VERSION;
@@ -60,19 +65,22 @@ function mapLegacyThicknessPreset(preset: LegacyThicknessPreset): ObjectProfileI
 }
 
 function migrateProjectV1ToCurrent(legacy: LegacyProjectDocument): ProjectDocument {
-  return {
-    ...legacy,
-    version: PROJECT_SCHEMA_VERSION,
+  const v4 = {
+    id: legacy.id,
+    name: legacy.name,
+    version: 4 as const,
+    unitPreference: legacy.unitPreference,
+    snapSettings: legacy.snapSettings,
+    cameraState: legacy.cameraState,
     groups: [],
     measurements: [],
     parts: legacy.parts.map((part) => {
       const profileId = mapLegacyThicknessPreset(part.thicknessPreset);
       const profile = getProfileById(profileId);
-
       return {
         id: part.id,
         name: part.name,
-        objectType: "sheet",
+        objectType: "sheet" as const,
         profileId,
         groupId: null,
         size: part.size,
@@ -81,13 +89,16 @@ function migrateProjectV1ToCurrent(legacy: LegacyProjectDocument): ProjectDocume
         color: part.color ?? profile.color ?? DEFAULT_OBJECT_COLOR,
       };
     }),
+    createdAt: legacy.createdAt,
+    updatedAt: legacy.updatedAt,
   };
+  return migrateProjectV4ToCurrent(v4 as unknown as ProjectDocumentV4);
 }
 
 function migrateProjectV2ToCurrent(project: ProjectDocumentV2): ProjectDocument {
-  return {
+  const v4 = {
     ...project,
-    version: PROJECT_SCHEMA_VERSION,
+    version: 4 as const,
     groups: [],
     measurements: [],
     parts: project.parts.map((part) => ({
@@ -95,13 +106,30 @@ function migrateProjectV2ToCurrent(project: ProjectDocumentV2): ProjectDocument 
       groupId: null,
     })),
   };
+  return migrateProjectV4ToCurrent(v4 as unknown as ProjectDocumentV4);
 }
 
 function migrateProjectV3ToCurrent(project: ProjectDocumentV3): ProjectDocument {
+  const v4 = {
+    ...project,
+    version: 4 as const,
+    parts: project.parts.map((part) => ({ ...part, materialId: null as null })),
+    measurements: [],
+  };
+  return migrateProjectV4ToCurrent(v4 as unknown as ProjectDocumentV4);
+}
+
+function migrateProjectV4ToCurrent(project: ProjectDocumentV4): ProjectDocument {
+  const { materialGroups, materials, profileToMaterialId } = createInitialMaterials();
   return {
     ...project,
     version: PROJECT_SCHEMA_VERSION,
-    measurements: [],
+    materialGroups,
+    materials,
+    parts: project.parts.map((part) => ({
+      ...part,
+      materialId: profileToMaterialId.get(part.profileId) ?? null,
+    })),
   };
 }
 
@@ -134,6 +162,10 @@ export function deserializeProject(payload: string): ProjectDocument {
 
   if (parsed.version === 3) {
     return migrateProjectV3ToCurrent(parsed as ProjectDocumentV3);
+  }
+
+  if (parsed.version === 4) {
+    return migrateProjectV4ToCurrent(parsed as unknown as ProjectDocumentV4);
   }
 
   if (parsed.version !== PROJECT_SCHEMA_VERSION) {
