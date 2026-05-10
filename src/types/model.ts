@@ -40,6 +40,7 @@ export interface PartNode {
   objectType: ObjectType;
   profileId: ObjectProfileId;
   groupId: string | null;
+  materialId: string | null;
   size: Vector3Like;
   position: Vector3Like;
   rotation: Vector3Like;
@@ -61,6 +62,21 @@ export interface GroupNode {
   parentGroupId: string | null;
 }
 
+export interface MaterialGroupNode {
+  id: string;
+  name: string;
+  parentGroupId: string | null;
+}
+
+export interface MaterialNode {
+  id: string;
+  name: string;
+  groupId: string | null;
+  objectType: ObjectType;
+  profileId: ObjectProfileId;
+  color: string;
+}
+
 export interface ProjectDocument {
   id: string;
   name: string;
@@ -71,6 +87,8 @@ export interface ProjectDocument {
   groups: GroupNode[];
   parts: PartNode[];
   measurements: MeasurementNode[];
+  materialGroups: MaterialGroupNode[];
+  materials: MaterialNode[];
   createdAt: string;
   updatedAt: string;
 }

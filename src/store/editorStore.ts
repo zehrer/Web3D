@@ -7,6 +7,8 @@ import type {
   ActiveTool,
   CameraState,
   GroupNode,
+  MaterialGroupNode,
+  MaterialNode,
   MeasurementNode,
   ObjectProfileId,
   ObjectType,
@@ -35,6 +37,7 @@ export interface EditorState extends HistoryState {
   recentProjects: ProjectSummary[];
   selectedPartId: string | null;
   selectedMeasurementId: string | null;
+  selectedMaterialId: string | null;
   activeTool: ActiveTool;
 }
 
@@ -45,6 +48,10 @@ export interface EditorActions {
   createNewProject: () => void;
   selectPart: (partId: string | null) => void;
   selectMeasurement: (measurementId: string | null) => void;
+  selectMaterial: (materialId: string | null) => void;
+  addMaterialGroup: (parentGroupId?: string | null) => void;
+  renameMaterialGroup: (groupId: string, name: string) => void;
+  renameMaterial: (materialId: string, name: string) => void;
   setActiveTool: (tool: ActiveTool) => void;
   renameProject: (name: string) => void;
   updateUnitPreference: (unitPreference: UnitPreference) => void;
@@ -214,6 +221,7 @@ export function createEditorStore() {
     recentProjects: [],
     selectedPartId: null,
     selectedMeasurementId: null,
+    selectedMaterialId: null,
     activeTool: "move",
     undoStack: [],
     redoStack: [],
@@ -224,6 +232,7 @@ export function createEditorStore() {
         hydrated: true,
         selectedPartId: null,
         selectedMeasurementId: null,
+        selectedMaterialId: null,
         undoStack: [],
         redoStack: [],
       }),
@@ -238,6 +247,7 @@ export function createEditorStore() {
           project,
           selectedPartId: project.parts[0]?.id ?? null,
           selectedMeasurementId: null,
+          selectedMaterialId: null,
           undoStack: [],
           redoStack: [],
         };
@@ -245,6 +255,48 @@ export function createEditorStore() {
 
     selectPart: (partId) => set({ selectedPartId: partId, selectedMeasurementId: null }),
     selectMeasurement: (measurementId) => set({ selectedMeasurementId: measurementId, selectedPartId: null }),
+
+    selectMaterial: (materialId) =>
+      set({ selectedMaterialId: materialId, selectedPartId: null, selectedMeasurementId: null }),
+
+    addMaterialGroup: (parentGroupId = null) =>
+      set((state) => {
+        const parentExists = parentGroupId
+          ? state.project.materialGroups.some((g) => g.id === parentGroupId)
+          : true;
+        const newGroup: MaterialGroupNode = {
+          id: randomId(),
+          name: `Group ${state.project.materialGroups.length + 1}`,
+          parentGroupId: parentExists ? parentGroupId : null,
+        };
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            materialGroups: [...project.materialGroups, newGroup],
+          })),
+        };
+      }),
+
+    renameMaterialGroup: (groupId, name) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          materialGroups: project.materialGroups.map((g) =>
+            g.id === groupId ? { ...g, name: name.trim() || g.name } : g,
+          ),
+        })),
+      })),
+
+    renameMaterial: (materialId, name) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          materials: project.materials.map((m) =>
+            m.id === materialId ? { ...m, name: name.trim() || m.name } : m,
+          ),
+        })),
+      })),
+
     setActiveTool: (tool) => set({ activeTool: tool }),
     renameProject: (name) =>
       set((state) => ({

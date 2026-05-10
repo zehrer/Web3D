@@ -362,7 +362,11 @@ function AxisGuide() {
 }
 
 function Scene() {
-  const parts = useEditorStore((state) => state.project.parts);
+  const allParts = useEditorStore((state) => state.project.parts);
+  const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
+  const parts = selectedMaterialId
+    ? allParts.filter((part) => part.materialId === selectedMaterialId)
+    : allParts;
   const measurements = useEditorStore((state) => state.project.measurements);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
