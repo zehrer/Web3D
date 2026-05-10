@@ -4,7 +4,7 @@ import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { Viewport } from "./components/Viewport";
 import { downloadProjectAsGltf, downloadProjectAsStl, downloadProjectAsUsdz, downloadProjectAsWeb3d } from "./lib/export";
-import { createProject } from "./lib/project";
+import { createDemoProject, createProject } from "./lib/project";
 import {
   deleteProjectDocument,
   listProjectSummaries,
@@ -49,7 +49,7 @@ export default function App() {
         if (recentProject) {
           hydrateProject(recentProject);
         } else {
-          const nextProject = createProject();
+          const nextProject = createDemoProject();
           hydrateProject(nextProject);
         }
       } finally {
@@ -143,7 +143,7 @@ export default function App() {
       if (fallbackProject) {
         editorStore.getState().hydrateProject(fallbackProject);
       } else {
-        const nextProject = createProject();
+        const nextProject = createDemoProject();
         editorStore.getState().hydrateProject(nextProject);
         await saveProjectDocument(nextProject);
       }

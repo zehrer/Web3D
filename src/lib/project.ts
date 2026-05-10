@@ -159,6 +159,32 @@ function createDemoMeasurements(sourceMeasurements: MeasurementNode[], groupIdMa
 
 export function createProject(name?: string): ProjectDocument {
   const now = new Date().toISOString();
+  const { materialGroups, materials } = createInitialMaterials();
+
+  return {
+    id: randomId(),
+    name: name ?? "New Project",
+    version: PROJECT_SCHEMA_VERSION,
+    unitPreference: getDefaultUnitPreference(),
+    snapSettings: {
+      ...gardenShedDemoProject.snapSettings,
+    },
+    cameraState: {
+      position: cloneVector(gardenShedDemoProject.cameraState.position),
+      target: cloneVector(gardenShedDemoProject.cameraState.target),
+    },
+    groups: [],
+    parts: [],
+    measurements: [],
+    materialGroups,
+    materials,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export function createDemoProject(): ProjectDocument {
+  const now = new Date().toISOString();
   const { groups, groupIdMap } = createDemoGroups(gardenShedDemoProject.groups);
   const { materialGroups, materials, profileToMaterialId } = createInitialMaterials();
   const parts = createDemoParts(gardenShedDemoProject.parts, groupIdMap, profileToMaterialId);
@@ -166,7 +192,7 @@ export function createProject(name?: string): ProjectDocument {
 
   return {
     id: randomId(),
-    name: name ?? gardenShedDemoProject.name,
+    name: gardenShedDemoProject.name,
     version: PROJECT_SCHEMA_VERSION,
     unitPreference: getDefaultUnitPreference(),
     snapSettings: {
