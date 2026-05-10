@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
+import { Canvas, type ThreeEvent, type ThreeElements, useFrame, useThree } from "@react-three/fiber";
 import { Edges, Html, Line, OrbitControls, Text, TransformControls } from "@react-three/drei";
-import { ArrowHelper, DoubleSide, Euler, Vector3, type Object3D } from "three";
+import { ArrowHelper, DoubleSide, Euler, Mesh, PerspectiveCamera, Vector3, type Object3D } from "three";
 import {
   ArIcon,
   BeamIcon,
@@ -135,6 +135,33 @@ function getPartCorners(part: PartNode): PartCornerDefinition[] {
   );
 }
 
+const _ssPos = new Vector3();
+
+function ScreenSizeMesh({
+  pixelRadius,
+  position,
+  children,
+  ...props
+}: { pixelRadius: number; position: [number, number, number] } & Omit<ThreeElements["mesh"], "ref">) {
+  const ref = useRef<Mesh>(null);
+  const { camera, size } = useThree();
+
+  useFrame(() => {
+    if (!ref.current) return;
+    ref.current.getWorldPosition(_ssPos);
+    const dist = camera.position.distanceTo(_ssPos);
+    const fovRad = ((camera as PerspectiveCamera).fov * Math.PI) / 180;
+    const worldPerPx = (2 * dist * Math.tan(fovRad / 2)) / size.height;
+    ref.current.scale.setScalar(worldPerPx * pixelRadius);
+  });
+
+  return (
+    <mesh ref={ref} position={position} {...props}>
+      {children}
+    </mesh>
+  );
+}
+
 function CameraController({
   orbitRef,
 }: {
@@ -207,14 +234,14 @@ function KeyDimensionGuide({ part }: { part: PartNode }) {
         dashSize={10}
         gapSize={6}
       />
-      <mesh position={[0, guideY, guideZ]}>
-        <sphereGeometry args={[7, 20, 20]} />
+      <ScreenSizeMesh pixelRadius={5} position={[0, guideY, guideZ]}>
+        <sphereGeometry args={[1, 16, 16]} />
         <meshStandardMaterial color="#f5f7fa" />
-      </mesh>
-      <mesh position={[part.size.x, guideY, guideZ]}>
-        <sphereGeometry args={[7, 20, 20]} />
+      </ScreenSizeMesh>
+      <ScreenSizeMesh pixelRadius={5} position={[part.size.x, guideY, guideZ]}>
+        <sphereGeometry args={[1, 16, 16]} />
         <meshStandardMaterial color="#f5f7fa" />
-      </mesh>
+      </ScreenSizeMesh>
       <Html position={labelPosition} center style={{ pointerEvents: "none" }}>
         <div className="measurement-chip">{measureText}</div>
       </Html>
@@ -242,14 +269,14 @@ function MeasurementGuide({
   return (
     <>
       <Line points={[start, end]} color={selected ? "#5f6b76" : measurement.color} lineWidth={selected ? 2.2 : 1.5} />
-      <mesh position={start}>
-        <sphereGeometry args={[11, 18, 18]} />
+      <ScreenSizeMesh pixelRadius={7} position={start}>
+        <sphereGeometry args={[1, 16, 16]} />
         <meshStandardMaterial color={selected ? "#5f6b76" : measurement.color} />
-      </mesh>
-      <mesh position={end}>
-        <sphereGeometry args={[11, 18, 18]} />
+      </ScreenSizeMesh>
+      <ScreenSizeMesh pixelRadius={7} position={end}>
+        <sphereGeometry args={[1, 16, 16]} />
         <meshStandardMaterial color={selected ? "#5f6b76" : measurement.color} />
-      </mesh>
+      </ScreenSizeMesh>
       <Html position={midpoint} center style={{ pointerEvents: "none" }}>
         <div className={`measurement-chip ${selected ? "measurement-chip--selected" : ""}`}>
           {formatLength(length, unitPreference)}
@@ -593,8 +620,9 @@ function Scene() {
 
             {activeTool === "measure"
               ? getPartCorners(part).map((corner) => (
-                  <mesh
+                  <ScreenSizeMesh
                     key={corner.key}
+                    pixelRadius={8}
                     position={corner.local}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -607,22 +635,23 @@ function Scene() {
                       }
                     }}
                   >
-                    <sphereGeometry args={[13, 18, 18]} />
+                    <sphereGeometry args={[1, 16, 16]} />
                     <meshStandardMaterial color="#276f9f" emissive="#0c3a53" depthTest={false} />
-                  </mesh>
+                  </ScreenSizeMesh>
                 ))
               : null}
 
             {isSelected && activeTool === "resize"
               ? handleDefinitions.map((handle) => (
-                  <mesh
+                  <ScreenSizeMesh
                     key={`${handle.axis}-${handle.direction}`}
+                    pixelRadius={10}
                     position={handle.position}
                     onPointerDown={(event) => beginResizeDrag(event, part, handle.axis, handle.direction)}
                   >
-                    <sphereGeometry args={[16, 18, 18]} />
+                    <sphereGeometry args={[1, 16, 16]} />
                     <meshStandardMaterial color="#6f7b87" emissive="#3f4852" />
-                  </mesh>
+                  </ScreenSizeMesh>
                 ))
               : null}
           </group>
