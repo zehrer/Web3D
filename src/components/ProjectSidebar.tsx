@@ -233,6 +233,7 @@ export function ProjectSidebar() {
   const togglePartVisibility = useEditorStore((state) => state.togglePartVisibility);
   const toggleGroupVisibility = useEditorStore((state) => state.toggleGroupVisibility);
   const toggleMeasurementVisibility = useEditorStore((state) => state.toggleMeasurementVisibility);
+  const deleteGroup = useEditorStore((state) => state.deleteGroup);
 
   useEffect(() => {
     if (editingItem?.kind === "part" && !project.parts.some((part) => part.id === editingItem.id)) {
@@ -519,6 +520,16 @@ export function ProjectSidebar() {
           <span className="object-row__icon object-row__icon--group"><FolderIcon width={14} height={14} /></span>
           <span className="object-row__content">{renderNameEditor("group", group.id, group.name)}</span>
           {renderVisibilityButton(group.hidden, () => toggleGroupVisibility(group.id), group.hidden ? `Show folder ${group.name}` : `Hide folder ${group.name}`)}
+          <button
+            aria-label={`Delete folder ${group.name}`}
+            className="object-row__eye"
+            onClick={(event) => { event.stopPropagation(); deleteGroup(group.id); }}
+            onDragStart={(event) => event.preventDefault()}
+            title="Delete folder (contents move to parent)"
+            type="button"
+          >
+            <TrashIcon width={13} height={13} />
+          </button>
         </div>
         {isExpanded ? childrenGroups.map((childGroup) => renderGroup(childGroup, depth + 1)) : null}
         {isExpanded ? childrenParts.map((part) => renderPart(part, depth + 1)) : null}
