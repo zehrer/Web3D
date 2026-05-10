@@ -633,6 +633,14 @@ button {
   opacity: 0.48;
 }
 
+.object-row--hidden {
+  opacity: 0.42;
+}
+
+.object-row--hidden .object-row__name-button {
+  color: #73818c;
+}
+
 .object-row--drop-target {
   border-color: rgba(92, 103, 116, 0.72);
   background: rgba(215, 221, 227, 0.94);
@@ -677,6 +685,32 @@ button {
 
 .object-row__disclosure--placeholder {
   pointer-events: none;
+}
+
+.object-row__eye {
+  width: 1rem;
+  height: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #66737e;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 100ms ease;
+  margin-left: auto;
+}
+
+.object-row:hover .object-row__eye,
+.object-row__eye--hidden {
+  opacity: 1;
+}
+
+.object-row__eye:hover {
+  color: #22303c;
 }
 
 .object-row__content,
