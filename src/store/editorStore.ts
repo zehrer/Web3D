@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
-import { applyProfileToSize, getDefaultProfileId, getProfileById } from "../lib/profiles";
+import { applyProfileToSize, createSizeFromProfile, getDefaultProfileId, getProfileById } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
@@ -72,6 +72,9 @@ export interface EditorActions {
   togglePartVisibility: (partId: string) => void;
   toggleGroupVisibility: (groupId: string) => void;
   toggleMeasurementVisibility: (measurementId: string) => void;
+  addObjectFromMaterial: (materialId: string) => void;
+  deleteMaterial: (materialId: string) => void;
+  updateMaterialDefaultSize: (materialId: string, axis: keyof Vector3Like, valueMm: number) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   setPartProfile: (partId: string, profileId: ObjectProfileId) => void;
@@ -590,6 +593,68 @@ export function createEditorStore() {
         ...withProjectHistory(state, (project) => ({
           ...project,
           measurements: replaceMeasurement(project.measurements, measurementId, (m) => ({ ...m, hidden: !m.hidden })),
+        })),
+      })),
+
+    addObjectFromMaterial: (materialId) =>
+      set((state) => {
+        const material = state.project.materials.find((m) => m.id === materialId);
+        if (!material) return state;
+
+        const profile = getProfileById(material.profileId);
+        const profileSize = createSizeFromProfile(profile);
+        const ds = material.defaultSize ?? {};
+        const size = {
+          x: ds.x ?? profileSize.x,
+          y: ds.y ?? profileSize.y,
+          z: ds.z ?? profileSize.z,
+        };
+
+        const nextIndex = state.project.parts.length;
+        const nextPart = createObjectPart(nextIndex, {
+          objectType: material.objectType,
+          profileId: material.profileId,
+          size,
+          position: { x: 0, y: 0, z: 0 },
+          materialId: material.id,
+        });
+
+        const history = withProjectHistory(state, (project) => ({
+          ...project,
+          parts: [...project.parts, nextPart],
+        }));
+
+        return {
+          ...history,
+          selectedPartId: nextPart.id,
+          selectedMeasurementId: null,
+          selectedMaterialId: null,
+        };
+      }),
+
+    deleteMaterial: (materialId) =>
+      set((state) => {
+        const isUsed = state.project.parts.some((p) => p.materialId === materialId);
+        if (isUsed) return state;
+
+        const next = withProjectHistory(state, (project) => ({
+          ...project,
+          materials: project.materials.filter((m) => m.id !== materialId),
+        }));
+
+        return {
+          ...next,
+          selectedMaterialId: state.selectedMaterialId === materialId ? null : state.selectedMaterialId,
+        };
+      }),
+
+    updateMaterialDefaultSize: (materialId, axis, valueMm) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          materials: project.materials.map((m) =>
+            m.id === materialId ? { ...m, defaultSize: { ...(m.defaultSize ?? {}), [axis]: valueMm } } : m,
+          ),
         })),
       })),
 
