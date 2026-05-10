@@ -103,3 +103,20 @@ Tests cover the lib modules (`geometry`, `units`, `snap`, `profiles`, `serializa
 ## Deployment
 
 Pushes to `main` trigger a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and publishes to the `gh-pages` branch. The Vite base path is `/Web3D/` in production builds and `/` in development. Do not hardcode absolute paths that would break this.
+
+## Git Workflow — Merging to Main
+
+**`main` is a protected branch. Direct `git push origin main` always fails with HTTP 403.**
+
+All work must go through a feature branch → PR → merge via the GitHub MCP tools. The correct sequence:
+
+1. Do all work on a feature branch (e.g. `claude/my-feature`).
+2. Commit and push the branch: `git push -u origin <branch>`.
+3. Create a PR using the `mcp__github__create_pull_request` tool:
+   ```
+   owner: zehrer  repo: Web3D
+   head: <branch>  base: main
+   ```
+4. Immediately merge it using `mcp__github__merge_pull_request` with `merge_method: "squash"`.
+
+Do **not** attempt `git push origin main` or `git merge` followed by a push — both will be rejected. Never use `git push --force` on `main`.
