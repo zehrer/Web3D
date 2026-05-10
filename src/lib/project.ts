@@ -3,7 +3,6 @@ import {
   CLADDING_PROFILES,
   GLASS_PROFILES,
   OBJECT_TYPE_LABELS,
-  SHAPE_PROFILES,
   SHEET_PROFILES,
   TIMBER_PROFILES,
   createObjectName,
@@ -111,8 +110,8 @@ export function createInitialMaterials(): InitialMaterials {
   const profileToMaterialId = new Map<string, string>();
   const objectTypeGroupId = new Map<ObjectType, string>();
 
-  const ORDER: ObjectType[] = ["timber", "sheet", "cladding", "glass", "rectangle", "circle"];
-  const ALL_PROFILES = [...TIMBER_PROFILES, ...SHEET_PROFILES, ...CLADDING_PROFILES, ...GLASS_PROFILES, ...SHAPE_PROFILES];
+  const ORDER: ObjectType[] = ["timber", "sheet", "cladding", "glass"];
+  const ALL_PROFILES = [...TIMBER_PROFILES, ...SHEET_PROFILES, ...CLADDING_PROFILES, ...GLASS_PROFILES];
 
   for (const objectType of ORDER) {
     const groupId = randomId();

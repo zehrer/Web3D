@@ -5,6 +5,8 @@ import { ArrowHelper, DoubleSide, Euler, Mesh, PerspectiveCamera, Vector3, type 
 import {
   ArIcon,
   BeamIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
   CircleIcon,
   CladdingIcon,
   DuplicateIcon,
@@ -24,14 +26,14 @@ import {
   TrashIcon,
   UndoIcon,
 } from "./Icons";
-import { getResizableAxes } from "../lib/profiles";
+import { createSizeFromProfile, getProfileById, getResizableAxes } from "../lib/profiles";
 import { applyResizeFromHandle } from "../lib/geometry";
 import { openProjectInArQuickLook } from "../lib/export";
 import { cloneProject, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ } from "../lib/project";
 import { snapValue, toRadians } from "../lib/snap";
 import { formatLength } from "../lib/units";
 import { editorStore, useEditorStore } from "../store/editorStore";
-import type { MeasurementNode, PartNode, ProjectDocument, Vector3Like } from "../types/model";
+import type { MaterialNode, MeasurementNode, PartNode, ProjectDocument, Vector3Like } from "../types/model";
 
 const GRID_STEP = 100;
 const BUILD_AREA_SIZE = 6000;
@@ -286,14 +288,36 @@ function MeasurementGuide({
   );
 }
 
-function ObjectMaterial({ part }: { part: PartNode }) {
+function buildPreviewPart(material: MaterialNode): PartNode {
+  const profile = getProfileById(material.profileId);
+  const profileSize = createSizeFromProfile(profile);
+  const ds = material.defaultSize ?? {};
+  return {
+    id: "__preview__",
+    name: material.name,
+    objectType: material.objectType,
+    profileId: material.profileId,
+    groupId: null,
+    materialId: material.id,
+    size: {
+      x: ds.x ?? profileSize.x,
+      y: ds.y ?? profileSize.y,
+      z: ds.z ?? profileSize.z,
+    },
+    position: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0 },
+    color: material.color,
+  };
+}
+
+function ObjectMaterial({ part, dimmed = false }: { part: PartNode; dimmed?: boolean }) {
   if (part.objectType === "glass") {
     return (
       <meshStandardMaterial
         color={part.color}
         depthWrite={false}
         metalness={0}
-        opacity={0.38}
+        opacity={dimmed ? 0.1 : 0.38}
         roughness={0.08}
         transparent
       />
@@ -305,6 +329,8 @@ function ObjectMaterial({ part }: { part: PartNode }) {
       <meshStandardMaterial
         color={part.color}
         metalness={0.02}
+        opacity={dimmed ? 0.22 : 1}
+        transparent={dimmed}
         polygonOffset
         polygonOffsetFactor={-1}
         polygonOffsetUnits={-1}
@@ -314,15 +340,15 @@ function ObjectMaterial({ part }: { part: PartNode }) {
     );
   }
 
-  return <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} />;
+  return <meshStandardMaterial color={part.color} roughness={0.82} metalness={0.08} opacity={dimmed ? 0.22 : 1} transparent={dimmed} />;
 }
 
-function PartShapeMesh({ part, selected }: { part: PartNode; selected: boolean }) {
+function PartShapeMesh({ part, selected, dimmed = false }: { part: PartNode; selected: boolean; dimmed?: boolean }) {
   if (part.objectType === "rectangle") {
     return (
       <mesh position={[part.size.x / 2, 0, part.size.z / 2]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[part.size.x, part.size.z]} />
-        <ObjectMaterial part={part} />
+        <ObjectMaterial part={part} dimmed={dimmed} />
         <Edges color={selected ? "#eef1f4" : "#53606d"} />
       </mesh>
     );
@@ -332,7 +358,7 @@ function PartShapeMesh({ part, selected }: { part: PartNode; selected: boolean }
     return (
       <mesh position={[part.size.x / 2, 0, part.size.z / 2]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[part.size.x / 2, 64]} />
-        <ObjectMaterial part={part} />
+        <ObjectMaterial part={part} dimmed={dimmed} />
         <Edges color={selected ? "#eef1f4" : "#53606d"} />
       </mesh>
     );
@@ -345,7 +371,7 @@ function PartShapeMesh({ part, selected }: { part: PartNode; selected: boolean }
       receiveShadow={part.objectType !== "glass"}
     >
       <boxGeometry args={[part.size.x, part.size.y, part.size.z]} />
-      <ObjectMaterial part={part} />
+      <ObjectMaterial part={part} dimmed={dimmed} />
       <Edges color={selected ? "#eef1f4" : "#53606d"} />
     </mesh>
   );
@@ -415,10 +441,11 @@ function isMeasurementVisible(measurement: MeasurementNode, groups: import("../t
 function Scene() {
   const allParts = useEditorStore((state) => state.project.parts);
   const groups = useEditorStore((state) => state.project.groups);
+  const materials = useEditorStore((state) => state.project.materials);
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
-  const parts = (selectedMaterialId ? allParts.filter((part) => part.materialId === selectedMaterialId) : allParts).filter(
-    (part) => isPartVisible(part, groups),
-  );
+  const selectedMaterial = selectedMaterialId ? (materials.find((m) => m.id === selectedMaterialId) ?? null) : null;
+  const previewPart = selectedMaterial ? buildPreviewPart(selectedMaterial) : null;
+  const parts = allParts.filter((part) => isPartVisible(part, groups));
   const allMeasurements = useEditorStore((state) => state.project.measurements);
   const measurements = allMeasurements.filter((m) => isMeasurementVisible(m, groups));
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
@@ -599,6 +626,12 @@ function Scene() {
         <meshStandardMaterial transparent opacity={0} />
       </mesh>
 
+      {previewPart ? (
+        <group position={[WORKSPACE_CENTER - previewPart.size.x / 2, 0, WORKSPACE_CENTER - previewPart.size.z / 2]}>
+          <PartShapeMesh part={previewPart} selected={false} />
+        </group>
+      ) : null}
+
       {parts.map((part) => {
         const isSelected = part.id === selectedPartId;
 
@@ -612,10 +645,10 @@ function Scene() {
             rotation={vectorToTuple(part.rotation)}
             onClick={(event) => {
               event.stopPropagation();
-              selectPart(part.id);
+              if (!selectedMaterial) selectPart(part.id);
             }}
           >
-            <PartShapeMesh part={part} selected={isSelected} />
+            <PartShapeMesh part={part} selected={isSelected} dimmed={selectedMaterial !== null} />
             {isSelected ? <KeyDimensionGuide part={part} /> : null}
 
             {activeTool === "measure"
@@ -723,13 +756,17 @@ function isIosDevice(): boolean {
 
 export function Viewport() {
   const [showHelp, setShowHelp] = useState(false);
-  const [openAddMenu, setOpenAddMenu] = useState<"objects" | "shapes" | null>(null);
+  const [openAddMenu, setOpenAddMenu] = useState<"library" | "shapes" | null>(null);
+  const [openLibraryGroupId, setOpenLibraryGroupId] = useState<string | null>(null);
   const [isIos] = useState(() => isIosDevice());
   const [arExporting, setArExporting] = useState(false);
   const railMenuRef = useRef<HTMLDivElement | null>(null);
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const addObject = useEditorStore((state) => state.addObject);
+  const addObjectFromMaterial = useEditorStore((state) => state.addObjectFromMaterial);
+  const materialGroups = useEditorStore((state) => state.project.materialGroups);
+  const materials = useEditorStore((state) => state.project.materials);
   const duplicateSelectedPart = useEditorStore((state) => state.duplicateSelectedPart);
   const deleteSelectedPart = useEditorStore((state) => state.deleteSelectedPart);
   const deleteSelectedMeasurement = useEditorStore((state) => state.deleteSelectedMeasurement);
@@ -748,6 +785,7 @@ export function Viewport() {
     function handlePointerDown(event: PointerEvent) {
       if (!railMenuRef.current?.contains(event.target as Node)) {
         setOpenAddMenu(null);
+        setOpenLibraryGroupId(null);
       }
     }
 
@@ -794,59 +832,61 @@ export function Viewport() {
         <div className="viewport-rail viewport-rail--left" ref={railMenuRef}>
           <div className="viewport-rail__menu-wrapper">
             <button
-              className={`viewport-rail__button ${openAddMenu === "objects" ? "viewport-rail__button--active" : ""}`}
-              onClick={() => setOpenAddMenu((value) => (value === "objects" ? null : "objects"))}
-              title="Add object"
+              className={`viewport-rail__button ${openAddMenu === "library" ? "viewport-rail__button--active" : ""}`}
+              onClick={() => {
+                setOpenAddMenu((value) => (value === "library" ? null : "library"));
+                setOpenLibraryGroupId(null);
+              }}
+              title="Add from material library"
               type="button"
             >
               <PlusIcon width={18} height={18} />
             </button>
-            {openAddMenu === "objects" ? (
+            {openAddMenu === "library" ? (
               <div className="viewport-add-menu">
-                <button
-                  className="viewport-add-menu__item"
-                  onClick={() => {
-                    addObject("sheet");
-                    setOpenAddMenu(null);
-                  }}
-                  type="button"
-                >
-                  <SheetIcon width={16} height={16} />
-                  <span>Sheet</span>
-                </button>
-                <button
-                  className="viewport-add-menu__item"
-                  onClick={() => {
-                    addObject("timber");
-                    setOpenAddMenu(null);
-                  }}
-                  type="button"
-                >
-                  <BeamIcon width={16} height={16} />
-                  <span>Timber</span>
-                </button>
-                <button
-                  className="viewport-add-menu__item"
-                  onClick={() => {
-                    addObject("cladding");
-                    setOpenAddMenu(null);
-                  }}
-                  type="button"
-                >
-                  <CladdingIcon width={16} height={16} />
-                  <span>Cladding</span>
-                </button>
-                <button
-                  className="viewport-add-menu__item"
-                  onClick={() => {
-                    addObject("glass");
-                    setOpenAddMenu(null);
-                  }}
-                  type="button"
-                >
-                  <GlassIcon width={16} height={16} />
-                  <span>Glass</span>
-                </button>
+                {materialGroups.map((group) => {
+                  const groupMaterials = materials.filter((m) => m.groupId === group.id);
+                  const isOpen = openLibraryGroupId === group.id;
+                  const firstType = groupMaterials[0]?.objectType;
+                  return (
+                    <div key={group.id}>
+                      <button
+                        className={`viewport-add-menu__group-header ${isOpen ? "viewport-add-menu__group-header--open" : ""}`}
+                        onClick={() => setOpenLibraryGroupId(isOpen ? null : group.id)}
+                        type="button"
+                      >
+                        <span className="viewport-add-menu__group-icon">
+                          {firstType === "timber" ? <BeamIcon width={13} height={13} /> :
+                           firstType === "sheet" ? <SheetIcon width={13} height={13} /> :
+                           firstType === "cladding" ? <CladdingIcon width={13} height={13} /> :
+                           firstType === "glass" ? <GlassIcon width={13} height={13} /> : null}
+                        </span>
+                        <span>{group.name}</span>
+                        <span className="viewport-add-menu__group-chevron">
+                          {isOpen ? <ChevronDownIcon width={11} height={11} /> : <ChevronRightIcon width={11} height={11} />}
+                        </span>
+                      </button>
+                      {isOpen ? groupMaterials.map((material) => (
+                        <button
+                          key={material.id}
+                          className="viewport-add-menu__item viewport-add-menu__material-item"
+                          onClick={() => {
+                            addObjectFromMaterial(material.id);
+                            setOpenAddMenu(null);
+                            setOpenLibraryGroupId(null);
+                          }}
+                          type="button"
+                        >
+                          <span className="viewport-add-menu__material-dot" style={{ background: material.color }} />
+                          <span>{material.name}</span>
+                        </button>
+                      )) : null}
+                    </div>
+                  );
+                })}
+                {materialGroups.length === 0 ? (
+                  <span className="viewport-add-menu__empty">No materials in library</span>
+                ) : null}
               </div>
             ) : null}
           </div>

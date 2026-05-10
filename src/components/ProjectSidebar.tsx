@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -36,6 +36,7 @@ function MaterialPanel() {
   const renameMaterial = useEditorStore((state) => state.renameMaterial);
   const renameMaterialGroup = useEditorStore((state) => state.renameMaterialGroup);
   const addMaterialGroup = useEditorStore((state) => state.addMaterialGroup);
+  const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
 
   const [editingItem, setEditingItem] = useState<EditingMaterialItem>(null);
   const [draftName, setDraftName] = useState("");
@@ -96,6 +97,7 @@ function MaterialPanel() {
 
   function renderMaterial(material: MaterialNode, depth: number) {
     const isSelected = material.id === selectedMaterialId;
+    const isUsed = project.parts.some((p) => p.materialId === material.id);
     return (
       <div
         key={material.id}
@@ -118,6 +120,20 @@ function MaterialPanel() {
         <span className="object-row__content">
           {renderNameEditor("material", material.id, material.name)}
         </span>
+        {!isUsed ? (
+          <button
+            aria-label={`Delete ${material.name}`}
+            className="object-row__eye"
+            onClick={(event) => {
+              event.stopPropagation();
+              deleteMaterial(material.id);
+            }}
+            title="Delete unused material"
+            type="button"
+          >
+            <TrashIcon width={12} height={12} />
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -178,19 +194,6 @@ function MaterialPanel() {
           <FolderIcon width={16} height={16} />
         </button>
       </div>
-
-      {selectedMaterialId ? (
-        <div className="material-panel__filter-bar">
-          <span>Filter active</span>
-          <button
-            className="material-panel__filter-clear"
-            onClick={() => selectMaterial(null)}
-            type="button"
-          >
-            Show all
-          </button>
-        </div>
-      ) : null}
 
       <div className="object-browser">
         {rootGroups.length > 0 || ungroupedMaterials.length > 0 ? (

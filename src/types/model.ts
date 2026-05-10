@@ -78,6 +78,7 @@ export interface MaterialNode {
   objectType: ObjectType;
   profileId: ObjectProfileId;
   color: string;
+  defaultSize?: { x?: number; y?: number; z?: number };
 }
 
 export interface ProjectDocument {

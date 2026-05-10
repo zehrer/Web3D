@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMaterialUsageSummary } from "../lib/materialSummary";
-import { getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
+import { createSizeFromProfile, getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
 import type { ObjectProfileId, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
@@ -197,6 +197,91 @@ function MaterialOverview() {
   );
 }
 
+function MaterialInspector() {
+  const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
+  const materials = useEditorStore((state) => state.project.materials);
+  const parts = useEditorStore((state) => state.project.parts);
+  const unitPreference = useEditorStore((state) => state.project.unitPreference);
+  const renameMaterial = useEditorStore((state) => state.renameMaterial);
+  const updateMaterialDefaultSize = useEditorStore((state) => state.updateMaterialDefaultSize);
+  const addObjectFromMaterial = useEditorStore((state) => state.addObjectFromMaterial);
+  const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
+  const selectMaterial = useEditorStore((state) => state.selectMaterial);
+
+  const material = materials.find((m) => m.id === selectedMaterialId);
+  if (!material) return null;
+
+  const profile = getProfileById(material.profileId);
+  const profileSize = createSizeFromProfile(profile);
+  const ds = material.defaultSize ?? {};
+  const isUsed = parts.some((p) => p.materialId === selectedMaterialId);
+
+  const editableAxes: Array<{ axis: keyof Vector3Like; label: string }> =
+    material.objectType === "timber" || material.objectType === "cladding"
+      ? [{ axis: "x", label: "Default Length" }]
+      : material.objectType === "sheet" || material.objectType === "glass"
+        ? [{ axis: "x", label: "Default Length" }, { axis: "y", label: "Default Width" }]
+        : material.objectType === "circle"
+          ? [{ axis: "x", label: "Default Diameter" }]
+          : [{ axis: "x", label: "Default Width" }, { axis: "z", label: "Default Depth" }];
+
+  const effectiveValue = (axis: keyof Vector3Like) => {
+    if (axis === "x") return ds.x ?? profileSize.x;
+    if (axis === "y") return ds.y ?? profileSize.y;
+    return ds.z ?? profileSize.z;
+  };
+
+  return (
+    <>
+      <label className="field inspector-field">
+        <span>Name</span>
+        <input
+          className="field__input"
+          type="text"
+          value={material.name}
+          onBlur={(e) => renameMaterial(material.id, e.target.value)}
+          onChange={(e) => renameMaterial(material.id, e.target.value)}
+        />
+      </label>
+
+      <label className="field inspector-field">
+        <span>Type</span>
+        <div className="field__input field__input--readonly">{getObjectTypeLabel(material.objectType)}</div>
+      </label>
+
+      <label className="field inspector-field">
+        <span>Profile</span>
+        <div className="field__input field__input--readonly">{profile.label}</div>
+      </label>
+
+      {editableAxes.map(({ axis, label }) => (
+        <FieldRow
+          key={axis}
+          label={`${label} (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+          value={toDisplayUnits(effectiveValue(axis), unitPreference)}
+          onChange={(value) => updateMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))}
+        />
+      ))}
+
+      <button className="inspector-action-button" onClick={() => addObjectFromMaterial(material.id)} type="button">
+        Add to Scene
+      </button>
+      <button
+        className="inspector-action-button inspector-action-button--danger"
+        disabled={isUsed}
+        title={isUsed ? "This material is used by parts in the scene" : "Remove from library"}
+        onClick={() => {
+          deleteMaterial(material.id);
+          selectMaterial(null);
+        }}
+        type="button"
+      >
+        {isUsed ? "In Use" : "Delete"}
+      </button>
+    </>
+  );
+}
+
 export function InspectorPanel() {
   const state = useEditorStore((store) => store);
   const selectedPart = getSelectedPart(state);
@@ -226,13 +311,24 @@ export function InspectorPanel() {
     }
   }, [selectedPart?.id, selectedPart?.objectType]);
 
+  const selectedMaterialId = state.selectedMaterialId;
+  const selectedMaterial = selectedMaterialId ? state.project.materials.find((m) => m.id === selectedMaterialId) ?? null : null;
+
   return (
     <aside className="inspector">
       <section className="panel-card">
         <div className="panel-card__header">
-          <span className="panel-card__title">{selectedPart ? "Object" : selectedMeasurement ? "Measure" : "Material Overview"}</span>
+          <span className="panel-card__title">
+            {selectedPart ? "Object" : selectedMeasurement ? "Measure" : selectedMaterial ? "Material" : "Material Overview"}
+          </span>
           <span className="panel-card__meta">
-            {selectedPart ? getObjectTypeLabel(selectedPart.objectType) : selectedMeasurement ? "Measure" : `${state.project.parts.length} objects`}
+            {selectedPart
+              ? getObjectTypeLabel(selectedPart.objectType)
+              : selectedMeasurement
+                ? "Measure"
+                : selectedMaterial
+                  ? getObjectTypeLabel(selectedMaterial.objectType)
+                  : `${state.project.parts.length} objects`}
           </span>
         </div>
 
@@ -451,6 +547,8 @@ export function InspectorPanel() {
               }
             />
           </>
+        ) : selectedMaterial ? (
+          <MaterialInspector />
         ) : (
           <MaterialOverview />
         )}
