@@ -69,6 +69,9 @@ export interface EditorActions {
   deleteSelectedMeasurement: () => void;
   updatePart: (partId: string, updater: (part: PartNode) => PartNode) => void;
   updateMeasurement: (measurementId: string, updater: (measurement: MeasurementNode) => MeasurementNode) => void;
+  togglePartVisibility: (partId: string) => void;
+  toggleGroupVisibility: (groupId: string) => void;
+  toggleMeasurementVisibility: (measurementId: string) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   setPartProfile: (partId: string, profileId: ObjectProfileId) => void;
@@ -563,6 +566,30 @@ export function createEditorStore() {
         ...withProjectHistory(state, (project) => ({
           ...project,
           measurements: replaceMeasurement(project.measurements, measurementId, updater),
+        })),
+      })),
+
+    togglePartVisibility: (partId) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          parts: replacePart(project.parts, partId, (part) => ({ ...part, hidden: !part.hidden })),
+        })),
+      })),
+
+    toggleGroupVisibility: (groupId) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          groups: replaceGroup(project.groups, groupId, (group) => ({ ...group, hidden: !group.hidden })),
+        })),
+      })),
+
+    toggleMeasurementVisibility: (measurementId) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          measurements: replaceMeasurement(project.measurements, measurementId, (m) => ({ ...m, hidden: !m.hidden })),
         })),
       })),
 

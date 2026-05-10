@@ -361,13 +361,39 @@ function AxisGuide() {
   );
 }
 
+function isPartVisible(part: PartNode, groups: import("../types/model").GroupNode[]): boolean {
+  if (part.hidden) return false;
+  let groupId = part.groupId;
+  while (groupId) {
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) break;
+    if (group.hidden) return false;
+    groupId = group.parentGroupId;
+  }
+  return true;
+}
+
+function isMeasurementVisible(measurement: MeasurementNode, groups: import("../types/model").GroupNode[]): boolean {
+  if (measurement.hidden) return false;
+  let groupId = measurement.groupId;
+  while (groupId) {
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) break;
+    if (group.hidden) return false;
+    groupId = group.parentGroupId;
+  }
+  return true;
+}
+
 function Scene() {
   const allParts = useEditorStore((state) => state.project.parts);
+  const groups = useEditorStore((state) => state.project.groups);
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
-  const parts = selectedMaterialId
-    ? allParts.filter((part) => part.materialId === selectedMaterialId)
-    : allParts;
-  const measurements = useEditorStore((state) => state.project.measurements);
+  const parts = (selectedMaterialId ? allParts.filter((part) => part.materialId === selectedMaterialId) : allParts).filter(
+    (part) => isPartVisible(part, groups),
+  );
+  const allMeasurements = useEditorStore((state) => state.project.measurements);
+  const measurements = allMeasurements.filter((m) => isMeasurementVisible(m, groups));
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
   const activeTool = useEditorStore((state) => state.activeTool);

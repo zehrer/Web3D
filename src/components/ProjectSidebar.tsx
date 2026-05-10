@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -227,6 +227,9 @@ export function ProjectSidebar() {
   const movePartToGroup = useEditorStore((state) => state.movePartToGroup);
   const moveMeasurementToGroup = useEditorStore((state) => state.moveMeasurementToGroup);
   const moveGroupToGroup = useEditorStore((state) => state.moveGroupToGroup);
+  const togglePartVisibility = useEditorStore((state) => state.togglePartVisibility);
+  const toggleGroupVisibility = useEditorStore((state) => state.toggleGroupVisibility);
+  const toggleMeasurementVisibility = useEditorStore((state) => state.toggleMeasurementVisibility);
 
   useEffect(() => {
     if (editingItem?.kind === "part" && !project.parts.some((part) => part.id === editingItem.id)) {
@@ -404,12 +407,37 @@ export function ProjectSidebar() {
     );
   }
 
+  function isAncestorGroupHidden(groupId: string | null): boolean {
+    let current = groupId ? project.groups.find((g) => g.id === groupId) : null;
+    while (current) {
+      if (current.hidden) return true;
+      current = current.parentGroupId ? project.groups.find((g) => g.id === current!.parentGroupId) ?? null : null;
+    }
+    return false;
+  }
+
+  function renderVisibilityButton(hidden: boolean | undefined, onToggle: (event: React.MouseEvent) => void, label: string) {
+    return (
+      <button
+        aria-label={label}
+        className={`object-row__eye ${hidden ? "object-row__eye--hidden" : ""}`}
+        onClick={(event) => { event.stopPropagation(); onToggle(event); }}
+        onDragStart={(event) => event.preventDefault()}
+        title={hidden ? "Show" : "Hide"}
+        type="button"
+      >
+        {hidden ? <EyeOffIcon width={13} height={13} /> : <EyeIcon width={13} height={13} />}
+      </button>
+    );
+  }
+
   function renderMeasurement(measurement: MeasurementNode, depth: number) {
     const isDragging = draggingItem?.kind === "measurement" && draggingItem.id === measurement.id;
+    const effectivelyHidden = measurement.hidden || isAncestorGroupHidden(measurement.groupId);
     return (
       <div
         key={measurement.id}
-        className={`object-row ${selectedMeasurementId === measurement.id ? "object-row--selected" : ""} ${isDragging ? "object-row--dragging" : ""}`}
+        className={`object-row ${selectedMeasurementId === measurement.id ? "object-row--selected" : ""} ${isDragging ? "object-row--dragging" : ""} ${effectivelyHidden ? "object-row--hidden" : ""}`}
         draggable
         onClick={() => selectMeasurement(measurement.id)}
         onDragEnd={endDrag}
@@ -422,16 +450,18 @@ export function ProjectSidebar() {
         <span className="object-row__disclosure object-row__disclosure--placeholder" />
         <span className="object-row__icon"><RulerIcon width={14} height={14} /></span>
         <span className="object-row__content">{renderNameEditor("measurement", measurement.id, measurement.name)}</span>
+        {renderVisibilityButton(measurement.hidden, () => toggleMeasurementVisibility(measurement.id), measurement.hidden ? `Show ${measurement.name}` : `Hide ${measurement.name}`)}
       </div>
     );
   }
 
   function renderPart(part: PartNode, depth: number) {
     const isDragging = draggingItem?.kind === "part" && draggingItem.id === part.id;
+    const effectivelyHidden = part.hidden || isAncestorGroupHidden(part.groupId);
     return (
       <div
         key={part.id}
-        className={`object-row ${selectedPartId === part.id ? "object-row--selected" : ""} ${isDragging ? "object-row--dragging" : ""}`}
+        className={`object-row ${selectedPartId === part.id ? "object-row--selected" : ""} ${isDragging ? "object-row--dragging" : ""} ${effectivelyHidden ? "object-row--hidden" : ""}`}
         draggable
         onClick={() => selectPart(part.id)}
         onDragEnd={endDrag}
@@ -444,6 +474,7 @@ export function ProjectSidebar() {
         <span className="object-row__disclosure object-row__disclosure--placeholder" />
         <span className="object-row__icon"><PartTypeIcon objectType={part.objectType} /></span>
         <span className="object-row__content">{renderNameEditor("part", part.id, part.name)}</span>
+        {renderVisibilityButton(part.hidden, () => togglePartVisibility(part.id), part.hidden ? `Show ${part.name}` : `Hide ${part.name}`)}
       </div>
     );
   }
@@ -460,7 +491,7 @@ export function ProjectSidebar() {
     return (
       <div className="object-tree__group" key={group.id}>
         <div
-          className={`object-row object-row--group ${isDragging ? "object-row--dragging" : ""} ${isDropTarget ? "object-row--drop-target" : ""}`}
+          className={`object-row object-row--group ${isDragging ? "object-row--dragging" : ""} ${isDropTarget ? "object-row--drop-target" : ""} ${group.hidden ? "object-row--hidden" : ""}`}
           draggable
           onDragEnd={endDrag}
           onDragLeave={() => { if (dropTarget === group.id) setDropTarget(null); }}
@@ -484,6 +515,7 @@ export function ProjectSidebar() {
           )}
           <span className="object-row__icon object-row__icon--group"><FolderIcon width={14} height={14} /></span>
           <span className="object-row__content">{renderNameEditor("group", group.id, group.name)}</span>
+          {renderVisibilityButton(group.hidden, () => toggleGroupVisibility(group.id), group.hidden ? `Show folder ${group.name}` : `Hide folder ${group.name}`)}
         </div>
         {isExpanded ? childrenGroups.map((childGroup) => renderGroup(childGroup, depth + 1)) : null}
         {isExpanded ? childrenParts.map((part) => renderPart(part, depth + 1)) : null}

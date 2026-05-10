@@ -45,6 +45,7 @@ export interface PartNode {
   position: Vector3Like;
   rotation: Vector3Like;
   color: string;
+  hidden?: boolean;
 }
 
 export interface MeasurementNode {
@@ -54,12 +55,14 @@ export interface MeasurementNode {
   start: Vector3Like;
   end: Vector3Like;
   color: string;
+  hidden?: boolean;
 }
 
 export interface GroupNode {
   id: string;
   name: string;
   parentGroupId: string | null;
+  hidden?: boolean;
 }
 
 export interface MaterialGroupNode {
