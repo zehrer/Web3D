@@ -11,7 +11,7 @@ Web3D Designer is a browser-only 3D editor for box-based woodworking design. It 
 ```bash
 npm install        # install dependencies
 npm run dev        # start local dev server (base path /)
-npm run build      # TypeScript check + Vite build (base path /Web3D/)
+npm run build      # TypeScript check + Vite build (base path /web3D/)
 npm test           # run tests once
 npm run test:watch # run tests in watch mode
 ```
@@ -102,7 +102,7 @@ Tests cover the lib modules (`geometry`, `units`, `snap`, `profiles`, `serializa
 
 ## Deployment
 
-Pushes to `main` trigger a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and publishes to the `gh-pages` branch. The Vite base path is `/Web3D/` in production builds and `/` in development. Do not hardcode absolute paths that would break this.
+Pushes to `main` trigger a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and publishes to the `gh-pages` branch. The Vite base path is `/web3D/` in production builds and `/` in development. Do not hardcode absolute paths that would break this.
 
 ## Git Workflow — Merging to Main (remote/web sessions only)
 
@@ -112,5 +112,6 @@ The correct sequence for remote sessions:
 
 1. Do all work on a feature branch (e.g. `claude/my-feature`).
 2. Commit and push the branch: `git push -u origin <branch>`.
-3. Create a PR with `mcp__github__create_pull_request` (`owner: zehrer`, `repo: Web3D`, `head: <branch>`, `base: main`).
+3. Create a PR with `mcp__github__create_pull_request` (`owner: zehrer`, `repo: web3D`, `head: <branch>`, `base: main`).
 4. Merge it with `mcp__github__merge_pull_request` (`merge_method: "squash"`).
+
