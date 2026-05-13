@@ -1,6 +1,6 @@
 import { DEFAULT_GRID_SETTINGS, PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
-import { extractLockFields, getProfileById } from "./profiles";
+import { createSizeFromProfile, extractLockFields, getProfileById } from "./profiles";
 import type { MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
 
 const WEB3D_PROJECT_FILE_FORMAT = "web3d-project";
@@ -47,6 +47,16 @@ type ProjectDocumentV5 = Omit<ProjectDocument, "gridSettings" | "version"> & { v
 type ProjectDocumentV6 = Omit<ProjectDocument, "version" | "parts"> & {
   version: 6;
   parts: Array<Omit<PartNode, "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
+};
+
+type LegacyMaterialV7 = Omit<
+  import("../types/model").MaterialNode,
+  "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm" | "defaultSize"
+> & { defaultSize?: { x?: number; y?: number; z?: number } };
+
+type ProjectDocumentV7 = Omit<ProjectDocument, "version" | "materials"> & {
+  version: 7;
+  materials: LegacyMaterialV7[];
 };
 
 type Web3dProjectFile = {
@@ -162,13 +172,35 @@ function migrateProjectV5ToCurrent(project: ProjectDocumentV5): ProjectDocument 
 }
 
 function migrateProjectV6ToCurrent(project: ProjectDocumentV6): ProjectDocument {
-  return {
+  const v7: ProjectDocumentV7 = {
     ...project,
-    version: PROJECT_SCHEMA_VERSION,
+    version: 7 as const,
     parts: project.parts.map((part) => ({
       ...part,
       ...extractLockFields(getProfileById(part.profileId)),
     })),
+  };
+  return migrateProjectV7ToCurrent(v7);
+}
+
+function migrateProjectV7ToCurrent(project: ProjectDocumentV7): ProjectDocument {
+  return {
+    ...project,
+    version: PROJECT_SCHEMA_VERSION,
+    materials: project.materials.map((material) => {
+      const profile = getProfileById(material.profileId);
+      const profileSize = createSizeFromProfile(profile);
+      const ds = material.defaultSize ?? {};
+      return {
+        ...material,
+        defaultSize: {
+          x: ds.x ?? profileSize.x,
+          y: ds.y ?? profileSize.y,
+          z: ds.z ?? profileSize.z,
+        },
+        ...extractLockFields(profile),
+      };
+    }),
   };
 }
 
@@ -213,6 +245,10 @@ export function deserializeProject(payload: string): ProjectDocument {
 
   if (parsed.version === 6) {
     return migrateProjectV6ToCurrent(parsed as unknown as ProjectDocumentV6);
+  }
+
+  if (parsed.version === 7) {
+    return migrateProjectV7ToCurrent(parsed as unknown as ProjectDocumentV7);
   }
 
   if (parsed.version !== PROJECT_SCHEMA_VERSION) {

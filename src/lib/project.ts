@@ -25,7 +25,7 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 7;
+export const PROJECT_SCHEMA_VERSION = 8;
 export const DEFAULT_GRID_SETTINGS = { size: 6000, originX: 0, originZ: 0 };
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
@@ -131,6 +131,8 @@ export function createInitialMaterials(): InitialMaterials {
       objectType: profile.objectType,
       profileId: profile.id,
       color: profile.color,
+      defaultSize: createSizeFromProfile(profile),
+      ...extractLockFields(profile),
     });
     profileToMaterialId.set(profile.id, materialId);
   }

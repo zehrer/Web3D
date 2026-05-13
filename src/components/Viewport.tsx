@@ -25,7 +25,7 @@ import {
   TrashIcon,
   UndoIcon,
 } from "./Icons";
-import { createSizeFromProfile, getProfileById, getResizableAxes } from "../lib/profiles";
+import { getResizableAxes } from "../lib/profiles";
 import { applyResizeFromHandle } from "../lib/geometry";
 import { openProjectInArQuickLook } from "../lib/export";
 import { cloneProject } from "../lib/project";
@@ -283,9 +283,6 @@ function MeasurementGuide({
 }
 
 function buildPreviewPart(material: MaterialNode): PartNode {
-  const profile = getProfileById(material.profileId);
-  const profileSize = createSizeFromProfile(profile);
-  const ds = material.defaultSize ?? {};
   return {
     id: "__preview__",
     name: material.name,
@@ -293,11 +290,10 @@ function buildPreviewPart(material: MaterialNode): PartNode {
     profileId: material.profileId,
     groupId: null,
     materialId: material.id,
-    size: {
-      x: ds.x ?? profileSize.x,
-      y: ds.y ?? profileSize.y,
-      z: ds.z ?? profileSize.z,
-    },
+    size: { ...material.defaultSize },
+    crossSectionWidthMm: material.crossSectionWidthMm,
+    crossSectionHeightMm: material.crossSectionHeightMm,
+    thicknessMm: material.thicknessMm,
     position: { x: 0, y: 0, z: 0 },
     rotation: { x: 0, y: 0, z: 0 },
     color: material.color,
