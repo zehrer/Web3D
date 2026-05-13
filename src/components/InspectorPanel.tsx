@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMaterialUsageSummary } from "../lib/materialSummary";
-import { getObjectTypeLabel, getProfilesForType } from "../lib/profiles";
+import { getObjectTypeLabel } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
-import type { ObjectProfileId, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
+import type { ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
   const parsed = Number(value);
@@ -97,9 +97,6 @@ function isFlatShapeObject(objectType: string) {
   return objectType === "rectangle" || objectType === "circle";
 }
 
-function getProfileFieldLabel(_objectType: ObjectType) {
-  return "Profile";
-}
 
 function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): string {
   if (part.objectType === "circle") {
@@ -283,8 +280,9 @@ export function InspectorPanel() {
   const selectedMeasurement = getSelectedMeasurement(state);
   const unitPreference = state.project.unitPreference;
   const setPartGeometry = state.setPartGeometry;
-  const setPartProfile = state.setPartProfile;
+  const setPartMaterial = state.setPartMaterial;
   const updatePart = state.updatePart;
+  const projectMaterials = state.project.materials;
   const createCladdingPattern = state.createCladdingPattern;
   const updateMeasurement = state.updateMeasurement;
   const [patternAxis, setPatternAxis] = useState<keyof Vector3Like>("y");
@@ -331,17 +329,25 @@ export function InspectorPanel() {
           <>
             {!isFlatShapeObject(selectedPart.objectType) && selectedPart.objectType !== "cube" ? (
               <label className="field inspector-field">
-                <span>{getProfileFieldLabel(selectedPart.objectType)}</span>
+                <span>Material</span>
                 <select
                   className="field__input"
-                  value={selectedPart.profileId}
-                  onChange={(event) => setPartProfile(selectedPart.id, event.target.value as ObjectProfileId)}
+                  value={selectedPart.materialId ?? ""}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    if (next) setPartMaterial(selectedPart.id, next);
+                  }}
                 >
-                  {getProfilesForType(selectedPart.objectType).map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.label}
-                    </option>
-                  ))}
+                  {selectedPart.materialId === null ? (
+                    <option value="" disabled>(no material)</option>
+                  ) : null}
+                  {projectMaterials
+                    .filter((m) => m.objectType === selectedPart.objectType)
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
                 </select>
               </label>
             ) : null}

@@ -44,7 +44,6 @@ export interface PartNode {
   id: string;
   name: string;
   objectType: ObjectType;
-  profileId: ObjectProfileId;
   groupId: string | null;
   materialId: string | null;
   size: Vector3Like;
@@ -89,7 +88,6 @@ export interface MaterialNode {
   name: string;
   groupId: string | null;
   objectType: ObjectType;
-  profileId: ObjectProfileId;
   color: string;
   /** Default size for new parts spawned from this material (mm, complete vector). */
   defaultSize: Vector3Like;

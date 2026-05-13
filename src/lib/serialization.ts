@@ -1,7 +1,12 @@
 import { DEFAULT_GRID_SETTINGS, PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
 import { createSizeFromProfile, extractLockFields, getProfileById } from "./profiles";
-import type { MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
+import type { MaterialNode, MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
+
+// Legacy shapes carry profileId (dropped from current PartNode/MaterialNode at v9).
+// Used by migration paths to read profileId from the on-disk format.
+type LegacyPartWithProfileId = PartNode & { profileId: ObjectProfileId };
+type LegacyMaterialWithProfileId = MaterialNode & { profileId: ObjectProfileId };
 
 const WEB3D_PROJECT_FILE_FORMAT = "web3d-project";
 const WEB3D_PROJECT_FILE_FORMAT_VERSION = 1;
@@ -30,33 +35,52 @@ type LegacyProjectDocument = {
 
 type ProjectDocumentV2 = Omit<ProjectDocument, "groups" | "measurements" | "parts" | "version"> & {
   version: 2;
-  parts: Array<Omit<PartNode, "groupId">>;
+  parts: Array<Omit<LegacyPartWithProfileId, "groupId" | "materialId" | "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
 };
 
-type ProjectDocumentV3 = Omit<ProjectDocument, "measurements" | "version"> & {
+type ProjectDocumentV3 = Omit<ProjectDocument, "measurements" | "version" | "parts"> & {
   version: 3;
+  parts: Array<Omit<LegacyPartWithProfileId, "materialId" | "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
 };
 
-type ProjectDocumentV4 = Omit<ProjectDocument, "materialGroups" | "materials" | "version"> & {
+type ProjectDocumentV4 = Omit<ProjectDocument, "materialGroups" | "materials" | "version" | "parts"> & {
   version: 4;
-  parts: Array<Omit<PartNode, "materialId">>;
+  parts: Array<Omit<LegacyPartWithProfileId, "materialId" | "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
 };
 
-type ProjectDocumentV5 = Omit<ProjectDocument, "gridSettings" | "version"> & { version: 5 };
+// During migration we sometimes synthesize "fresh" materials via createInitialMaterials
+// (current shape, no profileId). The legacy types treat profileId/defaultSize/lock fields
+// as OPTIONAL so the chain accepts both genuine on-disk legacy materials and synthesized ones.
+type FlexibleLegacyMaterial = Omit<MaterialNode, "defaultSize" | "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm"> & {
+  profileId?: ObjectProfileId;
+  defaultSize?: { x?: number; y?: number; z?: number };
+  crossSectionWidthMm?: number;
+  crossSectionHeightMm?: number;
+  thicknessMm?: number;
+};
 
-type ProjectDocumentV6 = Omit<ProjectDocument, "version" | "parts"> & {
+type ProjectDocumentV5 = Omit<ProjectDocument, "gridSettings" | "version" | "parts" | "materials"> & {
+  version: 5;
+  parts: Array<Omit<LegacyPartWithProfileId, "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
+  materials: FlexibleLegacyMaterial[];
+};
+
+type ProjectDocumentV6 = Omit<ProjectDocument, "version" | "parts" | "materials"> & {
   version: 6;
-  parts: Array<Omit<PartNode, "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
+  parts: Array<Omit<LegacyPartWithProfileId, "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
+  materials: FlexibleLegacyMaterial[];
 };
-
-type LegacyMaterialV7 = Omit<
-  import("../types/model").MaterialNode,
-  "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm" | "defaultSize"
-> & { defaultSize?: { x?: number; y?: number; z?: number } };
 
 type ProjectDocumentV7 = Omit<ProjectDocument, "version" | "materials"> & {
   version: 7;
-  materials: LegacyMaterialV7[];
+  parts: LegacyPartWithProfileId[];
+  materials: FlexibleLegacyMaterial[];
+};
+
+type ProjectDocumentV8 = Omit<ProjectDocument, "version" | "parts" | "materials"> & {
+  version: 8;
+  parts: LegacyPartWithProfileId[];
+  materials: FlexibleLegacyMaterial[];
 };
 
 type Web3dProjectFile = {
@@ -184,23 +208,46 @@ function migrateProjectV6ToCurrent(project: ProjectDocumentV6): ProjectDocument 
 }
 
 function migrateProjectV7ToCurrent(project: ProjectDocumentV7): ProjectDocument {
-  return {
+  const v8: ProjectDocumentV8 = {
     ...project,
-    version: PROJECT_SCHEMA_VERSION,
+    version: 8 as const,
     materials: project.materials.map((material) => {
+      const ds = material.defaultSize;
+      const alreadyComplete = ds && ds.x !== undefined && ds.y !== undefined && ds.z !== undefined;
+      if (alreadyComplete) {
+        // Synthesized by createInitialMaterials during a v4-or-earlier migration —
+        // material is already at v8 shape, nothing to backfill.
+        return material;
+      }
+      if (!material.profileId) {
+        return material;
+      }
       const profile = getProfileById(material.profileId);
       const profileSize = createSizeFromProfile(profile);
-      const ds = material.defaultSize ?? {};
       return {
         ...material,
         defaultSize: {
-          x: ds.x ?? profileSize.x,
-          y: ds.y ?? profileSize.y,
-          z: ds.z ?? profileSize.z,
+          x: ds?.x ?? profileSize.x,
+          y: ds?.y ?? profileSize.y,
+          z: ds?.z ?? profileSize.z,
         },
         ...extractLockFields(profile),
       };
     }),
+  };
+  return migrateProjectV8ToCurrent(v8);
+}
+
+function migrateProjectV8ToCurrent(project: ProjectDocumentV8): ProjectDocument {
+  // v9: drop `profileId` from parts and materials. The hardcoded catalog is now seed-only.
+  return {
+    ...project,
+    version: PROJECT_SCHEMA_VERSION,
+    parts: project.parts.map(({ profileId: _profileId, ...rest }) => rest),
+    materials: project.materials.map(({ profileId: _profileId, defaultSize, ...rest }) => ({
+      ...rest,
+      defaultSize: defaultSize as PartNode["size"], // narrowed: v8 materials always have a complete defaultSize
+    })),
   };
 }
 
@@ -228,11 +275,11 @@ export function deserializeProject(payload: string): ProjectDocument {
   }
 
   if (parsed.version === 2) {
-    return migrateProjectV2ToCurrent(parsed as ProjectDocumentV2);
+    return migrateProjectV2ToCurrent(parsed as unknown as ProjectDocumentV2);
   }
 
   if (parsed.version === 3) {
-    return migrateProjectV3ToCurrent(parsed as ProjectDocumentV3);
+    return migrateProjectV3ToCurrent(parsed as unknown as ProjectDocumentV3);
   }
 
   if (parsed.version === 4) {
@@ -249,6 +296,10 @@ export function deserializeProject(payload: string): ProjectDocument {
 
   if (parsed.version === 7) {
     return migrateProjectV7ToCurrent(parsed as unknown as ProjectDocumentV7);
+  }
+
+  if (parsed.version === 8) {
+    return migrateProjectV8ToCurrent(parsed as unknown as ProjectDocumentV8);
   }
 
   if (parsed.version !== PROJECT_SCHEMA_VERSION) {

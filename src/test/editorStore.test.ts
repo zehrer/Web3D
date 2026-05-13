@@ -59,7 +59,8 @@ describe("editor store", () => {
     });
     expect(store.getState().project.parts.at(-1)?.size.x).toBe(1800);
 
-    store.getState().setPartProfile(timber.id, "timber-120x120");
+    const timber120 = store.getState().project.materials.find((m) => m.name === "120 x 120 mm")!;
+    store.getState().setPartMaterial(timber.id, timber120.id);
     const updated = store.getState().project.parts.at(-1)!;
     expect(updated.size.x).toBe(1800);
     expect(updated.size.y).toBe(120);
@@ -81,7 +82,8 @@ describe("editor store", () => {
     });
     expect(store.getState().project.parts.at(-1)?.size.x).toBe(2400);
 
-    store.getState().setPartProfile(cladding.id, "rhombus-27x68");
+    const rhombus27 = store.getState().project.materials.find((m) => m.name === "Rhombus 27 x 68 mm")!;
+    store.getState().setPartMaterial(cladding.id, rhombus27.id);
     const updated = store.getState().project.parts.at(-1)!;
     expect(updated.size).toEqual({ x: 2400, y: 68, z: 27 });
   });
@@ -94,7 +96,7 @@ describe("editor store", () => {
     const glass = store.getState().project.parts.at(-1)!;
 
     expect(glass.objectType).toBe("glass");
-    expect(glass.profileId).toBe("plexiglass-3");
+    expect(glass.thicknessMm).toBe(3);
     expect(glass.size).toEqual({ x: 900, y: 600, z: 3 });
 
     store.getState().setPartGeometry(glass.id, {
@@ -102,7 +104,8 @@ describe("editor store", () => {
     });
     expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 3 });
 
-    store.getState().setPartProfile(glass.id, "plexiglass-10");
+    const plexi10 = store.getState().project.materials.find((m) => m.name === "Plexiglass 10 mm")!;
+    store.getState().setPartMaterial(glass.id, plexi10.id);
     expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 10 });
   });
 
@@ -113,7 +116,6 @@ describe("editor store", () => {
     store.getState().addObject("rectangle");
     const rectangle = store.getState().project.parts.at(-1)!;
     expect(rectangle.objectType).toBe("rectangle");
-    expect(rectangle.profileId).toBe("shape-rectangle");
     expect(rectangle.size).toEqual({ x: 800, y: 0, z: 500 });
 
     store.getState().setPartGeometry(rectangle.id, {

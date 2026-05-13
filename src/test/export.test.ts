@@ -122,7 +122,7 @@ describe("3D export", () => {
       id: "project-1",
       groups: [{ id: "group-1", name: "Frame", parentGroupId: null }],
       measurements: [{ id: "measure-1", name: "Opening Width", groupId: "group-1" }],
-      parts: [{ id: "part-1", groupId: "group-1", objectType: "timber", profileId: "timber-100x100" }],
+      parts: [{ id: "part-1", groupId: "group-1", objectType: "timber" }],
     });
     expect(JSON.stringify(gltf.nodes)).toContain("Frame");
   });

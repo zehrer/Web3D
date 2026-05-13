@@ -102,6 +102,7 @@ Current `PROJECT_SCHEMA_VERSION` is **7**. Bumps must add a corresponding `migra
 | 6 | Grid settings (`gridSettings` on `ProjectDocument`); renames legacy material group labels |
 | 7 | Step 1 of profiles-out-of-code refactor: parts carry `crossSectionWidthMm` / `crossSectionHeightMm` / `thicknessMm` (additive, no behavior change yet) |
 | 8 | Step 4 of refactor: materials carry their own lock fields and a complete `defaultSize`; runtime no longer calls `getProfileById(material.profileId)` |
+| 9 | Step 5 of refactor: `profileId` dropped from `PartNode` and `MaterialNode`. Inspector dropdown switches from profiles → materials of same `objectType`. The hardcoded catalog is now seed-only. |
 
 ## Refactor progress (profiles-out-of-code)
 
@@ -109,5 +110,5 @@ Current `PROJECT_SCHEMA_VERSION` is **7**. Bumps must add a corresponding `migra
 - **Step 2** ✅ Lock enforcement reads from the part. `applyProfileToSize` removed; replaced by `applyLockToSize(part, size)` in `src/lib/profiles.ts`. `normalizePartSize` in the store applies the lock after clamping, so drag-resize, inspector edits, and programmatic `setPartGeometry` calls all respect the part-owned lock. `setPartProfile` writes the new profile's lock fields onto the part instead of merely re-running `applyProfileToSize`.
 - **Step 3** ✅ Cut-list groups by `materialId`. The material's `name` becomes the label; parts without a material (or pointing at a deleted one) fall back to a dimensions-derived label (e.g. `Timber 100 × 100 mm`, `Sheet 18 mm`). `getProfileById` is no longer used in `materialSummary.ts`. Items carry `partIds` so consumers don't recompute keys.
 - **Step 4** ✅ Materials carry their own lock fields and a complete `defaultSize`. v7→v8 migration populates both from each material's `profileId`. `addObjectFromMaterial`, `buildPreviewPart`, and `MaterialInspector` no longer call `getProfileById(material.profileId)`. The "Profile" readonly row in the material inspector (which duplicated the material's underlying type info) is gone.
-- **Step 5** ⏭ Drop `profileId` from `PartNode` and `MaterialNode`. Only consumer remaining is `setPartProfile` (the inspector's profile dropdown), which becomes "Change Cross-Section" by selecting a different material.
-- **Step 6** ⏭ "Change Cross-Section" UI + overlap warning service.
+- **Step 5** ✅ `profileId` dropped from `PartNode` and `MaterialNode` (schema v9). `setPartProfile` renamed to `setPartMaterial`: the part inspector's dropdown now lists materials of the same `objectType` instead of catalog profiles. Selecting a different material rewrites the part's `materialId`, lock fields, and color, then normalizes the size against the new locks. The hardcoded catalog in `src/lib/profiles.ts` is now seed-only — read by `createInitialMaterials()` and `createObjectPart()`'s default-size lookup, never via stored part/material data. `getProfileById` no longer imported by `editorStore.ts` or `InspectorPanel.tsx`.
+- **Step 6** ⏭ "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service.
