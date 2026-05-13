@@ -51,7 +51,7 @@ describe("project serialization", () => {
     expect(parsed.measurements).toEqual([]);
     expect(parsed.parts[0].groupId).toBeNull();
     expect(parsed.parts[0].objectType).toBe("sheet");
-    expect(parsed.parts[0].profileId).toBe("osb3-18");
+    expect(parsed.parts[0].thicknessMm).toBe(18);
     expect(parsed.gridSettings).toBeDefined();
   });
 
@@ -97,6 +97,47 @@ describe("project serialization", () => {
 
     expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
     expect(parsed.gridSettings).toEqual({ size: 6000, originX: 0, originZ: 0 });
+  });
+
+  it("migrates v8 projects by dropping profileId from parts and materials", () => {
+    const project = createProject("V8");
+    const v8MaterialId = "mat-x";
+    const legacyMaterial = {
+      id: v8MaterialId,
+      name: "Test Material",
+      groupId: null,
+      objectType: "timber" as const,
+      profileId: "timber-100x100" as const,
+      color: "#a77b4e",
+      defaultSize: { x: 2500, y: 100, z: 100 },
+      crossSectionWidthMm: 100,
+      crossSectionHeightMm: 100,
+    };
+    const legacyPart = {
+      id: "p-x",
+      name: "Beam",
+      objectType: "timber" as const,
+      profileId: "timber-100x100" as const,
+      groupId: null,
+      materialId: v8MaterialId,
+      size: { x: 2500, y: 100, z: 100 },
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      color: "#a77b4e",
+      crossSectionWidthMm: 100,
+      crossSectionHeightMm: 100,
+    };
+    const payload = JSON.stringify({ ...project, version: 8, parts: [legacyPart], materials: [legacyMaterial] });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
+    expect("profileId" in parsed.parts[0]).toBe(false);
+    expect("profileId" in parsed.materials[0]).toBe(false);
+    // Geometry-driving fields survive the migration.
+    expect(parsed.parts[0].crossSectionWidthMm).toBe(100);
+    expect(parsed.materials[0].defaultSize).toEqual({ x: 2500, y: 100, z: 100 });
+    expect(parsed.parts[0].materialId).toBe(v8MaterialId);
   });
 
   it("migrates v7 projects by populating defaultSize and lock fields on materials", () => {

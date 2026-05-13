@@ -25,12 +25,16 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 8;
+export const PROJECT_SCHEMA_VERSION = 9;
 export const DEFAULT_GRID_SETTINGS = { size: 6000, originX: 0, originZ: 0 };
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
 
-const gardenShedDemoProject = gardenShedDemo as unknown as ProjectDocument;
+// Demo JSON predates the v9 schema and still carries profileId on its parts.
+// We narrow it locally to a legacy shape so createDemoParts can read it.
+type DemoSourcePart = PartNode & { profileId: ObjectProfileId };
+type LegacyDemoProject = Omit<ProjectDocument, "parts"> & { parts: DemoSourcePart[] };
+const gardenShedDemoProject = gardenShedDemo as unknown as LegacyDemoProject;
 
 function randomId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`;
@@ -62,7 +66,6 @@ export function createObjectPart(
     id: randomId(),
     name: createObjectName(objectType, index),
     objectType,
-    profileId,
     groupId: null,
     materialId: options?.materialId ?? null,
     size: options?.size ?? createSizeFromProfile(profile),
@@ -129,7 +132,6 @@ export function createInitialMaterials(): InitialMaterials {
       name: profile.label,
       groupId: objectTypeGroupId.get(profile.objectType) ?? null,
       objectType: profile.objectType,
-      profileId: profile.id,
       color: profile.color,
       defaultSize: createSizeFromProfile(profile),
       ...extractLockFields(profile),
@@ -140,17 +142,20 @@ export function createInitialMaterials(): InitialMaterials {
   return { materialGroups, materials, profileToMaterialId };
 }
 
-function createDemoParts(sourceParts: PartNode[], groupIdMap: Map<string, string>, profileToMaterialId: Map<string, string>): PartNode[] {
-  return sourceParts.map((part) => ({
-    ...part,
-    id: randomId(),
-    groupId: part.groupId ? (groupIdMap.get(part.groupId) ?? null) : null,
-    materialId: profileToMaterialId.get(part.profileId) ?? null,
-    size: cloneVector(part.size),
-    position: cloneVector(part.position),
-    rotation: cloneVector(part.rotation),
-    ...extractLockFields(getProfileById(part.profileId)),
-  }));
+function createDemoParts(sourceParts: DemoSourcePart[], groupIdMap: Map<string, string>, profileToMaterialId: Map<string, string>): PartNode[] {
+  return sourceParts.map((sourcePart) => {
+    const { profileId, ...part } = sourcePart;
+    return {
+      ...part,
+      id: randomId(),
+      groupId: part.groupId ? (groupIdMap.get(part.groupId) ?? null) : null,
+      materialId: profileToMaterialId.get(profileId) ?? null,
+      size: cloneVector(part.size),
+      position: cloneVector(part.position),
+      rotation: cloneVector(part.rotation),
+      ...extractLockFields(getProfileById(profileId)),
+    };
+  });
 }
 
 function createDemoMeasurements(sourceMeasurements: MeasurementNode[], groupIdMap: Map<string, string>): MeasurementNode[] {

@@ -66,7 +66,7 @@ function createPartExportGroup(part: PartNode, unitScale = 1): Group {
       kind: "part-mesh",
       partId: part.id,
       objectType: part.objectType,
-      profileId: part.profileId,
+      materialId: part.materialId,
       size: part.size,
       color: part.color,
     },

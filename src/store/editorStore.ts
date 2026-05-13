@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
-import { applyLockToSize, extractLockFields, getDefaultProfileId, getProfileById } from "../lib/profiles";
+import { applyLockToSize, getDefaultProfileId } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
@@ -83,7 +83,7 @@ export interface EditorActions {
   deleteMaterialGroup: (groupId: string) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
-  setPartProfile: (partId: string, profileId: ObjectProfileId) => void;
+  setPartMaterial: (partId: string, materialId: string) => void;
   commitCameraState: (cameraState: CameraState) => void;
   finalizeTransientChange: (previousProject: ProjectDocument) => void;
   undo: () => void;
@@ -631,11 +631,15 @@ export function createEditorStore() {
         const nextIndex = state.project.parts.length;
         const nextPart = createObjectPart(nextIndex, {
           objectType: material.objectType,
-          profileId: material.profileId,
           size: { ...material.defaultSize },
           position: { x: 0, y: 0, z: 0 },
           materialId: material.id,
         });
+        // Override createObjectPart's profile-derived color/locks with the material's own.
+        nextPart.color = material.color;
+        nextPart.crossSectionWidthMm = material.crossSectionWidthMm;
+        nextPart.crossSectionHeightMm = material.crossSectionHeightMm;
+        nextPart.thicknessMm = material.thicknessMm;
 
         const history = withProjectHistory(state, (project) => ({
           ...project,
@@ -742,32 +746,33 @@ export function createEditorStore() {
         },
       })),
 
-    setPartProfile: (partId, profileId) =>
-      set((state) => ({
-        ...withProjectHistory(state, (project) => ({
-          ...project,
-          parts: replacePart(project.parts, partId, (part) => {
-            const profile = getProfileById(profileId);
-            if (profile.objectType !== part.objectType) {
-              return part;
-            }
-
-            // Copy the new profile's lock fields onto the part, then re-normalize
-            // the size against those new locks. The part stays self-contained:
-            // its locks live on it, not on the catalog.
-            const lockFields = extractLockFields(profile);
-            const nextPart: PartNode = {
-              ...part,
-              profileId,
-              color: profile.color,
-              crossSectionWidthMm: lockFields.crossSectionWidthMm,
-              crossSectionHeightMm: lockFields.crossSectionHeightMm,
-              thicknessMm: lockFields.thicknessMm,
-            };
-            return { ...nextPart, size: normalizePartSize(nextPart, part.size) };
-          }),
-        })),
-      })),
+    setPartMaterial: (partId, materialId) =>
+      set((state) => {
+        const material = state.project.materials.find((m) => m.id === materialId);
+        if (!material) return state;
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            parts: replacePart(project.parts, partId, (part) => {
+              if (material.objectType !== part.objectType) {
+                return part;
+              }
+              // The user explicitly picks a new material. Copy its lock fields, color,
+              // and link onto the part, then re-normalize the size against the new locks.
+              // Length (free axis) is preserved; locked axes update.
+              const nextPart: PartNode = {
+                ...part,
+                materialId: material.id,
+                color: material.color,
+                crossSectionWidthMm: material.crossSectionWidthMm,
+                crossSectionHeightMm: material.crossSectionHeightMm,
+                thicknessMm: material.thicknessMm,
+              };
+              return { ...nextPart, size: normalizePartSize(nextPart, part.size) };
+            }),
+          })),
+        };
+      }),
 
     commitCameraState: (cameraState) =>
       set((state) => ({

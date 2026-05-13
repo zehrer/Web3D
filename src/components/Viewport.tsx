@@ -287,7 +287,6 @@ function buildPreviewPart(material: MaterialNode): PartNode {
     id: "__preview__",
     name: material.name,
     objectType: material.objectType,
-    profileId: material.profileId,
     groupId: null,
     materialId: material.id,
     size: { ...material.defaultSize },

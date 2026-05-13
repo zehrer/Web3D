@@ -22,25 +22,26 @@ The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still o
 
 ### What's implemented
 
-The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v8**. Each step shipped behind a migration so old saved projects continue to work.
+The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v9**. Each step shipped behind a migration so old saved projects continue to work.
 
 | Step | Schema | Status | What changed |
 |---|---|---|---|
 | 1 | v7 | ✅ | `PartNode` carries optional self-contained lock fields: `crossSectionWidthMm`, `crossSectionHeightMm`, `thicknessMm`. `extractLockFields(profile)` seeds them at creation, demo loading, and via v6→v7 migration. Purely additive — no behavior change. |
-| 2 | — | ✅ | `applyProfileToSize` deleted, replaced by `applyLockToSize(part, size)` reading from the part's own fields. `normalizePartSize` in the store enforces locks at the data layer for every size mutation (drag-resize, inspector edits, programmatic calls). `setPartProfile` rewrites lock fields on the part when the user swaps profiles. |
+| 2 | — | ✅ | `applyProfileToSize` deleted, replaced by `applyLockToSize(part, size)` reading from the part's own fields. `normalizePartSize` in the store enforces locks at the data layer for every size mutation (drag-resize, inspector edits, programmatic calls). |
 | 3 | — | ✅ | `materialSummary` (cut-list) groups by `materialId` (label = `material.name`). Parts without a material fall back to a dimensions-derived label (e.g. `Timber 100 × 100 mm`, `Sheet 18 mm`). The cut-list no longer imports `getProfileById`. |
 | 4 | v8 | ✅ | `MaterialNode` gains its own `crossSectionWidthMm` / `crossSectionHeightMm` / `thicknessMm` and a required complete `defaultSize: Vector3Like`. `addObjectFromMaterial`, `buildPreviewPart`, and the Material inspector all read from the material directly — no more `getProfileById(material.profileId)` calls at runtime. |
+| 5 | v9 | ✅ | `profileId` dropped from `PartNode` and `MaterialNode`. `setPartProfile` renamed to `setPartMaterial`: the part inspector's dropdown now lists materials of the same `objectType` instead of catalog profiles. Selecting a different material rewrites `materialId`, lock fields, color, then normalizes size. The hardcoded catalog (`SHEET_PROFILES`, `TIMBER_PROFILES`, …) is now seed-only — read by `createInitialMaterials()` and `createObjectPart()`'s default-size lookup, never via stored data. |
 
-After Step 4, the only runtime consumer of the hardcoded profile catalog is `setPartProfile` (the inspector dropdown that lets the user swap a part to a different cross-section).
+After Step 5, the hardcoded catalog is no longer load-bearing at runtime. Stored parts and materials are fully self-contained.
 
 ### What's still open
 
 | Step | Status | What |
 |---|---|---|
-| 5 | ⏭ | Drop `profileId` from `PartNode` and `MaterialNode`. Replace the part inspector's "Profile" dropdown with a material-driven "Change Cross-Section" picker that lists materials of the same `objectType`. After this step, `getProfileById` is no longer called at runtime — the catalog is *only* used as the seed source for `createInitialMaterials()`. |
-| 6 | ⏭ | Real "Change Cross-Section" operation that rewrites the part's lock fields when the user picks a new material, plus a warning when the new cross-section would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. |
-| Concept-2 evaluation | ⏭ | Once Step 5 lands, the discriminator `objectType` is the last vestige of "types as code". Evaluate then whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
-| Global Library | ⏭ | The "Project Library" (materials) exists. The "Global Library" (GitHub-hosted, shared catalog with linked/modified/local-only status, source IDs, sync) is still future work. Planned: ship after the refactor and inspector polish stabilize. |
+| 6 | ⏭ | "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. |
+| User-editable library | ⏭ | Currently `createInitialMaterials()` always seeds the same 18 materials from the hardcoded catalog. To let users add new sizes ("Timber 120 × 80 mm") without a code change, the *creation* of materials needs a UI form (cross-section + default size + color + group). The data path already supports it — only the UI is missing. |
+| Concept-2 evaluation | ⏭ | The discriminator `objectType` is the last vestige of "types as code". Evaluate whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
+| Global Library | ⏭ | The "Project Library" (materials) exists. The "Global Library" (GitHub-hosted, shared catalog with linked/modified/local-only status, source IDs, sync) is still future work. Planned: ship after the user-editable library and inspector polish stabilize. |
 
 ### Behavioral consequences already shipped
 
