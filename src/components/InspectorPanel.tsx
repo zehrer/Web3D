@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getMaterialUsageSummary } from "../lib/materialSummary";
-import { createSizeFromProfile, getObjectTypeLabel, getProfileById, getProfilesForType } from "../lib/profiles";
+import { getObjectTypeLabel, getProfilesForType } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
 import type { ObjectProfileId, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
@@ -203,9 +203,6 @@ function MaterialInspector() {
   const material = materials.find((m) => m.id === selectedMaterialId);
   if (!material) return null;
 
-  const profile = getProfileById(material.profileId);
-  const profileSize = createSizeFromProfile(profile);
-  const ds = material.defaultSize ?? {};
   const isUsed = parts.some((p) => p.materialId === selectedMaterialId);
 
   const editableAxes: Array<{ axis: keyof Vector3Like; label: string }> =
@@ -215,13 +212,11 @@ function MaterialInspector() {
         ? [{ axis: "x", label: "Default Length" }, { axis: "y", label: "Default Width" }]
         : material.objectType === "circle"
           ? [{ axis: "x", label: "Default Diameter" }]
-          : [{ axis: "x", label: "Default Width" }, { axis: "z", label: "Default Depth" }];
+          : material.objectType === "cube"
+            ? [{ axis: "x", label: "Default Width" }, { axis: "y", label: "Default Height" }, { axis: "z", label: "Default Depth" }]
+            : [{ axis: "x", label: "Default Width" }, { axis: "z", label: "Default Depth" }];
 
-  const effectiveValue = (axis: keyof Vector3Like) => {
-    if (axis === "x") return ds.x ?? profileSize.x;
-    if (axis === "y") return ds.y ?? profileSize.y;
-    return ds.z ?? profileSize.z;
-  };
+  const effectiveValue = (axis: keyof Vector3Like) => material.defaultSize[axis];
 
   return (
     <>
@@ -239,11 +234,6 @@ function MaterialInspector() {
       <label className="field inspector-field">
         <span>Type</span>
         <div className="field__input field__input--readonly">{getObjectTypeLabel(material.objectType)}</div>
-      </label>
-
-      <label className="field inspector-field">
-        <span>Profile</span>
-        <div className="field__input field__input--readonly">{profile.label}</div>
       </label>
 
       <label className="field inspector-field">

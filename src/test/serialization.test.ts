@@ -99,6 +99,36 @@ describe("project serialization", () => {
     expect(parsed.gridSettings).toEqual({ size: 6000, originX: 0, originZ: 0 });
   });
 
+  it("migrates v7 projects by populating defaultSize and lock fields on materials", () => {
+    const project = createProject("V7");
+    const legacyMaterials = [
+      {
+        id: "lm-timber", name: "Timber 100×100", groupId: null,
+        objectType: "timber" as const, profileId: "timber-100x100" as const,
+        color: "#a77b4e",
+        defaultSize: { x: 2200 }, // partial — only overrides length
+      },
+      {
+        id: "lm-sheet", name: "OSB 18 mm", groupId: null,
+        objectType: "sheet" as const, profileId: "osb3-18" as const,
+        color: "#caa165",
+        // no defaultSize override at all
+      },
+    ];
+    const payload = JSON.stringify({ ...project, version: 7, materials: legacyMaterials });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
+    const timber = parsed.materials.find((m) => m.id === "lm-timber")!;
+    expect(timber.defaultSize).toEqual({ x: 2200, y: 100, z: 100 });
+    expect(timber.crossSectionWidthMm).toBe(100);
+    expect(timber.crossSectionHeightMm).toBe(100);
+    const sheet = parsed.materials.find((m) => m.id === "lm-sheet")!;
+    expect(sheet.defaultSize).toEqual({ x: 1200, y: 600, z: 18 });
+    expect(sheet.thicknessMm).toBe(18);
+  });
+
   it("migrates v6 projects by populating cross-section lock fields on parts", () => {
     const project = createProject("V6");
     const timberPart = {

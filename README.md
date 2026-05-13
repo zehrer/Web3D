@@ -4,15 +4,23 @@ A lightweight browser-based 3D editor for simple box-based design, with woodwork
 
 ## Features
 
-- Box-only scene model for fast rectangular object design
+- Box-based scene model for fast rectangular object design plus flat shapes (rectangle, circle) and free-axis cube
 - Direct manipulation with move, rotate, and resize tools
 - Grid snapping for translation, rotation, and face-handle resizing
+- Configurable ground grid (size, origin offset) per project
 - Locale-based default units with metric and imperial switching
-- Object families for sheet goods and structural timber profiles
-- STL export for sharing and fabrication workflows
+- Per-project material library with built-in folders for Sheet, Timber, Cladding, and Glass
+- Cut-list / material overview grouped by library material
+- Object families for sheet goods, structural timber, cladding, and glazing profiles
+- STL, glTF, USDZ, and `.web3d` (timestamped) export
 - IndexedDB-backed local project autosave and recent-project loading
 - Undo/redo for editor actions and transient drag commits
 - Lower-corner object origin so new objects start on the floor at `0 / 0 / 0`
+
+## Documentation
+
+- [`docs/requirements.md`](docs/requirements.md) — captured product decisions, schema version log, refactor progress, and planned features (overlap detection, y-up/z-up toggle, inspector polish).
+- [`docs/generic-part-concepts.md`](docs/generic-part-concepts.md) — design exploration and current implementation status of the profiles-out-of-code refactor.
 
 ## Stack
 

@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
-import { applyLockToSize, createSizeFromProfile, extractLockFields, getDefaultProfileId, getProfileById } from "../lib/profiles";
+import { applyLockToSize, extractLockFields, getDefaultProfileId, getProfileById } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
@@ -628,20 +628,11 @@ export function createEditorStore() {
         const material = state.project.materials.find((m) => m.id === materialId);
         if (!material) return state;
 
-        const profile = getProfileById(material.profileId);
-        const profileSize = createSizeFromProfile(profile);
-        const ds = material.defaultSize ?? {};
-        const size = {
-          x: ds.x ?? profileSize.x,
-          y: ds.y ?? profileSize.y,
-          z: ds.z ?? profileSize.z,
-        };
-
         const nextIndex = state.project.parts.length;
         const nextPart = createObjectPart(nextIndex, {
           objectType: material.objectType,
           profileId: material.profileId,
-          size,
+          size: { ...material.defaultSize },
           position: { x: 0, y: 0, z: 0 },
           materialId: material.id,
         });
@@ -680,7 +671,7 @@ export function createEditorStore() {
         ...withProjectHistory(state, (project) => ({
           ...project,
           materials: project.materials.map((m) =>
-            m.id === materialId ? { ...m, defaultSize: { ...(m.defaultSize ?? {}), [axis]: valueMm } } : m,
+            m.id === materialId ? { ...m, defaultSize: { ...m.defaultSize, [axis]: valueMm } } : m,
           ),
         })),
       })),
@@ -703,7 +694,7 @@ export function createEditorStore() {
           ...source,
           id: randomId(),
           name: `${source.name} Copy`,
-          defaultSize: source.defaultSize ? { ...source.defaultSize } : undefined,
+          defaultSize: { ...source.defaultSize },
         };
         const next = withProjectHistory(state, (project) => ({
           ...project,
