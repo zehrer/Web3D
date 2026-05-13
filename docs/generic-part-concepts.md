@@ -1,5 +1,61 @@
 # Generic Part Concepts
 
+## Implementation Status (2026-05-13)
+
+This document was originally a design exploration. Since then, a concrete refactor toward the **Concept 1** direction is underway. The conceptual sections below are still useful reference; this section captures the actual state of the code and what's left.
+
+### Direction chosen
+
+**Concept 1 first**, with one important addition learned along the way: library entries are **creation-time templates, not live references**. Editing a library material does NOT mutate already-placed parts — woodworking depends on exact cross-sections, and silently shifting joints when stock metadata changes would break the design. So scene parts copy what they need from the library at creation time and stay self-contained afterwards.
+
+The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still object-type discriminators in the code. They have not yet become "families" in the Concept 2 sense, but the surface area where they matter is shrinking each step.
+
+### Mapping of doc vocabulary → code (today)
+
+| Document term | Code today |
+|---|---|
+| Project Part Definitions | `project.materials` (`MaterialNode[]`) and `project.materialGroups` |
+| Scene Object Instance | `PartNode` |
+| Reference from instance to definition | `part.materialId: string \| null` |
+| Hardcoded global catalog | `SHEET_PROFILES`, `TIMBER_PROFILES`, `CLADDING_PROFILES`, `GLASS_PROFILES`, `SHAPE_PROFILES` in `src/lib/profiles.ts` |
+| Family | Still implicit (the `objectType` discriminator) |
+
+### What's implemented
+
+The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v8**. Each step shipped behind a migration so old saved projects continue to work.
+
+| Step | Schema | Status | What changed |
+|---|---|---|---|
+| 1 | v7 | ✅ | `PartNode` carries optional self-contained lock fields: `crossSectionWidthMm`, `crossSectionHeightMm`, `thicknessMm`. `extractLockFields(profile)` seeds them at creation, demo loading, and via v6→v7 migration. Purely additive — no behavior change. |
+| 2 | — | ✅ | `applyProfileToSize` deleted, replaced by `applyLockToSize(part, size)` reading from the part's own fields. `normalizePartSize` in the store enforces locks at the data layer for every size mutation (drag-resize, inspector edits, programmatic calls). `setPartProfile` rewrites lock fields on the part when the user swaps profiles. |
+| 3 | — | ✅ | `materialSummary` (cut-list) groups by `materialId` (label = `material.name`). Parts without a material fall back to a dimensions-derived label (e.g. `Timber 100 × 100 mm`, `Sheet 18 mm`). The cut-list no longer imports `getProfileById`. |
+| 4 | v8 | ✅ | `MaterialNode` gains its own `crossSectionWidthMm` / `crossSectionHeightMm` / `thicknessMm` and a required complete `defaultSize: Vector3Like`. `addObjectFromMaterial`, `buildPreviewPart`, and the Material inspector all read from the material directly — no more `getProfileById(material.profileId)` calls at runtime. |
+
+After Step 4, the only runtime consumer of the hardcoded profile catalog is `setPartProfile` (the inspector dropdown that lets the user swap a part to a different cross-section).
+
+### What's still open
+
+| Step | Status | What |
+|---|---|---|
+| 5 | ⏭ | Drop `profileId` from `PartNode` and `MaterialNode`. Replace the part inspector's "Profile" dropdown with a material-driven "Change Cross-Section" picker that lists materials of the same `objectType`. After this step, `getProfileById` is no longer called at runtime — the catalog is *only* used as the seed source for `createInitialMaterials()`. |
+| 6 | ⏭ | Real "Change Cross-Section" operation that rewrites the part's lock fields when the user picks a new material, plus a warning when the new cross-section would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. |
+| Concept-2 evaluation | ⏭ | Once Step 5 lands, the discriminator `objectType` is the last vestige of "types as code". Evaluate then whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
+| Global Library | ⏭ | The "Project Library" (materials) exists. The "Global Library" (GitHub-hosted, shared catalog with linked/modified/local-only status, source IDs, sync) is still future work. Planned: ship after the refactor and inspector polish stabilize. |
+
+### Behavioral consequences already shipped
+
+- **Renaming a material** updates the cut-list label everywhere. It does NOT change the cross-section of placed parts.
+- **Adding a new part from a library material** copies the material's `defaultSize` and lock fields onto the part. The part is then independent.
+- **Resize tool / drag handles** for a timber show only the X axis. Sheet/glass shows X and Y. Cube shows all three (no lock).
+- **Inspector** hides locked axes entirely instead of showing them as readonly. The redundant readonly "Thickness" and "Cross-section" rows are gone.
+
+### Open behavioral questions deferred until after Step 5
+
+- "Custom timber size" (e.g., a one-off 120×80 part) — currently requires either picking a profile from the catalog or accepting whatever the part has. After Step 5 / Step 6 this becomes a normal "add a new material to the library, then place from it" workflow.
+- Multiple parts sharing a single material when their dimensions diverge — currently the cut-list groups them under the material's name (correct: they share stock identity). The dimensions-based grouping is only the fallback for material-less parts.
+
+---
+
 ## Goal
 
 Today the model still carries some object-specific semantics:

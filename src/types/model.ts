@@ -91,7 +91,15 @@ export interface MaterialNode {
   objectType: ObjectType;
   profileId: ObjectProfileId;
   color: string;
-  defaultSize?: { x?: number; y?: number; z?: number };
+  /** Default size for new parts spawned from this material (mm, complete vector). */
+  defaultSize: Vector3Like;
+
+  /** Y-axis cross-section lock for timber/cladding (mm). Absent for unlocked types. */
+  crossSectionWidthMm?: number;
+  /** Z-axis cross-section lock for timber/cladding (mm). Absent for unlocked types. */
+  crossSectionHeightMm?: number;
+  /** Z-axis thickness lock for sheet/glass (mm). Absent for unlocked types. */
+  thicknessMm?: number;
 }
 
 export interface ProjectDocument {

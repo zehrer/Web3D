@@ -247,10 +247,11 @@ export function getProfileLabel(profileId: ObjectProfileId): string {
 }
 
 /**
- * Returns the lock-dimension fields that should be copied onto a part built from
- * this profile. Used by createObjectPart, demo seeding, and v6→v7 migration.
- * After the profiles-out-of-code refactor lands, parts will read locks directly
- * from these fields rather than via getProfileById.
+ * Returns the lock-dimension fields that should be copied onto a part or material
+ * built from this profile. Used by createObjectPart, createInitialMaterials, demo
+ * seeding, and v6→v8 migrations. After the profiles-out-of-code refactor lands,
+ * parts and materials will read locks directly from their own fields rather than
+ * via getProfileById.
  */
 export function extractLockFields(profile: ObjectProfile): {
   crossSectionWidthMm?: number;
@@ -265,6 +266,7 @@ export function extractLockFields(profile: ObjectProfile): {
   }
   return {};
 }
+
 
 export function createObjectName(objectType: ObjectType, index: number): string {
   return `${OBJECT_TYPE_LABELS[objectType]} ${index + 1}`;

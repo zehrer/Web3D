@@ -10,6 +10,9 @@ const TIMBER_MATERIAL: MaterialNode = {
   objectType: "timber",
   profileId: "timber-100x100",
   color: "#a77b4e",
+  defaultSize: { x: 2500, y: 100, z: 100 },
+  crossSectionWidthMm: 100,
+  crossSectionHeightMm: 100,
 };
 
 const SHEET_MATERIAL: MaterialNode = {
@@ -19,6 +22,8 @@ const SHEET_MATERIAL: MaterialNode = {
   objectType: "sheet",
   profileId: "osb3-18",
   color: "#caa165",
+  defaultSize: { x: 1200, y: 600, z: 18 },
+  thicknessMm: 18,
 };
 
 describe("material summary", () => {
