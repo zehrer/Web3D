@@ -5,10 +5,9 @@ import { ArrowHelper, DoubleSide, Euler, Mesh, PerspectiveCamera, Vector3, type 
 import {
   ArIcon,
   BeamIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
   CircleIcon,
   CladdingIcon,
+  CubeIcon,
   DuplicateIcon,
   GlassIcon,
   HelpIcon,
@@ -29,18 +28,13 @@ import {
 import { createSizeFromProfile, getProfileById, getResizableAxes } from "../lib/profiles";
 import { applyResizeFromHandle } from "../lib/geometry";
 import { openProjectInArQuickLook } from "../lib/export";
-import { cloneProject, DEFAULT_CAMERA_HEIGHT, DEFAULT_WORKSPACE_FOCUS_XZ } from "../lib/project";
+import { cloneProject } from "../lib/project";
 import { snapValue, toRadians } from "../lib/snap";
 import { formatLength } from "../lib/units";
 import { editorStore, useEditorStore } from "../store/editorStore";
 import type { MaterialNode, MeasurementNode, PartNode, ProjectDocument, Vector3Like } from "../types/model";
 
 const GRID_STEP = 100;
-const BUILD_AREA_SIZE = 6000;
-const BUILD_MARGIN = GRID_STEP;
-const GRID_SIZE = BUILD_AREA_SIZE + BUILD_MARGIN * 2;
-const GRID_DIVISIONS = GRID_SIZE / GRID_STEP;
-const WORKSPACE_CENTER = BUILD_AREA_SIZE / 2;
 const GROUND_PLANE_SIZE = 12400;
 
 type ResizeDragState = {
@@ -452,6 +446,7 @@ function Scene() {
   const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
   const activeTool = useEditorStore((state) => state.activeTool);
   const snapSettings = useEditorStore((state) => state.project.snapSettings);
+  const gridSettings = useEditorStore((state) => state.project.gridSettings);
   const selectPart = useEditorStore((state) => state.selectPart);
   const selectMeasurement = useEditorStore((state) => state.selectMeasurement);
   const addMeasurement = useEditorStore((state) => state.addMeasurement);
@@ -597,15 +592,22 @@ function Scene() {
       <directionalLight position={[-800, 900, -1200]} intensity={0.35} />
 
       <CameraController orbitRef={orbitRef} />
-      <gridHelper
-        args={[GRID_SIZE, GRID_DIVISIONS, "#cfd7dd", "#cfd7dd"]}
-        position={[WORKSPACE_CENTER, 0, WORKSPACE_CENTER]}
-      />
+      {(() => {
+        const gs = gridSettings ?? { size: 6000, originX: 0, originZ: 0 };
+        const margin = GRID_STEP;
+        const totalSize = gs.size + margin * 2;
+        const divisions = totalSize / GRID_STEP;
+        const cx = gs.size / 2 - gs.originX;
+        const cz = gs.size / 2 - gs.originZ;
+        return (
+          <gridHelper args={[totalSize, divisions, "#cfd7dd", "#cfd7dd"]} position={[cx, 0, cz]} />
+        );
+      })()}
       <AxisGuide />
 
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[WORKSPACE_CENTER, -0.5, WORKSPACE_CENTER]}
+        position={[0, -0.5, 0]}
         onPointerMove={(event) => {
           if (activeTool === "measure" && measurementDraft) {
             event.stopPropagation();
@@ -627,12 +629,12 @@ function Scene() {
       </mesh>
 
       {previewPart ? (
-        <group position={[WORKSPACE_CENTER - previewPart.size.x / 2, 0, WORKSPACE_CENTER - previewPart.size.z / 2]}>
+        <group position={[0, 0, 0]}>
           <PartShapeMesh part={previewPart} selected={false} />
         </group>
       ) : null}
 
-      {parts.map((part) => {
+      {!selectedMaterial && parts.map((part) => {
         const isSelected = part.id === selectedPartId;
 
         return (
@@ -645,10 +647,10 @@ function Scene() {
             rotation={vectorToTuple(part.rotation)}
             onClick={(event) => {
               event.stopPropagation();
-              if (!selectedMaterial) selectPart(part.id);
+              selectPart(part.id);
             }}
           >
-            <PartShapeMesh part={part} selected={isSelected} dimmed={selectedMaterial !== null} />
+            <PartShapeMesh part={part} selected={isSelected} dimmed={false} />
             {isSelected ? <KeyDimensionGuide part={part} /> : null}
 
             {activeTool === "measure"
@@ -691,7 +693,7 @@ function Scene() {
         );
       })}
 
-      {measurements.map((measurement) => (
+      {!selectedMaterial && measurements.map((measurement) => (
         <group
           key={measurement.id}
           onClick={(event) => {
@@ -757,10 +759,11 @@ function isIosDevice(): boolean {
 export function Viewport() {
   const [showHelp, setShowHelp] = useState(false);
   const [openAddMenu, setOpenAddMenu] = useState<"library" | "shapes" | null>(null);
-  const [openLibraryGroupId, setOpenLibraryGroupId] = useState<string | null>(null);
+  const [lastUsedMaterialByGroup, setLastUsedMaterialByGroup] = useState<Map<string, string>>(new Map());
   const [isIos] = useState(() => isIosDevice());
   const [arExporting, setArExporting] = useState(false);
   const railMenuRef = useRef<HTMLDivElement | null>(null);
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const addObject = useEditorStore((state) => state.addObject);
@@ -773,6 +776,9 @@ export function Viewport() {
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
   const commitCameraState = useEditorStore((state) => state.commitCameraState);
+  const allParts = useEditorStore((state) => state.project.parts);
+  const groups = useEditorStore((state) => state.project.groups);
+  const gridSettings = useEditorStore((state) => state.project.gridSettings);
   const selectedPart = useEditorStore((state) =>
     state.project.parts.find((part) => part.id === state.selectedPartId) ?? null,
   );
@@ -785,7 +791,6 @@ export function Viewport() {
     function handlePointerDown(event: PointerEvent) {
       if (!railMenuRef.current?.contains(event.target as Node)) {
         setOpenAddMenu(null);
-        setOpenLibraryGroupId(null);
       }
     }
 
@@ -808,34 +813,80 @@ export function Viewport() {
   }
 
   function setCameraPreset(preset: "perspective" | "top" | "front" | "right") {
-    const target = {
-      x: DEFAULT_WORKSPACE_FOCUS_XZ,
-      y: DEFAULT_CAMERA_HEIGHT,
-      z: DEFAULT_WORKSPACE_FOCUS_XZ,
+    const visibleParts = allParts.filter((part) => isPartVisible(part, groups));
+    const CAMERA_FOV_DEG = 38;
+    const PADDING = 1.35;
+
+    let center: Vector3Like;
+    let halfX: number;
+    let halfY: number;
+    let halfZ: number;
+
+    if (visibleParts.length === 0) {
+      const gs = gridSettings;
+      const cx = gs.size / 2 - gs.originX;
+      const cz = gs.size / 2 - gs.originZ;
+      center = { x: cx, y: 400, z: cz };
+      halfX = gs.size / 2;
+      halfY = 800;
+      halfZ = gs.size / 2;
+    } else {
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (const part of visibleParts) {
+        const { position: p, size: s } = part;
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.z < minZ) minZ = p.z;
+        if (p.x + s.x > maxX) maxX = p.x + s.x;
+        if (p.y + s.y > maxY) maxY = p.y + s.y;
+        if (p.z + s.z > maxZ) maxZ = p.z + s.z;
+      }
+      center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, z: (minZ + maxZ) / 2 };
+      halfX = Math.max((maxX - minX) / 2, 100);
+      halfY = Math.max((maxY - minY) / 2, 100);
+      halfZ = Math.max((maxZ - minZ) / 2, 100);
+    }
+
+    const fovRad = (CAMERA_FOV_DEG * Math.PI) / 180;
+    const tanHalfFov = Math.tan(fovRad / 2);
+    const rect = canvasContainerRef.current?.getBoundingClientRect();
+    const aspect = rect && rect.height > 0 ? rect.width / rect.height : 1.5;
+    const fit = (halfHoriz: number, halfVert: number) => {
+      const distH = halfHoriz / (tanHalfFov * aspect);
+      const distV = halfVert / tanHalfFov;
+      return Math.max(distH, distV) * PADDING;
     };
 
-    const position =
-      preset === "top"
-        ? { x: DEFAULT_WORKSPACE_FOCUS_XZ, y: 2400, z: DEFAULT_WORKSPACE_FOCUS_XZ + 0.01 }
-        : preset === "front"
-          ? { x: DEFAULT_WORKSPACE_FOCUS_XZ, y: 900, z: 3000 }
-          : preset === "right"
-            ? { x: 3000, y: 900, z: DEFAULT_WORKSPACE_FOCUS_XZ }
-            : { x: 2600, y: 1700, z: 2600 };
+    let position: Vector3Like;
+    if (preset === "top") {
+      const dist = fit(halfX, halfZ);
+      position = { x: center.x, y: center.y + dist, z: center.z + 0.01 };
+    } else if (preset === "front") {
+      const dist = fit(halfX, halfY);
+      position = { x: center.x, y: center.y, z: center.z + halfZ + dist };
+    } else if (preset === "right") {
+      const dist = fit(halfZ, halfY);
+      position = { x: center.x + halfX + dist, y: center.y, z: center.z };
+    } else {
+      const diagonal = Math.sqrt(halfX * halfX + halfY * halfY + halfZ * halfZ);
+      const dist = fit(diagonal, diagonal);
+      const offset = dist / Math.sqrt(3);
+      position = { x: center.x + offset, y: center.y + offset, z: center.z + offset };
+    }
 
-    commitCameraState({ position, target });
+    commitCameraState({ position, target: center });
   }
 
   return (
     <section className="viewport-panel">
-      <div className="viewport-canvas">
+      <div className="viewport-canvas" ref={canvasContainerRef}>
         <div className="viewport-rail viewport-rail--left" ref={railMenuRef}>
           <div className="viewport-rail__menu-wrapper">
             <button
               className={`viewport-rail__button ${openAddMenu === "library" ? "viewport-rail__button--active" : ""}`}
               onClick={() => {
                 setOpenAddMenu((value) => (value === "library" ? null : "library"));
-                setOpenLibraryGroupId(null);
               }}
               title="Add from material library"
               type="button"
@@ -846,42 +897,29 @@ export function Viewport() {
               <div className="viewport-add-menu">
                 {materialGroups.map((group) => {
                   const groupMaterials = materials.filter((m) => m.groupId === group.id);
-                  const isOpen = openLibraryGroupId === group.id;
-                  const firstType = groupMaterials[0]?.objectType;
+                  if (groupMaterials.length === 0) return null;
+                  const lastId = lastUsedMaterialByGroup.get(group.id);
+                  const targetMaterial = groupMaterials.find((m) => m.id === lastId) ?? groupMaterials[0];
+                  const firstType = targetMaterial.objectType;
                   return (
-                    <div key={group.id}>
-                      <button
-                        className={`viewport-add-menu__group-header ${isOpen ? "viewport-add-menu__group-header--open" : ""}`}
-                        onClick={() => setOpenLibraryGroupId(isOpen ? null : group.id)}
-                        type="button"
-                      >
-                        <span className="viewport-add-menu__group-icon">
-                          {firstType === "timber" ? <BeamIcon width={13} height={13} /> :
-                           firstType === "sheet" ? <SheetIcon width={13} height={13} /> :
-                           firstType === "cladding" ? <CladdingIcon width={13} height={13} /> :
-                           firstType === "glass" ? <GlassIcon width={13} height={13} /> : null}
-                        </span>
-                        <span>{group.name}</span>
-                        <span className="viewport-add-menu__group-chevron">
-                          {isOpen ? <ChevronDownIcon width={11} height={11} /> : <ChevronRightIcon width={11} height={11} />}
-                        </span>
-                      </button>
-                      {isOpen ? groupMaterials.map((material) => (
-                        <button
-                          key={material.id}
-                          className="viewport-add-menu__item viewport-add-menu__material-item"
-                          onClick={() => {
-                            addObjectFromMaterial(material.id);
-                            setOpenAddMenu(null);
-                            setOpenLibraryGroupId(null);
-                          }}
-                          type="button"
-                        >
-                          <span className="viewport-add-menu__material-dot" style={{ background: material.color }} />
-                          <span>{material.name}</span>
-                        </button>
-                      )) : null}
-                    </div>
+                    <button
+                      key={group.id}
+                      className="viewport-add-menu__item"
+                      onClick={() => {
+                        addObjectFromMaterial(targetMaterial.id);
+                        setLastUsedMaterialByGroup((prev) => new Map(prev).set(group.id, targetMaterial.id));
+                        setOpenAddMenu(null);
+                      }}
+                      type="button"
+                    >
+                      <span className="viewport-add-menu__group-icon">
+                        {firstType === "timber" ? <BeamIcon width={13} height={13} /> :
+                         firstType === "sheet" ? <SheetIcon width={13} height={13} /> :
+                         firstType === "cladding" ? <CladdingIcon width={13} height={13} /> :
+                         firstType === "glass" ? <GlassIcon width={13} height={13} /> : null}
+                      </span>
+                      <span>{group.name}</span>
+                    </button>
                   );
                 })}
                 {materialGroups.length === 0 ? (
@@ -922,6 +960,17 @@ export function Viewport() {
                 >
                   <CircleIcon width={16} height={16} />
                   <span>Circle</span>
+                </button>
+                <button
+                  className="viewport-add-menu__item"
+                  onClick={() => {
+                    addObject("cube");
+                    setOpenAddMenu(null);
+                  }}
+                  type="button"
+                >
+                  <CubeIcon width={16} height={16} />
+                  <span>Cube</span>
                 </button>
               </div>
             ) : null}

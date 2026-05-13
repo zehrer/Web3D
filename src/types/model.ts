@@ -1,6 +1,6 @@
 export type UnitPreference = "metric-cm" | "metric-mm" | "imperial-in";
 
-export type ObjectType = "sheet" | "timber" | "cladding" | "glass" | "rectangle" | "circle";
+export type ObjectType = "sheet" | "timber" | "cladding" | "glass" | "rectangle" | "circle" | "cube";
 
 export type SheetProfileId = "osb3-12" | "osb3-15" | "osb3-18" | "osb3-22" | "plywood-18";
 
@@ -10,7 +10,7 @@ export type CladdingProfileId = "rhombus-18x68" | "rhombus-19x68" | "rhombus-19x
 
 export type GlassProfileId = "plexiglass-3" | "plexiglass-5" | "plexiglass-10";
 
-export type ShapeProfileId = "shape-rectangle" | "shape-circle";
+export type ShapeProfileId = "shape-rectangle" | "shape-circle" | "shape-cube";
 
 export type ObjectProfileId = SheetProfileId | TimberProfileId | CladdingProfileId | GlassProfileId | ShapeProfileId;
 
@@ -27,6 +27,12 @@ export interface SnapSettings {
   moveIncrement: number;
   resizeIncrement: number;
   rotateIncrementDeg: number;
+}
+
+export interface GridSettings {
+  size: number;    // mm — total side length of the square grid
+  originX: number; // mm — how far the world origin (0,0,0) is from the left edge
+  originZ: number; // mm — how far the world origin (0,0,0) is from the front edge
 }
 
 export interface CameraState {
@@ -46,6 +52,13 @@ export interface PartNode {
   rotation: Vector3Like;
   color: string;
   hidden?: boolean;
+
+  /** Y-axis cross-section lock for timber/cladding (mm). Absent for unlocked types. */
+  crossSectionWidthMm?: number;
+  /** Z-axis cross-section lock for timber/cladding (mm). Absent for unlocked types. */
+  crossSectionHeightMm?: number;
+  /** Z-axis thickness lock for sheet/glass (mm). Absent for unlocked types. */
+  thicknessMm?: number;
 }
 
 export interface MeasurementNode {
@@ -87,6 +100,7 @@ export interface ProjectDocument {
   version: number;
   unitPreference: UnitPreference;
   snapSettings: SnapSettings;
+  gridSettings: GridSettings;
   cameraState: CameraState;
   groups: GroupNode[];
   parts: PartNode[];

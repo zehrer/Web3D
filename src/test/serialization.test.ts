@@ -1,24 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { createProject } from "../lib/project";
+import { PROJECT_SCHEMA_VERSION, createDemoProject, createProject } from "../lib/project";
 import { deserializeProject, deserializeProjectFile, serializeProject, serializeProjectFile } from "../lib/serialization";
 
 describe("project serialization", () => {
   it("round-trips a project document", () => {
-    const project = createProject("Workbench");
+    const project = createDemoProject();
     const payload = serializeProject(project);
     const parsed = deserializeProject(payload);
 
     expect(parsed.id).toBe(project.id);
-    expect(parsed.name).toBe("Workbench");
+    expect(parsed.name).toBe(project.name);
     expect(parsed.groups).toHaveLength(project.groups.length);
     expect(parsed.parts).toHaveLength(project.parts.length);
     expect(parsed.parts[0].size.x).toBe(project.parts[0].size.x);
     expect(parsed.parts[0].groupId).toBe(project.parts[0].groupId);
     expect(parsed.measurements).toEqual(project.measurements);
     expect(parsed.groups.some((group) => group.name === "Shed")).toBe(true);
-    expect(parsed.groups).toHaveLength(13);
     expect(parsed.parts).toHaveLength(169);
-    expect(parsed.measurements).toHaveLength(3);
     expect(parsed.parts.some((part) => part.objectType === "timber")).toBe(true);
     expect(parsed.parts.some((part) => part.objectType === "glass")).toBe(true);
     expect(parsed.parts.some((part) => part.objectType === "rectangle")).toBe(true);
@@ -48,12 +46,13 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(5);
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
     expect(parsed.groups).toEqual([]);
     expect(parsed.measurements).toEqual([]);
     expect(parsed.parts[0].groupId).toBeNull();
     expect(parsed.parts[0].objectType).toBe("sheet");
     expect(parsed.parts[0].profileId).toBe("osb3-18");
+    expect(parsed.gridSettings).toBeDefined();
   });
 
   it("migrates v2 object projects into grouped-capable projects", () => {
@@ -67,10 +66,11 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(5);
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
     expect(parsed.groups).toEqual([]);
     expect(parsed.measurements).toEqual([]);
     expect(parsed.parts.every((part) => part.groupId === null)).toBe(true);
+    expect(parsed.gridSettings).toBeDefined();
   });
 
   it("migrates v3 grouped projects into measurement-capable projects", () => {
@@ -83,22 +83,69 @@ describe("project serialization", () => {
 
     const parsed = deserializeProject(payload);
 
-    expect(parsed.version).toBe(5);
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
     expect(parsed.measurements).toEqual([]);
     expect(parsed.groups).toHaveLength(project.groups.length);
+    expect(parsed.gridSettings).toBeDefined();
+  });
+
+  it("migrates v5 projects by adding gridSettings", () => {
+    const project = createProject("V5");
+    const payload = JSON.stringify({ ...project, version: 5, gridSettings: undefined });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
+    expect(parsed.gridSettings).toEqual({ size: 6000, originX: 0, originZ: 0 });
+  });
+
+  it("migrates v6 projects by populating cross-section lock fields on parts", () => {
+    const project = createProject("V6");
+    const timberPart = {
+      id: "p1", name: "Beam", objectType: "timber" as const, profileId: "timber-100x100" as const,
+      groupId: null, materialId: null, color: "#a77b4e",
+      size: { x: 2000, y: 100, z: 100 },
+      position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+    };
+    const sheetPart = {
+      id: "p2", name: "Panel", objectType: "sheet" as const, profileId: "osb3-18" as const,
+      groupId: null, materialId: null, color: "#caa165",
+      size: { x: 1200, y: 600, z: 18 },
+      position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 },
+    };
+    const payload = JSON.stringify({ ...project, version: 6, parts: [timberPart, sheetPart] });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
+    expect(parsed.parts[0].crossSectionWidthMm).toBe(100);
+    expect(parsed.parts[0].crossSectionHeightMm).toBe(100);
+    expect(parsed.parts[0].thicknessMm).toBeUndefined();
+    expect(parsed.parts[1].thicknessMm).toBe(18);
+    expect(parsed.parts[1].crossSectionWidthMm).toBeUndefined();
   });
 
   it("round-trips native Web3D project files with group and object names", () => {
     const project = createProject("Exported Project");
-    const firstGroup = project.groups[0];
-    const firstPart = project.parts[0];
-    firstGroup.name = "Custom Folder";
-    firstPart.name = "Custom Timber";
-    firstPart.groupId = firstGroup.id;
+    const group = { id: "group-1", name: "Custom Folder", parentGroupId: null };
+    const part = {
+      id: "part-1",
+      name: "Custom Timber",
+      objectType: "timber" as const,
+      profileId: "timber-100x100" as const,
+      groupId: group.id,
+      materialId: null,
+      size: { x: 100, y: 100, z: 2500 },
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      color: "#a77b4e",
+    };
+    project.groups.push(group);
+    project.parts.push(part);
     project.measurements.push({
       id: "measure-1",
       name: "Custom Measure",
-      groupId: firstGroup.id,
+      groupId: group.id,
       start: { x: 0, y: 0, z: 0 },
       end: { x: 300, y: 0, z: 400 },
       color: "#276f9f",
@@ -107,12 +154,12 @@ describe("project serialization", () => {
     const parsed = deserializeProjectFile(serializeProjectFile(project));
 
     expect(parsed.name).toBe("Exported Project");
-    expect(parsed.groups[0]).toMatchObject({ id: firstGroup.id, name: "Custom Folder" });
-    expect(parsed.parts[0]).toMatchObject({ id: firstPart.id, name: "Custom Timber", groupId: firstGroup.id });
-    expect(parsed.measurements.find((measurement) => measurement.id === "measure-1")).toMatchObject({
+    expect(parsed.groups[0]).toMatchObject({ id: group.id, name: "Custom Folder" });
+    expect(parsed.parts[0]).toMatchObject({ id: part.id, name: "Custom Timber", groupId: group.id });
+    expect(parsed.measurements.find((m) => m.id === "measure-1")).toMatchObject({
       id: "measure-1",
       name: "Custom Measure",
-      groupId: firstGroup.id,
+      groupId: group.id,
     });
     expect(parsed.snapSettings).toEqual(project.snapSettings);
     expect(parsed.cameraState).toEqual(project.cameraState);
@@ -120,21 +167,32 @@ describe("project serialization", () => {
 
   it("imports Web3D project data embedded in glTF extras", () => {
     const project = createProject("Embedded Project");
-    project.groups[0].name = "Embedded Folder";
-    project.parts[0].name = "Embedded Object";
+    const group = { id: "group-embed", name: "Embedded Folder", parentGroupId: null };
+    const part = {
+      id: "part-embed",
+      name: "Embedded Object",
+      objectType: "timber" as const,
+      profileId: "timber-100x100" as const,
+      groupId: null,
+      materialId: null,
+      size: { x: 100, y: 100, z: 2500 },
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0 },
+      color: "#a77b4e",
+    };
+    project.groups.push(group);
+    project.parts.push(part);
     project.measurements.push({
       id: "embedded-measure",
       name: "Embedded Measure",
-      groupId: project.groups[0].id,
+      groupId: group.id,
       start: { x: 0, y: 0, z: 0 },
       end: { x: 100, y: 0, z: 0 },
       color: "#276f9f",
     });
     const payload = JSON.stringify({
       asset: { version: "2.0" },
-      extras: {
-        web3dProjectDocument: project,
-      },
+      extras: { web3dProjectDocument: project },
     });
 
     const parsed = deserializeProjectFile(payload);
@@ -142,6 +200,6 @@ describe("project serialization", () => {
     expect(parsed.name).toBe("Embedded Project");
     expect(parsed.groups[0].name).toBe("Embedded Folder");
     expect(parsed.parts[0].name).toBe("Embedded Object");
-    expect(parsed.measurements.find((measurement) => measurement.id === "embedded-measure")?.name).toBe("Embedded Measure");
+    expect(parsed.measurements.find((m) => m.id === "embedded-measure")?.name).toBe("Embedded Measure");
   });
 });

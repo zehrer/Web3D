@@ -7,6 +7,7 @@ import {
   TIMBER_PROFILES,
   createObjectName,
   createSizeFromProfile,
+  extractLockFields,
   getDefaultProfileId,
   getProfileById,
 } from "./profiles";
@@ -24,7 +25,8 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 5;
+export const PROJECT_SCHEMA_VERSION = 7;
+export const DEFAULT_GRID_SETTINGS = { size: 6000, originX: 0, originZ: 0 };
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
 
@@ -67,6 +69,7 @@ export function createObjectPart(
     position: options?.position ?? makeVector3(0, 0, 0),
     rotation: makeVector3(0, 0, 0),
     color: profile.color,
+    ...extractLockFields(profile),
   };
 }
 
@@ -144,6 +147,7 @@ function createDemoParts(sourceParts: PartNode[], groupIdMap: Map<string, string
     size: cloneVector(part.size),
     position: cloneVector(part.position),
     rotation: cloneVector(part.rotation),
+    ...extractLockFields(getProfileById(part.profileId)),
   }));
 }
 
@@ -169,6 +173,7 @@ export function createProject(name?: string): ProjectDocument {
     snapSettings: {
       ...gardenShedDemoProject.snapSettings,
     },
+    gridSettings: { ...DEFAULT_GRID_SETTINGS },
     cameraState: {
       position: cloneVector(gardenShedDemoProject.cameraState.position),
       target: cloneVector(gardenShedDemoProject.cameraState.target),
@@ -198,6 +203,7 @@ export function createDemoProject(): ProjectDocument {
     snapSettings: {
       ...gardenShedDemoProject.snapSettings,
     },
+    gridSettings: { ...DEFAULT_GRID_SETTINGS },
     cameraState: {
       position: cloneVector(gardenShedDemoProject.cameraState.position),
       target: cloneVector(gardenShedDemoProject.cameraState.target),

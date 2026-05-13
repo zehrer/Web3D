@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -17,6 +17,7 @@ function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
   if (objectType === "glass") return <GlassIcon width={14} height={14} />;
   if (objectType === "rectangle") return <RectangleIcon width={14} height={14} />;
   if (objectType === "circle") return <CircleIcon width={14} height={14} />;
+  if (objectType === "cube") return <CubeIcon width={14} height={14} />;
   return <BeamIcon width={14} height={14} />;
 }
 
@@ -37,6 +38,7 @@ function MaterialPanel() {
   const renameMaterialGroup = useEditorStore((state) => state.renameMaterialGroup);
   const addMaterialGroup = useEditorStore((state) => state.addMaterialGroup);
   const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
+  const deleteMaterialGroup = useEditorStore((state) => state.deleteMaterialGroup);
 
   const [editingItem, setEditingItem] = useState<EditingMaterialItem>(null);
   const [draftName, setDraftName] = useState("");
@@ -140,7 +142,9 @@ function MaterialPanel() {
 
   function renderMaterialGroup(group: MaterialGroupNode, depth: number) {
     const children = project.materials.filter((m) => m.groupId === group.id);
+    const childGroups = project.materialGroups.filter((g) => g.parentGroupId === group.id);
     const isExpanded = expandedGroupIds.has(group.id);
+    const isEmpty = children.length === 0 && childGroups.length === 0;
 
     return (
       <div className="object-tree__group" key={group.id}>
@@ -148,7 +152,7 @@ function MaterialPanel() {
           className="object-row object-row--group"
           style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
         >
-          {children.length > 0 ? (
+          {children.length > 0 || childGroups.length > 0 ? (
             <button
               aria-label={isExpanded ? `Collapse ${group.name}` : `Expand ${group.name}`}
               className="object-row__disclosure"
@@ -166,8 +170,27 @@ function MaterialPanel() {
           <span className="object-row__content">
             {renderNameEditor("materialGroup", group.id, group.name)}
           </span>
+          {isEmpty ? (
+            <button
+              aria-label={`Delete folder ${group.name}`}
+              className="object-row__eye"
+              onClick={(event) => {
+                event.stopPropagation();
+                deleteMaterialGroup(group.id);
+              }}
+              title="Delete empty folder"
+              type="button"
+            >
+              <TrashIcon width={12} height={12} />
+            </button>
+          ) : null}
         </div>
-        {isExpanded ? children.map((m) => renderMaterial(m, depth + 1)) : null}
+        {isExpanded ? (
+          <>
+            {childGroups.map((g) => renderMaterialGroup(g, depth + 1))}
+            {children.map((m) => renderMaterial(m, depth + 1))}
+          </>
+        ) : null}
       </div>
     );
   }

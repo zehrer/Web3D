@@ -8,5 +8,6 @@ export default defineConfig(({ command }) => ({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     css: true,
+    exclude: ["**/.claude/**", "**/node_modules/**"],
   },
 }));

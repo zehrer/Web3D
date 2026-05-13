@@ -131,7 +131,10 @@ export function createGltfFilename(project: ProjectDocument): string {
 }
 
 export function createWeb3dFilename(project: ProjectDocument): string {
-  return `${sanitizeFilenameSegment(project.name)}.web3d`;
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ts = `${String(now.getFullYear()).slice(2)}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+  return `${ts}_${sanitizeFilenameSegment(project.name)}.web3d`;
 }
 
 export function createUsdzFilename(project: ProjectDocument): string {
