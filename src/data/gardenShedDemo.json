@@ -1,5 +1,5 @@
 {
-  "id": "831d6e6e-40f8-4ac5-b89c-6bf295803b4e",
+  "id": "e6c137cc-11c5-408e-a56c-1604f2cfb74d",
   "name": "Garden Shed Demo",
   "version": 5,
   "unitPreference": "metric-cm",
@@ -11,19 +11,96 @@
   },
   "cameraState": {
     "position": {
-      "x": -3532.0381549159792,
-      "y": 3330.7054227497656,
-      "z": 4440.83429095398
+      "x": -4466.541810892069,
+      "y": 3874.399368873979,
+      "z": 3862.167684386386
     },
     "target": {
-      "x": 1030.3163047438718,
-      "y": 465.05348328218747,
-      "z": 245.56765701034
+      "x": 877.724333791608,
+      "y": 531.8831588705615,
+      "z": 408.0390487224487
     }
   },
+  "groups": [
+    {
+      "id": "4f6d42cc-b678-434d-87f4-9ca30c4b13ed",
+      "name": "LeftSide",
+      "parentGroupId": "42b7d2aa-6451-48f4-8e8c-a42de3f9fae9"
+    },
+    {
+      "id": "a1256d87-7e30-42cf-8756-1371f7402402",
+      "name": "RightSide",
+      "parentGroupId": "42b7d2aa-6451-48f4-8e8c-a42de3f9fae9"
+    },
+    {
+      "id": "e8ef8e41-df88-4f64-b86a-f1219d4aa102",
+      "name": "BackSide",
+      "parentGroupId": "42b7d2aa-6451-48f4-8e8c-a42de3f9fae9"
+    },
+    {
+      "id": "12167065-5b74-4bf1-8b4d-20285045903c",
+      "name": "Front",
+      "parentGroupId": "42b7d2aa-6451-48f4-8e8c-a42de3f9fae9"
+    },
+    {
+      "id": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
+      "name": "Roof",
+      "parentGroupId": "42b7d2aa-6451-48f4-8e8c-a42de3f9fae9"
+    },
+    {
+      "id": "42b7d2aa-6451-48f4-8e8c-a42de3f9fae9",
+      "name": "Shed",
+      "parentGroupId": null,
+      "hidden": false
+    },
+    {
+      "id": "637f519e-27ad-496a-bc97-3a5f00022ecf",
+      "name": "LeftCladding",
+      "parentGroupId": "1c384f5b-f6d4-43eb-a6c7-1e1d493f6ecb"
+    },
+    {
+      "id": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
+      "name": "FrontCladding",
+      "parentGroupId": "1c384f5b-f6d4-43eb-a6c7-1e1d493f6ecb"
+    },
+    {
+      "id": "783d5831-b32f-4fc5-a882-72f2c32619f8",
+      "name": "RightCladding",
+      "parentGroupId": "1c384f5b-f6d4-43eb-a6c7-1e1d493f6ecb"
+    },
+    {
+      "id": "ba4865b7-e66a-4757-ac32-69ec8171d196",
+      "name": "Glass",
+      "parentGroupId": "1c384f5b-f6d4-43eb-a6c7-1e1d493f6ecb",
+      "hidden": false
+    },
+    {
+      "id": "472da695-0ee5-4382-a783-0bf9af5d04cf",
+      "name": "Folie",
+      "parentGroupId": "1c384f5b-f6d4-43eb-a6c7-1e1d493f6ecb",
+      "hidden": false
+    },
+    {
+      "id": "13470f06-d9df-4e83-bcdf-34980902ecdc",
+      "name": "Door",
+      "parentGroupId": null,
+      "hidden": true
+    },
+    {
+      "id": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
+      "name": "DoorCladding",
+      "parentGroupId": "13470f06-d9df-4e83-bcdf-34980902ecdc"
+    },
+    {
+      "id": "1c384f5b-f6d4-43eb-a6c7-1e1d493f6ecb",
+      "name": "Cladding",
+      "parentGroupId": null,
+      "hidden": false
+    }
+  ],
   "parts": [
     {
-      "id": "d4c05a37-a528-4d63-8293-f4fb3f3efc3c",
+      "id": "cd5c360e-7529-4e9d-9b48-6fb7ac97464d",
       "name": "LeftBack",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -43,11 +120,11 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "ca47f92f-f03d-4c77-968b-f7e2ca412a47",
-      "materialId": null
+      "groupId": "4f6d42cc-b678-434d-87f4-9ca30c4b13ed",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "c948f143-b8e0-4f78-bd48-426a19c06b31",
+      "id": "1caf6f8b-8b0c-4ce5-b08d-c678c887804a",
       "name": "LeftFront",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -67,11 +144,11 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "ca47f92f-f03d-4c77-968b-f7e2ca412a47",
-      "materialId": null
+      "groupId": "4f6d42cc-b678-434d-87f4-9ca30c4b13ed",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "d9412402-96ef-477b-873c-c2c78d1484e2",
+      "id": "8d6a58c3-687a-4d15-8e56-beaef6c0c949",
       "name": "LeftTop",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -91,11 +168,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "ca47f92f-f03d-4c77-968b-f7e2ca412a47",
-      "materialId": null
+      "groupId": "4f6d42cc-b678-434d-87f4-9ca30c4b13ed",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "38e442e4-0e18-4265-88e1-a19dfa20d058",
+      "id": "923c1dfe-976e-4c4e-9339-482830a99ef4",
       "name": "RightBack",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -115,11 +192,11 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "09beadf6-243f-461e-bbcf-630beb589908",
-      "materialId": null
+      "groupId": "a1256d87-7e30-42cf-8756-1371f7402402",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "f4598d62-d21f-4f3f-abb5-716052b7f0ac",
+      "id": "788ee2b7-58a6-4e92-9d64-eebec74614b3",
       "name": "LeftBotton",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -139,11 +216,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "ca47f92f-f03d-4c77-968b-f7e2ca412a47",
-      "materialId": null
+      "groupId": "4f6d42cc-b678-434d-87f4-9ca30c4b13ed",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "d7de7baf-c82c-40f1-a8f2-e3482378ddf9",
+      "id": "1616fcca-c718-4aab-b279-a545d2d04d96",
       "name": "RightBottom",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -163,11 +240,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "09beadf6-243f-461e-bbcf-630beb589908",
-      "materialId": null
+      "groupId": "a1256d87-7e30-42cf-8756-1371f7402402",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "943b1023-4887-4be1-be49-f7aefcc719bb",
+      "id": "5747dad8-cf29-41d9-bcbe-815ede1b8f76",
       "name": "RightFront",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -187,11 +264,11 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "09beadf6-243f-461e-bbcf-630beb589908",
-      "materialId": null
+      "groupId": "a1256d87-7e30-42cf-8756-1371f7402402",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "be1676b3-e744-4c08-9854-133d8004a291",
+      "id": "67af9125-985d-410c-8cdd-bbbabc30fcc6",
       "name": "RightTop",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -211,11 +288,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "09beadf6-243f-461e-bbcf-630beb589908",
-      "materialId": null
+      "groupId": "a1256d87-7e30-42cf-8756-1371f7402402",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "a33c1824-cef3-4f70-81fe-96523f2c1467",
+      "id": "305781c1-decf-43d5-bb2d-eaa8d53728a1",
       "name": "BackTop",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -235,11 +312,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "51a0c2f9-c77a-4021-b094-203e1902bc2f",
-      "materialId": null
+      "groupId": "e8ef8e41-df88-4f64-b86a-f1219d4aa102",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "4c0d2305-5543-4639-bc7a-cf6632d062b9",
+      "id": "f898149e-0c15-4cd8-8785-d5b2571cc6a2",
       "name": "BackBottom",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -259,11 +336,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "51a0c2f9-c77a-4021-b094-203e1902bc2f",
-      "materialId": null
+      "groupId": "e8ef8e41-df88-4f64-b86a-f1219d4aa102",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "56267b75-c84d-4e82-96e0-a08fb3a3d362",
+      "id": "f4e06f74-fdfb-42f5-81b5-d01df93acfc7",
       "name": "FrontBottom",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -283,11 +360,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "d4a5079a-d02e-4747-9967-c8bfa2b22c2a",
-      "materialId": null
+      "groupId": "12167065-5b74-4bf1-8b4d-20285045903c",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "964d0fc3-288d-4689-b4f7-e6908bfc8ae2",
+      "id": "426954b9-0b60-4a11-b13a-a750eed8a418",
       "name": "FrontTop",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -307,11 +384,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "d4a5079a-d02e-4747-9967-c8bfa2b22c2a",
-      "materialId": null
+      "groupId": "12167065-5b74-4bf1-8b4d-20285045903c",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "9021a27c-03f9-482f-82fa-81a5f0380a7d",
+      "id": "3df4d2f8-632d-4521-a605-ec6fbdbf2db5",
       "name": "FrontLeft",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -331,11 +408,11 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "d4a5079a-d02e-4747-9967-c8bfa2b22c2a",
-      "materialId": null
+      "groupId": "12167065-5b74-4bf1-8b4d-20285045903c",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "5fdb0370-374f-48e6-8b87-179da1a95195",
+      "id": "cc7c23e6-9504-45eb-a960-258179659dbe",
       "name": "RoofTimber3",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -355,11 +432,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
-      "materialId": null
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "a56f27c9-bb67-489c-abb3-de2a7d4d11d9",
+      "id": "2a05b929-c188-41a8-a7c3-cea87c25927e",
       "name": "RoofTimber1",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -379,11 +456,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
-      "materialId": null
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "eca93f44-0e69-4f98-9df7-1419d0656893",
+      "id": "4418a871-9073-4ab2-8533-83f52d0ac71d",
       "name": "RoofTimber2",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -403,15 +480,15 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
-      "materialId": null
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "f2aba76c-01c5-4ba3-8b03-9eb675cb8ad3",
+      "id": "f15760c3-c31b-453b-a734-fc681b7b3372",
       "name": "RoofSheet2",
       "objectType": "sheet",
       "profileId": "osb3-18",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
       "size": {
         "x": 830,
         "y": 600,
@@ -428,14 +505,14 @@
         "z": -1.5707963267948966
       },
       "color": "#caa165",
-      "materialId": null
+      "materialId": "74177b34-531f-4573-b3ad-e3eda91500d9"
     },
     {
-      "id": "6f0f67f8-5583-41e5-81d3-e6668a9e85fa",
+      "id": "474829c8-821b-498c-8c7c-577f8e7fc819",
       "name": "RoofSheet1",
       "objectType": "sheet",
       "profileId": "osb3-18",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
       "size": {
         "x": 830,
         "y": 600,
@@ -452,14 +529,14 @@
         "z": -1.5707963267948966
       },
       "color": "#caa165",
-      "materialId": null
+      "materialId": "74177b34-531f-4573-b3ad-e3eda91500d9"
     },
     {
-      "id": "2a3e1f24-0b26-4499-bdca-0e3a6cef7c87",
+      "id": "6b1a0e52-92ea-44ad-9776-02dfd4a53771",
       "name": "RoofSheet3",
       "objectType": "sheet",
       "profileId": "osb3-18",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
       "size": {
         "x": 830,
         "y": 600,
@@ -476,14 +553,14 @@
         "z": -1.5707963267948966
       },
       "color": "#caa165",
-      "materialId": null
+      "materialId": "74177b34-531f-4573-b3ad-e3eda91500d9"
     },
     {
-      "id": "57380de2-e97e-4fef-856f-6df8cafb1e25",
+      "id": "848c5184-e671-4b9e-84e6-974205ebe968",
       "name": "RoofSheet4",
       "objectType": "sheet",
       "profileId": "osb3-18",
-      "groupId": "94944204-9127-4e9b-95c7-046c196fbb1c",
+      "groupId": "8f7edaff-1961-4781-867a-2db6fd81b4b5",
       "size": {
         "x": 830,
         "y": 390,
@@ -500,14 +577,14 @@
         "z": -1.5707963267948966
       },
       "color": "#caa165",
-      "materialId": null
+      "materialId": "74177b34-531f-4573-b3ad-e3eda91500d9"
     },
     {
-      "id": "417b5c2f-d737-45a3-bfd9-cdfcf1b933cb",
+      "id": "e614b4dc-4f96-44a7-9647-27e3fe115454",
       "name": "LC0Pattern0",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -524,14 +601,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "ad2089c3-1b1c-4447-bf5b-de50bdcae6e1",
+      "id": "dc103cda-a29e-4d3d-a868-3a0740e20e68",
       "name": "FLC1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -548,14 +625,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "5d85a478-0161-4eaa-a699-5996c9e9ce42",
+      "id": "78e8abd7-8259-4ce4-86e9-5f9f91c08cb5",
       "name": "FLC0",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -572,14 +649,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "ed290051-32d6-4cfe-b469-685fc7bc027e",
+      "id": "7cdc2e74-073f-41a8-8241-b6f9aaba4f41",
       "name": "FC0",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 2240,
         "y": 68,
@@ -596,14 +673,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "83cd0a90-a7f5-42db-be1c-00e1d8cf5b3f",
+      "id": "109fff44-b29a-4787-9cf5-fa42a65a3394",
       "name": "FRC0",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -620,14 +697,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "32fece9d-3fcb-4ac4-8831-ccbb799b31cf",
+      "id": "f61f877b-e560-4d99-b681-9e26ee62c76a",
       "name": "LC0 Pattern 1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -644,14 +721,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "2a26601e-9d32-48f4-a734-88e19479f61d",
+      "id": "97d366e1-5b26-404c-a84b-82b2dadd309a",
       "name": "LC0 Pattern 2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -668,14 +745,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "a404c090-8b55-458b-ae24-b60355fc266f",
+      "id": "7bdef32d-c58d-4b55-ac39-ee164e5c4d92",
       "name": "LC0 Pattern 3",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -692,14 +769,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "17d74a0e-ce74-404b-b0f2-a372ccea5f9c",
+      "id": "d567dcb7-4432-4380-844f-ea65667de0d2",
       "name": "LC4",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -716,14 +793,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e92b536c-70af-4ee3-8bdb-b97ebbbd5312",
+      "id": "f4d1a046-0833-411e-b827-1ae0786afb4e",
       "name": "FC1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 2230,
         "y": 68,
@@ -740,14 +817,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "c09de2d2-6d68-455f-8f8c-6980e906592a",
+      "id": "dd1122ef-bdb8-4df5-b982-7cd53a33e821",
       "name": "FC2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 2230,
         "y": 68,
@@ -764,14 +841,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "0601fb9c-5e4d-41dc-9ede-025a2f8529e4",
+      "id": "52148af8-2d44-43a6-a9a9-798404d6b4c1",
       "name": "RC0Pattern 0",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -788,14 +865,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "a8cf6416-db48-4965-a3e9-9041cc1bd8a3",
+      "id": "d50564f0-0bbe-4a8a-a865-115aea4ac352",
       "name": "RC0 Pattern 1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -812,14 +889,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "62bd1eb9-d0b4-4d18-a7cb-1d55ef80b613",
+      "id": "4aff1f50-270e-4edd-a126-94d9331cfff6",
       "name": "RC0 Pattern 2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -836,14 +913,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "8c5afbee-a494-4af6-8abc-f4425a9cfb35",
+      "id": "c52d529f-fff5-4968-b03e-16df4d31e2ec",
       "name": "RC0 Pattern 3",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -860,14 +937,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7f7821e7-ee54-4b01-ac88-3478ba84ba22",
+      "id": "9a6eafff-bb90-4610-9837-625e82e6eec9",
       "name": "RC0 Pattern 4",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -884,14 +961,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "19a31ae3-2898-47c2-a26a-5f5cb38357db",
+      "id": "7025f6f0-35a8-4a77-aa4e-1571b43ac7b1",
       "name": "RC0 Pattern 10",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -908,14 +985,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "9afc4056-5794-4b79-a9c9-239484dd04ec",
+      "id": "b596ba00-d448-45f0-983d-9b40ca9ff224",
       "name": "RC0 Pattern 11",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -932,14 +1009,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "5449ad56-fdcb-4717-8148-a3d9cc11ef45",
+      "id": "cd56fbd6-7a71-4df5-ac58-09688af70922",
       "name": "RC0 Pattern 12",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -956,14 +1033,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "0f1c51bf-7737-43b7-8f36-178f2cbf750b",
+      "id": "5971a951-7171-4793-93e2-f905c88a1e55",
       "name": "RC0 Pattern 13",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -980,14 +1057,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7d927bdf-5dd1-4bd0-919b-a91fc197c0f6",
+      "id": "3a0011c8-54b4-4ad1-ac02-38a5d1f8f143",
       "name": "RC0 Pattern 14",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1004,14 +1081,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "c5a4306c-ee7e-4c1a-8461-b2d32a021d88",
+      "id": "d7ddbe8d-7258-48ec-a828-0acae5230d75",
       "name": "RC0 Pattern 15",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1028,14 +1105,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "807a0fea-9e3a-4a2f-a3cc-51258917afc5",
+      "id": "999dfc1b-7c02-47f8-bdc7-c89ad8046f1e",
       "name": "RC0 Pattern 16",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1052,14 +1129,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "ab3d8492-722a-4377-bf34-2d137482f0d3",
+      "id": "fa73de59-bd76-4a12-9f16-740ae3e5497f",
       "name": "RC0 Pattern 17",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1076,14 +1153,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "26376fff-f8d1-452b-9828-20b486492c75",
+      "id": "292a83d8-4da4-4d9d-ac00-9bd2ebebd934",
       "name": "RC0 Pattern 18",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1100,14 +1177,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "9fe5bd16-a097-459c-9bae-d6a5f640af55",
+      "id": "71c09c29-cd16-497d-9f2f-c1aa5244c212",
       "name": "RC0 Pattern 19",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1124,14 +1201,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "a4d89752-3448-443f-8cd5-c1400bf3b101",
+      "id": "5ffdd08b-e665-4451-bd3b-ec94c3de3026",
       "name": "RC0 Pattern 20",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1148,14 +1225,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "57021007-4ee1-48b7-bf8a-6e40b576cc55",
+      "id": "ff9fb845-dd90-435c-9a78-0e422b314832",
       "name": "RC0 Pattern 21",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1172,14 +1249,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "41f683ce-01fe-4740-b52b-4aeff6a97b80",
+      "id": "1928575c-b74b-4ddc-a72b-16a2423c1417",
       "name": "RC0 Pattern 22",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1196,14 +1273,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "b7f90366-24ba-475d-a863-d453204776cf",
+      "id": "cf2c4ade-ecd6-4c8f-9905-b923e5067311",
       "name": "RC0 Pattern 23",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1220,14 +1297,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "3515c4d4-b481-4acd-a81c-bfc329b72ff1",
+      "id": "f259c189-769e-4e34-8f9c-b7f4c2bb8238",
       "name": "RC0 Pattern 24",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1244,14 +1321,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "13f4a133-b09c-489c-b4cd-9aa7092fc8a7",
+      "id": "6140cbad-dc6e-477d-9d46-e5de11403cfd",
       "name": "RC0 Pattern 25",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1268,14 +1345,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "eeec7236-af56-4661-9e70-174343e04aed",
+      "id": "ce61984c-f0b0-48a7-a5e9-c5ed17e26d44",
       "name": "RC0 Pattern 26",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1292,14 +1369,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "fafcaf7d-890f-4883-a797-5a803b6a4687",
+      "id": "e89853a6-f4c0-44da-9c4d-b0ba906fb52b",
       "name": "RC0 Pattern 27",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1316,14 +1393,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "563b0e8f-96f1-402e-8e37-1f9eed0b765c",
+      "id": "1728de66-35b9-4ad8-ac8f-6059672e8dbe",
       "name": "RC0 Pattern 28",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
+      "groupId": "783d5831-b32f-4fc5-a882-72f2c32619f8",
       "size": {
         "x": 850,
         "y": 68,
@@ -1340,14 +1417,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "a088a132-3ab6-47ea-9427-797a09cf08e1",
+      "id": "779290e9-129b-4eae-8aa4-243da93311a0",
       "name": "LC4 Pattern 6",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1364,14 +1441,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "dbdab3e2-6eff-4b7e-a4c5-0b74b21288c8",
+      "id": "c27f681f-b8ce-44c4-a16d-cccaa6ec1a79",
       "name": "LC4 Pattern 7",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1388,14 +1465,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "530963d8-4714-44e4-9ff6-5ee877c9e78e",
+      "id": "9d8fc2d9-a9db-4c99-aa74-0a31e150080e",
       "name": "LC4 Pattern 8",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1412,14 +1489,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "8fafe1c9-3656-4421-9054-2a44d23f6c94",
+      "id": "e70f4462-0610-4777-a361-7251c146a692",
       "name": "LC4 Pattern 9",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1436,14 +1513,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "487bb1fb-1fd1-4f93-853a-fd971e8a1441",
+      "id": "91141d0e-cf9a-48ca-ae97-11842aa10f54",
       "name": "LC4 Pattern 10",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1460,14 +1537,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "300b96df-9ce1-4a9a-911e-24bda98462dc",
+      "id": "a557000b-c915-4244-b0a4-05a7b412bc2e",
       "name": "LC4 Pattern 11",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1484,14 +1561,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "81d89160-ca55-40fb-9dcc-78a43589dbb3",
+      "id": "8c2c9eeb-96f7-4553-aeac-b23eb141b36a",
       "name": "LC4 Pattern 12",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1508,14 +1585,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "49bb6ab3-53aa-44c3-ac89-eef005ef4739",
+      "id": "2f5df437-8c93-40c2-92ac-69b34d122048",
       "name": "LC4 Pattern 13",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1532,14 +1609,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "4f9bcb5e-bd8b-47ff-a10a-02a14ff77fa7",
+      "id": "a4366015-aef2-4c51-b6d4-b9f8340a8dbf",
       "name": "LC4 Pattern 14",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1556,14 +1633,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "b8492b61-4d6b-4ee5-acb5-788eda584942",
+      "id": "34e60717-2337-4497-90b2-afc1d9f5696a",
       "name": "LC4 Pattern 15",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1580,14 +1657,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "4da9f286-c073-448f-b48a-6322560c4ed2",
+      "id": "8885e779-1092-4317-b359-6a0f72fa86b7",
       "name": "LC4 Pattern 16",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1604,14 +1681,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "6b805ddb-e004-4531-ba11-28fa589852eb",
+      "id": "678d0026-9977-4885-be50-d0657f399ec6",
       "name": "LC4 Pattern 17",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1628,14 +1705,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "1ec856a7-660a-4103-8c6b-add09878e46c",
+      "id": "f9850f6b-2bbb-4e70-b33d-2e7af02ed6a5",
       "name": "LC4 Pattern 18",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1652,14 +1729,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "958df9d7-22b3-4f46-8f19-46b6e8704bb9",
+      "id": "99524f7b-54ea-4302-b527-f1997e0ff183",
       "name": "LC4 Pattern 19",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1676,14 +1753,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "3709986b-9e98-4d5c-bd4a-368e0f945f6a",
+      "id": "c0f8fefb-8e30-458d-b1b7-d185aef00486",
       "name": "LC4 Pattern 20",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1700,14 +1777,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "6a5ad4c5-3ae3-47be-b50f-c47ef7f61146",
+      "id": "da09ed1d-3ded-4e3e-8946-64843e7ef951",
       "name": "LC4 Pattern 21",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1724,14 +1801,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "0aba2792-a565-43ba-b97c-58817846499b",
+      "id": "fafd9eed-5792-45f9-a476-4647c88240b2",
       "name": "LC4 Pattern 22",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1748,14 +1825,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "692ad529-a720-42f5-85aa-ea9e9154b7e7",
+      "id": "a305b183-e78c-4b72-9424-61e0083210d5",
       "name": "LC4 Pattern 23",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1772,14 +1849,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "d17ac85f-6525-443e-9c9d-dbab1f76e7a3",
+      "id": "b1c52594-8a70-4fab-a9af-1c8ab6a43350",
       "name": "LC4 Pattern 24",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "a929d722-fbfb-44fb-8f01-0f4527693554",
+      "groupId": "637f519e-27ad-496a-bc97-3a5f00022ecf",
       "size": {
         "x": 850,
         "y": 68,
@@ -1796,14 +1873,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "b6061f14-79e4-4df0-aca1-bd8ccc8fbdb5",
+      "id": "bd044765-a217-4ed7-86bd-c02a30a00b51",
       "name": "FLC1 Pattern 1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1820,14 +1897,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "c986dcc3-8914-40b3-b609-201f402d0b99",
+      "id": "6b2bc1a8-33d0-4c06-9580-7733086693d9",
       "name": "FLC1 Pattern 2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1844,14 +1921,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "3fed531a-00c8-4dc1-810c-004da0a60fad",
+      "id": "aa57f93a-f664-42d6-a638-56cfc22d5ac0",
       "name": "FLC1 Pattern 3",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1868,14 +1945,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "38c298de-7bc8-43f2-ac80-6901b1a078f4",
+      "id": "26c63caf-b460-4f1a-9e17-0c419d53d8ea",
       "name": "FLC1 Pattern 4",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1892,14 +1969,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "b8c1db25-c15b-459f-9622-b4318e37c46e",
+      "id": "c0e54f04-b165-4cca-98da-10a3b17624fa",
       "name": "FLC1 Pattern 5",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1916,14 +1993,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7ebea6c5-cbc5-4f77-806a-ff88075ceac2",
+      "id": "11896755-eaa3-456a-8ab1-39771c7d95e3",
       "name": "FLC1 Pattern 6",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1940,14 +2017,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "5894ff97-b4d5-4b21-b50c-e282fd79b275",
+      "id": "d253346d-71a6-4184-9f87-3d9af762a464",
       "name": "FLC1 Pattern 7",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1964,14 +2041,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "116900e8-8d4b-4782-a16b-fb567be01809",
+      "id": "eceadb70-b3bf-4fcb-9bf4-3258651edf28",
       "name": "FLC1 Pattern 8",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -1988,14 +2065,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "846e867f-c640-4914-bfc3-cba585dac1cb",
+      "id": "8b2e835c-3d23-476e-9c60-e3d4c025d7a1",
       "name": "FLC1 Pattern 9",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2012,14 +2089,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "2bdc163a-6a8d-433f-9f20-da40422aa203",
+      "id": "4e6ab8be-8bba-42e0-bfb0-263f4da9a50f",
       "name": "FLC1 Pattern 10",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2036,14 +2113,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "8c1201b2-dc7a-4e47-a924-5137c62dab4b",
+      "id": "c4b4c3a0-f4a9-4d6a-bf4c-75770627b32d",
       "name": "FLC1 Pattern 11",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2060,14 +2137,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "a18279a6-5531-410a-abf5-238b6ef2fd32",
+      "id": "b6b77d49-eb27-4f6b-b26a-91b5e4933077",
       "name": "FLC1 Pattern 12",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2084,14 +2161,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7733cf3b-027f-440a-9b8f-b6d80267be0d",
+      "id": "d9284e7d-ab66-46f9-830b-552a4cfcd665",
       "name": "FLC1 Pattern 13",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2108,14 +2185,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "d36b8613-8835-4df3-a367-b485ae5918cd",
+      "id": "33a5e2b4-cba1-4de7-842f-5cb164d47a98",
       "name": "FLC1 Pattern 14",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2132,14 +2209,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e7b8f6b8-52ab-4b5b-bc61-94ff5edb7d04",
+      "id": "f7ae2bae-e17b-432e-88c6-1662f0937d23",
       "name": "FLC1 Pattern 15",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2156,14 +2233,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "953c9df3-5df8-4463-82f8-edb0c189d329",
+      "id": "1f236f13-820b-46d3-99a2-92dffb2146a9",
       "name": "FLC1 Pattern 16",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2180,14 +2257,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "4ddd5055-af5e-48cc-b304-8a0157cbb168",
+      "id": "cc172a0f-b672-4a26-9f2a-1120fe80be57",
       "name": "FLC1 Pattern 17",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2204,14 +2281,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "4c7e940a-149e-4204-b2f2-8a7ba904ea6b",
+      "id": "4fdc14b5-a9ec-4681-a88e-f9c59c13dd87",
       "name": "FLC1 Pattern 18",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2228,14 +2305,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "cc28a044-4c98-4032-b89a-b8fd66f00cd6",
+      "id": "1cc0fae9-10e4-41d9-a4bf-09075d4f41e5",
       "name": "FLC1 Pattern 19",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2252,14 +2329,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "9cb1920d-35bf-4194-98cb-46d946ed06de",
+      "id": "7848133a-8243-4609-bc10-ad4a2bb7c6a1",
       "name": "FLC20",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2276,14 +2353,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "068f8daa-fea3-4839-a56e-0d784e01ed1b",
+      "id": "d5ad1295-94aa-4a88-b615-359bc8bb58df",
       "name": "FLC20 Pattern 1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2300,14 +2377,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "092f3344-b3f5-4dd0-a4b4-6c0b16143fab",
+      "id": "02cc51bc-55e3-44ef-b5e1-0a996284a36f",
       "name": "FLC20 Pattern 2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2324,14 +2401,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "94cf0123-c254-49a7-bfda-c942e357162e",
+      "id": "c0c60f21-cf24-4014-9355-4dbbc21de721",
       "name": "FLC20 Pattern 3",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2348,14 +2425,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "796ea0f6-a3b2-46ff-ae73-f233f09bdecb",
+      "id": "c01474b3-6169-4b8c-a899-1187ac781185",
       "name": "FLC20 Pattern 4",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 120,
         "y": 68,
@@ -2372,14 +2449,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "24ec4c79-8d87-4580-b9c5-b0bbe0f8d85a",
+      "id": "c50a4729-31f1-4384-b801-19d7d2d0ba1e",
       "name": "FRC0 Pattern 1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2396,14 +2473,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "9c0d273d-e35b-4e74-9bb3-583af298367f",
+      "id": "bef153d3-7c2a-4fbd-af1e-362b9eb11607",
       "name": "FRC0 Pattern 2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2420,14 +2497,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "8e5ad347-16d2-46da-83f1-774503829f26",
+      "id": "461b03fd-5c92-4f31-9c7f-4961485ee12f",
       "name": "FRC0 Pattern 3",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2444,14 +2521,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "8ec90dfc-c1c5-4d5d-936a-f6f3c4ae623a",
+      "id": "7590b379-a79d-440b-9c8d-398ef9d692d6",
       "name": "FRC0 Pattern 4",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2468,14 +2545,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "bf043f74-7316-4b9a-8501-6f01735ea08b",
+      "id": "2c617dd4-81e1-4cbc-8fbc-31705608399f",
       "name": "FRC0 Pattern 5",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2492,14 +2569,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "0ed164b0-7fc8-4b85-a643-dd946dbc40f1",
+      "id": "0edf8de0-2f53-4231-8199-768c8d06cb20",
       "name": "FRC0 Pattern 6",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2516,14 +2593,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "bae5ca8a-10f2-4e97-90e1-6d9660a79149",
+      "id": "d163faa2-7d50-48de-831f-0b7c9728ac42",
       "name": "FRC0 Pattern 7",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2540,14 +2617,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "03df40cb-17be-48f0-8be2-8a7ab18806f0",
+      "id": "37deeb9a-bebb-4705-99f5-28b76ae69af5",
       "name": "FRC0 Pattern 8",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2564,14 +2641,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "6c5dd621-c806-464f-bd5c-da154dc5540a",
+      "id": "da85d83e-3696-4dac-81f4-06f516adc15f",
       "name": "FRC0 Pattern 9",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2588,14 +2665,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e8fc7e5a-936b-4636-b3db-774c706bb4da",
+      "id": "d3c7abb4-2386-4e42-8354-37e614ea405e",
       "name": "FRC0 Pattern 10",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2612,14 +2689,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e7ca95d8-8ea0-4d03-9495-e39a53b0ee4a",
+      "id": "14562966-c088-4736-b7a2-bd80018bfe3b",
       "name": "FRC0 Pattern 11",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2636,14 +2713,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "66986dce-4813-4c90-8c6e-13cf5efb80f7",
+      "id": "6a640cb5-3ce7-47aa-bcb8-f571ece830ce",
       "name": "FRC0 Pattern 12",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2660,14 +2737,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "cf0254f2-56a5-40e0-8073-0b7119330ed0",
+      "id": "5c5e1a5e-d03b-4c95-a303-990a8684724f",
       "name": "FRC0 Pattern 13",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2684,14 +2761,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "84dd69c8-7175-4691-b71b-e28b56a8d5fc",
+      "id": "eba979a3-d419-4788-a863-a62fb775c597",
       "name": "FRC0 Pattern 14",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2708,14 +2785,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "baf3b0c8-e7e4-4a42-8c4f-1457c06a7624",
+      "id": "fc3816d2-2531-40a9-8335-a235223eab2a",
       "name": "FRC0 Pattern 15",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2732,14 +2809,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "cc5c3e88-faf1-4a29-a3ba-f7a6767259bc",
+      "id": "d1332bb0-c1ab-48ae-aa74-0e73738b9d93",
       "name": "FRC0 Pattern 16",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2756,14 +2833,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "5482314e-c9fc-4faa-99c4-4f43bff15159",
+      "id": "73da0b28-8bf0-481d-a74c-545412ed538e",
       "name": "FRC0 Pattern 17",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2780,14 +2857,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e8bbce11-185d-4e5c-8db7-ac7cbe4452b5",
+      "id": "ca7f3760-6783-4907-bc58-d1c684947f0c",
       "name": "FRC0 Pattern 18",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2804,14 +2881,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "d757d227-97d2-4fcc-a53d-3f0a0a2857c6",
+      "id": "0a07cd9c-6992-471f-a786-00735e3b29c4",
       "name": "FRC0 Pattern 19",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2828,14 +2905,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "202d1eef-547c-499a-af85-20c51769c911",
+      "id": "e1dd211a-a470-4b10-bfec-c4b82f81d997",
       "name": "FRC0 Pattern 20",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2852,14 +2929,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "df77dbc2-37eb-445c-b377-3c77e56c4a4a",
+      "id": "3ef2ad3f-5f97-4790-993c-1e9c25ea5641",
       "name": "FRC0 Pattern 21",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2876,14 +2953,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "51d12e5c-bbc6-45ca-9749-52f0c8235379",
+      "id": "5dd0c8f5-7a33-4f20-92d1-ad022144f951",
       "name": "FRC0 Pattern 22",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2900,14 +2977,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "99a1aa20-444f-48ce-80fb-84f7bf40293b",
+      "id": "4612e7bf-594e-47a0-8360-3f940404c19d",
       "name": "FRC0 Pattern 23",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2924,14 +3001,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "06246555-7d8a-40c2-afd8-b31f43b103b0",
+      "id": "fe9ca21e-8741-448b-8e1d-6bbdf5976f10",
       "name": "FRC0 Pattern 24",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -2948,10 +3025,10 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "992a3fee-6e2c-426e-8cf8-d0758138e0ed",
+      "id": "a10f8b04-1d17-4291-bdfb-e1f73c82840c",
       "name": "LeftBack Copy",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -2971,15 +3048,15 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "51a0c2f9-c77a-4021-b094-203e1902bc2f",
-      "materialId": null
+      "groupId": "e8ef8e41-df88-4f64-b86a-f1219d4aa102",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "b37ea686-c8b4-4c60-976c-d83c40a6f1dd",
+      "id": "67488659-33a7-4630-ab02-8bb2df02ec75",
       "name": "GlassL",
       "objectType": "glass",
       "profileId": "plexiglass-3",
-      "groupId": "cf3fdbfd-9f35-427c-8360-af064644a28b",
+      "groupId": "ba4865b7-e66a-4757-ac32-69ec8171d196",
       "size": {
         "x": 850,
         "y": 410,
@@ -2996,14 +3073,14 @@
         "z": 0
       },
       "color": "#86cfff",
-      "materialId": null
+      "materialId": "a16c57d3-5954-4b6c-95cf-d5c296894578"
     },
     {
-      "id": "ec9fbd57-030f-4078-af8d-9204dcaeb01a",
+      "id": "4cb0efdd-3dde-4a99-8c0e-f3cdf511fa64",
       "name": "GlassR",
       "objectType": "glass",
       "profileId": "plexiglass-3",
-      "groupId": "cf3fdbfd-9f35-427c-8360-af064644a28b",
+      "groupId": "ba4865b7-e66a-4757-ac32-69ec8171d196",
       "size": {
         "x": 850,
         "y": 410,
@@ -3020,14 +3097,14 @@
         "z": 0
       },
       "color": "#86cfff",
-      "materialId": null
+      "materialId": "a16c57d3-5954-4b6c-95cf-d5c296894578"
     },
     {
-      "id": "ca1b7dd1-b84b-452c-bfb2-48a7c59a768d",
+      "id": "674b2b41-688f-4677-857f-57b9904cc764",
       "name": "LFolieB",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 1530,
         "y": 0,
@@ -3047,11 +3124,11 @@
       "materialId": null
     },
     {
-      "id": "027c6cd6-0193-49cf-8f45-3b2429f835b4",
+      "id": "f26b210f-ceac-4d6d-989b-73b2fb46814f",
       "name": "LFolieT",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 370,
         "y": 0,
@@ -3071,11 +3148,11 @@
       "materialId": null
     },
     {
-      "id": "a4475a81-5645-4d53-8d34-7200e3f4dd3d",
+      "id": "4b78f737-4659-43ff-96ca-79899a18e7fb",
       "name": "FFolieL",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 2180,
         "y": 0,
@@ -3095,11 +3172,11 @@
       "materialId": null
     },
     {
-      "id": "7a5c3f4f-ee5d-4176-a2b1-d0f471a13f50",
+      "id": "28027f35-a9f0-4799-9074-ad6dba893144",
       "name": "FRC0 Pattern 24 Copy",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 1410,
         "y": 68,
@@ -3116,14 +3193,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "06d9d161-c718-4c33-b33c-4da6cd709440",
+      "id": "78fbfca9-2b54-4306-8456-ac6f45f7ab0f",
       "name": "FFolieT",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 220,
         "y": 0,
@@ -3143,11 +3220,11 @@
       "materialId": null
     },
     {
-      "id": "745ed68e-0f69-4472-aa56-344e91335f9e",
+      "id": "df3496b1-14e6-4a74-a2e4-0e079f4c2420",
       "name": "RFolieT",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 370,
         "y": 0,
@@ -3167,11 +3244,11 @@
       "materialId": null
     },
     {
-      "id": "6d2b268e-37e8-4b8d-89ed-68ed132850d0",
+      "id": "3d51c5e2-592f-4274-8d65-c9cda161e37b",
       "name": "RFolieB",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 1530,
         "y": 0,
@@ -3191,7 +3268,7 @@
       "materialId": null
     },
     {
-      "id": "077c5fd0-5f3f-4ff5-ae9b-23baba1b4718",
+      "id": "fe7b383e-1d2b-46c2-b7c1-6f294b72e003",
       "name": "WindowTimber",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -3211,11 +3288,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "ca47f92f-f03d-4c77-968b-f7e2ca412a47",
-      "materialId": null
+      "groupId": "4f6d42cc-b678-434d-87f4-9ca30c4b13ed",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "32995340-37c3-43f8-b963-4a7c17d2b7ca",
+      "id": "35d66722-2009-41eb-a490-fea2645ecafe",
       "name": "WindowTimber",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -3235,11 +3312,11 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "groupId": "09beadf6-243f-461e-bbcf-630beb589908",
-      "materialId": null
+      "groupId": "a1256d87-7e30-42cf-8756-1371f7402402",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "cac69294-4f26-4140-b279-c9d3456f257b",
+      "id": "2d7d04fc-d75e-46b2-b5df-8ff5a0aac287",
       "name": "FrontLeft Copy",
       "objectType": "timber",
       "profileId": "timber-100x100",
@@ -3259,15 +3336,15 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "groupId": "d4a5079a-d02e-4747-9967-c8bfa2b22c2a",
-      "materialId": null
+      "groupId": "12167065-5b74-4bf1-8b4d-20285045903c",
+      "materialId": "41e28b60-5d53-4ad4-9b10-7feb22a00c59"
     },
     {
-      "id": "0353d2e9-7446-4123-944b-df6cdf85eafb",
+      "id": "9c87ddbe-20a3-4162-8a4a-255228eb7cc3",
       "name": "FC0 Copy",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "fc1675eb-b0e3-4907-ae22-6035564efae7",
+      "groupId": "73e0a17e-ea03-4a38-8b0a-dff114426f92",
       "size": {
         "x": 2200,
         "y": 68,
@@ -3284,14 +3361,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "08325bcf-f056-46c6-9be8-922bee560901",
+      "id": "fccf91bd-5a1b-4b12-9294-081945ded03c",
       "name": "BFolieT",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "686f675a-7284-4040-9d6c-f239c178adc5",
+      "groupId": "472da695-0ee5-4382-a783-0bf9af5d04cf",
       "size": {
         "x": 220,
         "y": 0,
@@ -3311,11 +3388,11 @@
       "materialId": null
     },
     {
-      "id": "b0049a12-963d-4a47-acca-93ad844d145a",
+      "id": "7025534f-b420-44a9-bbad-a82fa8348b68",
       "name": "Bottom",
       "objectType": "timber",
       "profileId": "timber-56x56",
-      "groupId": "62faf3b0-ad04-4542-9490-d2ae39f30d5d",
+      "groupId": "13470f06-d9df-4e83-bcdf-34980902ecdc",
       "size": {
         "x": 680,
         "y": 56,
@@ -3332,14 +3409,14 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "materialId": null
+      "materialId": "2aaba1a3-ba26-4914-a816-8b0828aa5876"
     },
     {
-      "id": "59d2bbaa-ac35-4e66-b981-50db54253ca0",
+      "id": "be07512f-8cc0-47e5-ac64-2b0b074efeed",
       "name": "Top",
       "objectType": "timber",
       "profileId": "timber-56x56",
-      "groupId": "62faf3b0-ad04-4542-9490-d2ae39f30d5d",
+      "groupId": "13470f06-d9df-4e83-bcdf-34980902ecdc",
       "size": {
         "x": 680,
         "y": 56,
@@ -3356,14 +3433,14 @@
         "z": 0
       },
       "color": "#a77b4e",
-      "materialId": null
+      "materialId": "2aaba1a3-ba26-4914-a816-8b0828aa5876"
     },
     {
-      "id": "30409067-f6c2-4d18-94ae-189210da95ea",
+      "id": "492a773d-b02a-46fa-944c-63cb58acbc58",
       "name": "Left",
       "objectType": "timber",
       "profileId": "timber-56x56",
-      "groupId": "62faf3b0-ad04-4542-9490-d2ae39f30d5d",
+      "groupId": "13470f06-d9df-4e83-bcdf-34980902ecdc",
       "size": {
         "x": 1984,
         "y": 56,
@@ -3380,14 +3457,14 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "materialId": null
+      "materialId": "2aaba1a3-ba26-4914-a816-8b0828aa5876"
     },
     {
-      "id": "0ca82367-42e9-4a9a-9890-f1f1e2a22753",
+      "id": "5f20c6d6-d7ba-482f-b6cc-1207443851b3",
       "name": "Right",
       "objectType": "timber",
       "profileId": "timber-56x56",
-      "groupId": "62faf3b0-ad04-4542-9490-d2ae39f30d5d",
+      "groupId": "13470f06-d9df-4e83-bcdf-34980902ecdc",
       "size": {
         "x": 1984,
         "y": 56,
@@ -3404,14 +3481,14 @@
         "z": 1.5707963267948966
       },
       "color": "#a77b4e",
-      "materialId": null
+      "materialId": "2aaba1a3-ba26-4914-a816-8b0828aa5876"
     },
     {
-      "id": "6699aecf-1ae2-488e-89b6-09fb9ba36563",
+      "id": "1a5a983a-00c8-457c-abb9-30dc813127c9",
       "name": "DC0",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3428,14 +3505,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "1560383c-e0ad-41b1-b388-804339d68dda",
+      "id": "a887685f-5bfd-47e5-b17d-d8667cb33569",
       "name": "DC0 Pattern 1",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3452,14 +3529,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "993d9b42-1911-49d8-a466-670c96e82381",
+      "id": "6891cde6-4974-4cb1-adfd-1a0db08af603",
       "name": "DC0 Pattern 2",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3476,14 +3553,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "f0674b0d-487a-48dd-83b6-c5af7fd027e3",
+      "id": "60128c1f-e73f-411e-b954-670f73cd0b6e",
       "name": "DC0 Pattern 3",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3500,14 +3577,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "2c826727-0789-4d0a-bc83-776d165f5399",
+      "id": "0c428736-ab48-4e6e-bdd1-6a60c6b01cc5",
       "name": "DC0 Pattern 4",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3524,14 +3601,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "458c68b2-06e5-449c-8089-5cad65ff9c52",
+      "id": "8bf993d7-7109-4fd1-8c01-e97ac2c55594",
       "name": "DC0 Pattern 5",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3548,14 +3625,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "64614a9e-60a5-4da5-8fbf-6a69bf908b99",
+      "id": "1dfc5860-06b7-45af-9c12-cb2334ddaf47",
       "name": "DC0 Pattern 6",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3572,14 +3649,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "9415a404-dd54-48f0-a33a-da152a137cb6",
+      "id": "8784e4ea-6fce-42cf-90fd-0135e4e667d2",
       "name": "DC0 Pattern 7",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3596,14 +3673,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e7f83c83-7d8d-4a16-b98d-9213d6f509cd",
+      "id": "df5b8081-2465-4bdd-a6d9-4eac2a036312",
       "name": "DC0 Pattern 8",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3620,14 +3697,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "1fd88d0b-e06c-4621-aaab-6c204987acf8",
+      "id": "269bec4a-b195-4fe2-a893-f9d8355da8e8",
       "name": "DC0 Pattern 9",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3644,14 +3721,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7f39dfba-ab80-4c9d-a4a7-66aa6f7ba067",
+      "id": "f6f6b540-a1fa-44d2-8929-a35ab150b5b1",
       "name": "DC0 Pattern 10",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3668,14 +3745,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "430021e2-0ab2-43eb-9a5d-b87af2637d15",
+      "id": "3ef8cc6f-595f-405c-8c4d-fcb307ac2605",
       "name": "DC0 Pattern 11",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3692,14 +3769,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "5ed03b48-5cbe-4b5d-85ff-e44b61a8b11c",
+      "id": "e66f9542-935d-48d2-9b22-3802284e59b4",
       "name": "DC0 Pattern 12",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3716,14 +3793,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "cdf2593e-1dd8-485e-895b-03e142df84c9",
+      "id": "86021f90-b380-4279-a690-44c54c4b15f6",
       "name": "DC0 Pattern 13",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3740,14 +3817,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "3ef9f804-f921-4fd4-9f22-65efa1f70bba",
+      "id": "b0d9b77f-6c66-4ab5-a0d7-13b68c11384c",
       "name": "DC0 Pattern 14",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3764,14 +3841,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "e8ba3e82-7488-47ec-b163-351451650e91",
+      "id": "461fd468-f7f4-43d6-aa70-101c6ff9b938",
       "name": "DC0 Pattern 15",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3788,14 +3865,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "71465eb5-6672-40ee-ac2b-8e54057375cb",
+      "id": "77c95dca-e862-465c-af80-28e7263e871d",
       "name": "DC0 Pattern 16",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3812,14 +3889,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7b11ebe1-3b63-400f-ba37-13f1ad3be3ce",
+      "id": "0b85e516-50ab-4798-906b-e34166e55eee",
       "name": "DC0 Pattern 17",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3836,14 +3913,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "7d20e8a0-422b-4772-984c-ca4c56db0dd7",
+      "id": "ee0c393e-0a91-47f1-9f89-00dfabf8393c",
       "name": "DC0 Pattern 18",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3860,14 +3937,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "6cf4d378-9d86-42da-96c4-b0449187b745",
+      "id": "6580e04f-b239-4134-980c-ef0087a014ff",
       "name": "DC0 Pattern 19",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3884,14 +3961,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "dea589fd-2970-41f1-8faa-9cc4e16b17a9",
+      "id": "f948c624-cf25-4aba-9a28-fd8e6b6fe6b9",
       "name": "DC0 Pattern 20",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3908,14 +3985,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "df255804-a54f-44d8-8bfe-bbc0f5cee4ab",
+      "id": "b6cb0e07-5e04-4c3b-b85e-6a70dd88fff2",
       "name": "DC0 Pattern 21",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3932,14 +4009,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "a5d94ac6-0e2a-469b-aa74-e872f906e4ee",
+      "id": "7535434f-9100-4d84-9479-20b3d3261cc2",
       "name": "DC0 Pattern 22",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3956,14 +4033,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "1503de16-d443-45c1-a639-51708bf26ee5",
+      "id": "72e433e6-fa4a-4987-a56a-afe1a5fd1d9a",
       "name": "DC0 Pattern 23",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -3980,14 +4057,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "5145efa2-7044-4a10-9077-42e9b9be557c",
+      "id": "80958fcb-4f3f-4621-af97-03df385344c5",
       "name": "DC0 Pattern 24",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -4004,14 +4081,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "fd838b0c-c60c-4526-be5e-54d962dffea3",
+      "id": "3927e475-4c52-4575-a6d6-768a1805a553",
       "name": "DC0 Pattern 25",
       "objectType": "cladding",
       "profileId": "rhombus-19x68",
-      "groupId": "835f0578-0e8e-491c-a2a5-fad7a1396134",
+      "groupId": "cb12cadc-a3ea-41b3-855d-ba4e6a54c0ab",
       "size": {
         "x": 681,
         "y": 68,
@@ -4028,14 +4105,14 @@
         "z": 0
       },
       "color": "#9a7958",
-      "materialId": null
+      "materialId": "fef8969a-02bf-48e8-807a-108cbd4d00fc"
     },
     {
-      "id": "0dc7b524-87d8-4312-9772-f41c8f6dc1e1",
+      "id": "a416cc53-10b7-4631-a0a2-81b28e87de95",
       "name": "Folie",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
-      "groupId": "62faf3b0-ad04-4542-9490-d2ae39f30d5d",
+      "groupId": "13470f06-d9df-4e83-bcdf-34980902ecdc",
       "size": {
         "x": 2032,
         "y": 0,
@@ -4055,7 +4132,7 @@
       "materialId": null
     },
     {
-      "id": "b1bc5b4d-4dbd-4753-a942-98bb5db99b6a",
+      "id": "f44155fc-0f60-43fe-a9ba-61a0c60dad14",
       "name": "RoofGreen",
       "objectType": "rectangle",
       "profileId": "shape-rectangle",
@@ -4076,81 +4153,13 @@
         "z": 0
       },
       "color": "#008516",
-      "materialId": null
-    }
-  ],
-  "createdAt": "2026-04-13T15:18:54.769Z",
-  "updatedAt": "2026-04-21T19:47:11.725Z",
-  "groups": [
-    {
-      "id": "ca47f92f-f03d-4c77-968b-f7e2ca412a47",
-      "name": "LeftSide",
-      "parentGroupId": "270b2a45-c742-4e14-b762-2869e41eb041"
-    },
-    {
-      "id": "09beadf6-243f-461e-bbcf-630beb589908",
-      "name": "RightSide",
-      "parentGroupId": "270b2a45-c742-4e14-b762-2869e41eb041"
-    },
-    {
-      "id": "51a0c2f9-c77a-4021-b094-203e1902bc2f",
-      "name": "BackSide",
-      "parentGroupId": "270b2a45-c742-4e14-b762-2869e41eb041"
-    },
-    {
-      "id": "d4a5079a-d02e-4747-9967-c8bfa2b22c2a",
-      "name": "Front",
-      "parentGroupId": "270b2a45-c742-4e14-b762-2869e41eb041"
-    },
-    {
-      "id": "94944204-9127-4e9b-95c7-046c196fbb1c",
-      "name": "Roof",
-      "parentGroupId": "270b2a45-c742-4e14-b762-2869e41eb041"
-    },
-    {
-      "id": "270b2a45-c742-4e14-b762-2869e41eb041",
-      "name": "Shed",
-      "parentGroupId": null
-    },
-    {
-      "id": "a929d722-fbfb-44fb-8f01-0f4527693554",
-      "name": "LeftCladding",
-      "parentGroupId": null
-    },
-    {
-      "id": "fc1675eb-b0e3-4907-ae22-6035564efae7",
-      "name": "FrontCladding",
-      "parentGroupId": null
-    },
-    {
-      "id": "9d6bfde2-5a65-4bd1-9e31-3e0a55320415",
-      "name": "RightCladding",
-      "parentGroupId": null
-    },
-    {
-      "id": "cf3fdbfd-9f35-427c-8360-af064644a28b",
-      "name": "Glass",
-      "parentGroupId": null
-    },
-    {
-      "id": "686f675a-7284-4040-9d6c-f239c178adc5",
-      "name": "Folie",
-      "parentGroupId": null
-    },
-    {
-      "id": "62faf3b0-ad04-4542-9490-d2ae39f30d5d",
-      "name": "Door",
-      "parentGroupId": null
-    },
-    {
-      "id": "835f0578-0e8e-491c-a2a5-fad7a1396134",
-      "name": "DoorCladding",
-      "parentGroupId": "62faf3b0-ad04-4542-9490-d2ae39f30d5d"
+      "materialId": null,
+      "hidden": false
     }
   ],
   "measurements": [
     {
-      "id": "3bb45c14-19fd-4a1b-9e6e-214d0dbbe0b0",
+      "id": "e1bf8e6f-ef43-4610-bfe2-2250178f1430",
       "name": "Measure 1",
       "groupId": null,
       "start": {
@@ -4163,10 +4172,11 @@
         "y": 40,
         "z": 850
       },
-      "color": "#276f9f"
+      "color": "#276f9f",
+      "hidden": true
     },
     {
-      "id": "2dae3cd2-be65-4147-abb1-9af818a38cf9",
+      "id": "756ab339-cbea-40cd-87ce-ded66809f7ff",
       "name": "Measure 2",
       "groupId": null,
       "start": {
@@ -4179,10 +4189,11 @@
         "y": 0,
         "z": -20
       },
-      "color": "#276f9f"
+      "color": "#276f9f",
+      "hidden": true
     },
     {
-      "id": "e262fa07-f6d3-47c1-b0ce-f9ebfd60a40f",
+      "id": "c9414541-5675-436a-9ae9-6071d1769524",
       "name": "Measure 3",
       "groupId": null,
       "start": {
@@ -4195,9 +4206,178 @@
         "y": 2348,
         "z": 869.000000000001
       },
-      "color": "#276f9f"
+      "color": "#276f9f",
+      "hidden": true
     }
   ],
-  "materialGroups": [],
-  "materials": []
+  "materialGroups": [
+    {
+      "id": "e86d599b-8a07-42d2-8721-a0d806bc04cb",
+      "name": "Timber",
+      "parentGroupId": null
+    },
+    {
+      "id": "ececdd29-9b90-4adc-ad2d-1d37c2b6ca92",
+      "name": "Sheet Goods",
+      "parentGroupId": null
+    },
+    {
+      "id": "3a132b2e-43af-483f-bccc-f527c937e9c0",
+      "name": "Rhombus Cladding",
+      "parentGroupId": null
+    },
+    {
+      "id": "e3f0dc4c-d79f-4e28-beab-3f7e1961b3cb",
+      "name": "Glass",
+      "parentGroupId": null
+    }
+  ],
+  "materials": [
+    {
+      "id": "2aaba1a3-ba26-4914-a816-8b0828aa5876",
+      "name": "56 x 56 mm",
+      "groupId": "e86d599b-8a07-42d2-8721-a0d806bc04cb",
+      "objectType": "timber",
+      "profileId": "timber-56x56",
+      "color": "#a77b4e"
+    },
+    {
+      "id": "9672709b-f775-4ec3-8b0f-520969ac3d84",
+      "name": "60 x 80 mm",
+      "groupId": "e86d599b-8a07-42d2-8721-a0d806bc04cb",
+      "objectType": "timber",
+      "profileId": "timber-60x80",
+      "color": "#a77b4e"
+    },
+    {
+      "id": "dc1f3513-8c1f-4692-8c85-b66e8c4f18c1",
+      "name": "80 x 100 mm",
+      "groupId": "e86d599b-8a07-42d2-8721-a0d806bc04cb",
+      "objectType": "timber",
+      "profileId": "timber-80x100",
+      "color": "#a77b4e"
+    },
+    {
+      "id": "41e28b60-5d53-4ad4-9b10-7feb22a00c59",
+      "name": "100 x 100 mm",
+      "groupId": "e86d599b-8a07-42d2-8721-a0d806bc04cb",
+      "objectType": "timber",
+      "profileId": "timber-100x100",
+      "color": "#a77b4e"
+    },
+    {
+      "id": "426b906a-5c09-4407-9f13-1bded478146c",
+      "name": "120 x 120 mm",
+      "groupId": "e86d599b-8a07-42d2-8721-a0d806bc04cb",
+      "objectType": "timber",
+      "profileId": "timber-120x120",
+      "color": "#a77b4e"
+    },
+    {
+      "id": "a1784305-901a-487b-9da7-18faebe26c20",
+      "name": "OSB/3 12 mm",
+      "groupId": "ececdd29-9b90-4adc-ad2d-1d37c2b6ca92",
+      "objectType": "sheet",
+      "profileId": "osb3-12",
+      "color": "#caa165"
+    },
+    {
+      "id": "bc77da2a-28f2-4494-93dd-4786aa05e760",
+      "name": "OSB/3 15 mm",
+      "groupId": "ececdd29-9b90-4adc-ad2d-1d37c2b6ca92",
+      "objectType": "sheet",
+      "profileId": "osb3-15",
+      "color": "#caa165"
+    },
+    {
+      "id": "74177b34-531f-4573-b3ad-e3eda91500d9",
+      "name": "OSB/3 18 mm",
+      "groupId": "ececdd29-9b90-4adc-ad2d-1d37c2b6ca92",
+      "objectType": "sheet",
+      "profileId": "osb3-18",
+      "color": "#caa165"
+    },
+    {
+      "id": "5b0524a3-ff46-46a0-a7bd-f076c3ec0c4f",
+      "name": "OSB/3 22 mm",
+      "groupId": "ececdd29-9b90-4adc-ad2d-1d37c2b6ca92",
+      "objectType": "sheet",
+      "profileId": "osb3-22",
+      "color": "#caa165"
+    },
+    {
+      "id": "10e93207-693e-4c3f-827e-e2d89839bd2a",
+      "name": "Plywood 18 mm",
+      "groupId": "ececdd29-9b90-4adc-ad2d-1d37c2b6ca92",
+      "objectType": "sheet",
+      "profileId": "plywood-18",
+      "color": "#c9a06a"
+    },
+    {
+      "id": "6e4b22da-6168-466b-9789-67392e625c76",
+      "name": "Rhombus 18 x 68 mm",
+      "groupId": "3a132b2e-43af-483f-bccc-f527c937e9c0",
+      "objectType": "cladding",
+      "profileId": "rhombus-18x68",
+      "color": "#9a7958"
+    },
+    {
+      "id": "fef8969a-02bf-48e8-807a-108cbd4d00fc",
+      "name": "Rhombus 19 x 68 mm",
+      "groupId": "3a132b2e-43af-483f-bccc-f527c937e9c0",
+      "objectType": "cladding",
+      "profileId": "rhombus-19x68",
+      "color": "#9a7958"
+    },
+    {
+      "id": "ad6c12d7-be43-4240-9563-81fab092c9e6",
+      "name": "Rhombus 19 x 95 mm",
+      "groupId": "3a132b2e-43af-483f-bccc-f527c937e9c0",
+      "objectType": "cladding",
+      "profileId": "rhombus-19x95",
+      "color": "#9a7958"
+    },
+    {
+      "id": "778df7d1-0559-44f6-a80e-68c95e1cec9f",
+      "name": "Rhombus 24 x 68 mm",
+      "groupId": "3a132b2e-43af-483f-bccc-f527c937e9c0",
+      "objectType": "cladding",
+      "profileId": "rhombus-24x68",
+      "color": "#9a7958"
+    },
+    {
+      "id": "c4028ffa-df26-4d07-9eed-b35f3d6c1b1d",
+      "name": "Rhombus 27 x 68 mm",
+      "groupId": "3a132b2e-43af-483f-bccc-f527c937e9c0",
+      "objectType": "cladding",
+      "profileId": "rhombus-27x68",
+      "color": "#9a7958"
+    },
+    {
+      "id": "a16c57d3-5954-4b6c-95cf-d5c296894578",
+      "name": "Plexiglass 3 mm",
+      "groupId": "e3f0dc4c-d79f-4e28-beab-3f7e1961b3cb",
+      "objectType": "glass",
+      "profileId": "plexiglass-3",
+      "color": "#86cfff"
+    },
+    {
+      "id": "6e479b31-a0ae-450f-8946-89e2df971a60",
+      "name": "Plexiglass 5 mm",
+      "groupId": "e3f0dc4c-d79f-4e28-beab-3f7e1961b3cb",
+      "objectType": "glass",
+      "profileId": "plexiglass-5",
+      "color": "#86cfff"
+    },
+    {
+      "id": "21b192ef-14b5-4fb5-8e98-09afca9706a6",
+      "name": "Plexiglass 10 mm",
+      "groupId": "e3f0dc4c-d79f-4e28-beab-3f7e1961b3cb",
+      "objectType": "glass",
+      "profileId": "plexiglass-10",
+      "color": "#86cfff"
+    }
+  ],
+  "createdAt": "2026-05-12T15:54:20.510Z",
+  "updatedAt": "2026-05-12T16:03:27.044Z"
 }

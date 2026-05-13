@@ -65,7 +65,15 @@ export type CircleProfile = BaseProfile & {
   defaultDepthMm: number;
 };
 
-export type ShapeProfile = RectangleProfile | CircleProfile;
+export type CubeProfile = BaseProfile & {
+  id: "shape-cube";
+  objectType: "cube";
+  defaultWidthMm: number;
+  defaultDepthMm: number;
+  defaultHeightMm: number;
+};
+
+export type ShapeProfile = RectangleProfile | CircleProfile | CubeProfile;
 
 export type ObjectProfile = SheetProfile | TimberProfile | CladdingProfile | GlassProfile | ShapeProfile;
 
@@ -81,7 +89,7 @@ export const TIMBER_PROFILES: TimberProfile[] = [
   { id: "timber-56x56", objectType: "timber", label: "56 x 56 mm", widthMm: 56, heightMm: 56, defaultLengthMm: 2000, color: "#a77b4e" },
   { id: "timber-60x80", objectType: "timber", label: "60 x 80 mm", widthMm: 60, heightMm: 80, defaultLengthMm: 2000, color: "#a77b4e" },
   { id: "timber-80x100", objectType: "timber", label: "80 x 100 mm", widthMm: 80, heightMm: 100, defaultLengthMm: 2000, color: "#a77b4e" },
-  { id: "timber-100x100", objectType: "timber", label: "100 x 100 mm", widthMm: 100, heightMm: 100, defaultLengthMm: 2000, color: "#a77b4e" },
+  { id: "timber-100x100", objectType: "timber", label: "100 x 100 mm", widthMm: 100, heightMm: 100, defaultLengthMm: 2500, color: "#a77b4e" },
   { id: "timber-120x120", objectType: "timber", label: "120 x 120 mm", widthMm: 120, heightMm: 120, defaultLengthMm: 2000, color: "#a77b4e" },
 ];
 
@@ -102,15 +110,17 @@ export const GLASS_PROFILES: GlassProfile[] = [
 export const SHAPE_PROFILES: ShapeProfile[] = [
   { id: "shape-rectangle", objectType: "rectangle", label: "Rectangle", defaultWidthMm: 800, defaultDepthMm: 500, color: "#7f8a96" },
   { id: "shape-circle", objectType: "circle", label: "Circle", defaultWidthMm: 500, defaultDepthMm: 500, color: "#7f8a96" },
+  { id: "shape-cube", objectType: "cube", label: "Cube", defaultWidthMm: 500, defaultDepthMm: 500, defaultHeightMm: 500, color: "#7f8a96" },
 ];
 
 export const OBJECT_TYPE_LABELS: Record<ObjectType, string> = {
-  sheet: "Sheet Goods",
-  timber: "Structural Timber",
-  cladding: "Rhombus Cladding",
+  sheet: "Sheet",
+  timber: "Timber",
+  cladding: "Cladding",
   glass: "Glass",
   rectangle: "Rectangle",
   circle: "Circle",
+  cube: "Cube",
 };
 
 export function getProfilesForType(objectType: ObjectType): ObjectProfile[] {
@@ -159,7 +169,9 @@ export function getDefaultProfileId(objectType: ObjectType): ObjectProfileId {
     return "plexiglass-3";
   }
 
-  return objectType === "circle" ? "shape-circle" : "shape-rectangle";
+  if (objectType === "circle") return "shape-circle";
+  if (objectType === "cube") return "shape-cube";
+  return "shape-rectangle";
 }
 
 export function getObjectTypeLabel(objectType: ObjectType): string {
@@ -183,6 +195,14 @@ export function createSizeFromProfile(profile: ObjectProfile): Vector3Like {
     };
   }
 
+  if (profile.objectType === "cube") {
+    return {
+      x: profile.defaultWidthMm,
+      y: profile.defaultHeightMm,
+      z: profile.defaultDepthMm,
+    };
+  }
+
   return {
     x: profile.defaultLengthMm,
     y: profile.widthMm,
@@ -190,55 +210,64 @@ export function createSizeFromProfile(profile: ObjectProfile): Vector3Like {
   };
 }
 
-export function applyProfileToSize(profile: ObjectProfile, size: Vector3Like): Vector3Like {
-  if (profile.objectType === "sheet" || profile.objectType === "glass") {
-    return {
-      ...size,
-      z: profile.thicknessMm,
-    };
+/**
+ * Enforces a part's cross-section / thickness lock against a candidate size.
+ * Reads locks from the part's own fields (set at creation or via setPartProfile)
+ * instead of going through getProfileById.
+ *
+ * Flat shapes (rectangle/circle) and unlocked shapes (cube) still rely on type
+ * discriminators because they don't carry lock fields.
+ */
+export function applyLockToSize(part: PartNode, size: Vector3Like): Vector3Like {
+  if (part.objectType === "rectangle") {
+    return { x: size.x, y: 0, z: size.z };
   }
 
-  if (profile.objectType === "rectangle") {
-    return {
-      x: size.x,
-      y: 0,
-      z: size.z,
-    };
+  if (part.objectType === "circle") {
+    return { x: size.x, y: 0, z: size.x };
   }
 
-  if (profile.objectType === "circle") {
-    return {
-      x: size.x,
-      y: 0,
-      z: size.x,
-    };
+  if (part.objectType === "cube") {
+    return size;
   }
 
-  return {
-    x: size.x,
-    y: profile.widthMm,
-    z: profile.heightMm,
-  };
+  if (part.thicknessMm !== undefined) {
+    return { ...size, z: part.thicknessMm };
+  }
+
+  if (part.crossSectionWidthMm !== undefined && part.crossSectionHeightMm !== undefined) {
+    return { x: size.x, y: part.crossSectionWidthMm, z: part.crossSectionHeightMm };
+  }
+
+  return size;
 }
 
 export function getProfileLabel(profileId: ObjectProfileId): string {
   return getProfileById(profileId).label;
 }
 
+/**
+ * Returns the lock-dimension fields that should be copied onto a part built from
+ * this profile. Used by createObjectPart, demo seeding, and v6→v7 migration.
+ * After the profiles-out-of-code refactor lands, parts will read locks directly
+ * from these fields rather than via getProfileById.
+ */
+export function extractLockFields(profile: ObjectProfile): {
+  crossSectionWidthMm?: number;
+  crossSectionHeightMm?: number;
+  thicknessMm?: number;
+} {
+  if (profile.objectType === "timber" || profile.objectType === "cladding") {
+    return { crossSectionWidthMm: profile.widthMm, crossSectionHeightMm: profile.heightMm };
+  }
+  if (profile.objectType === "sheet" || profile.objectType === "glass") {
+    return { thicknessMm: profile.thicknessMm };
+  }
+  return {};
+}
+
 export function createObjectName(objectType: ObjectType, index: number): string {
-  const prefix =
-    objectType === "sheet"
-      ? "Sheet"
-      : objectType === "timber"
-        ? "Timber"
-        : objectType === "cladding"
-          ? "Cladding"
-          : objectType === "glass"
-            ? "Glass"
-            : objectType === "rectangle"
-              ? "Rectangle"
-              : "Circle";
-  return `${prefix} ${index + 1}`;
+  return `${OBJECT_TYPE_LABELS[objectType]} ${index + 1}`;
 }
 
 export function isSheetObject(part: PartNode): boolean {
@@ -252,6 +281,10 @@ export function getResizableAxes(part: PartNode): Array<keyof Vector3Like> {
 
   if (part.objectType === "rectangle") {
     return ["x", "z"];
+  }
+
+  if (part.objectType === "cube") {
+    return ["x", "y", "z"];
   }
 
   return ["x"];

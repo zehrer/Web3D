@@ -1,11 +1,12 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
-import { applyProfileToSize, createSizeFromProfile, getDefaultProfileId, getProfileById } from "../lib/profiles";
+import { applyLockToSize, createSizeFromProfile, extractLockFields, getDefaultProfileId, getProfileById } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
   CameraState,
+  GridSettings,
   GroupNode,
   MaterialGroupNode,
   MaterialNode,
@@ -56,6 +57,7 @@ export interface EditorActions {
   renameProject: (name: string) => void;
   updateUnitPreference: (unitPreference: UnitPreference) => void;
   updateSnapSettings: (partial: Partial<SnapSettings>) => void;
+  updateGridSettings: (partial: Partial<GridSettings>) => void;
   addObject: (objectType: ObjectType, profileId?: ObjectProfileId) => void;
   addMeasurement: (start: Vector3Like, end: Vector3Like) => void;
   addGroup: (parentGroupId?: string | null) => void;
@@ -75,7 +77,10 @@ export interface EditorActions {
   toggleMeasurementVisibility: (measurementId: string) => void;
   addObjectFromMaterial: (materialId: string) => void;
   deleteMaterial: (materialId: string) => void;
+  duplicateMaterial: (materialId: string) => void;
+  updateMaterialColor: (materialId: string, color: string) => void;
   updateMaterialDefaultSize: (materialId: string, axis: keyof Vector3Like, valueMm: number) => void;
+  deleteMaterialGroup: (groupId: string) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   setPartProfile: (partId: string, profileId: ObjectProfileId) => void;
@@ -189,27 +194,16 @@ function getPatternProfileStep(part: PartNode, axis: keyof Vector3Like): number 
 }
 
 function normalizePartSize(part: PartNode, size: Vector3Like): Vector3Like {
-  if (part.objectType === "rectangle") {
-    return {
-      x: clampLength(size.x),
-      y: 0,
-      z: clampLength(size.z),
-    };
-  }
-
-  if (part.objectType === "circle") {
-    const diameter = clampLength(size.x);
-    return {
-      x: diameter,
-      y: 0,
-      z: diameter,
-    };
-  }
-
-  return {
+  const clamped = applyLockToSize(part, {
     x: clampLength(size.x),
     y: clampLength(size.y),
     z: clampLength(size.z),
+  });
+  // Re-clamp after lock application in case the lock value was missing/zero.
+  return {
+    x: clampLength(clamped.x),
+    y: part.objectType === "rectangle" || part.objectType === "circle" ? 0 : clampLength(clamped.y),
+    z: clampLength(clamped.z),
   };
 }
 
@@ -235,7 +229,10 @@ export function createEditorStore() {
 
     hydrateProject: (project) =>
       set({
-        project,
+        project: {
+          ...project,
+          gridSettings: project.gridSettings ?? { size: 6000, originX: 0, originZ: 0 },
+        },
         hydrated: true,
         selectedPartId: null,
         selectedMeasurementId: null,
@@ -327,6 +324,17 @@ export function createEditorStore() {
           ...project,
           snapSettings: {
             ...project.snapSettings,
+            ...partial,
+          },
+        })),
+      })),
+
+    updateGridSettings: (partial) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          gridSettings: {
+            ...project.gridSettings,
             ...partial,
           },
         })),
@@ -677,6 +685,46 @@ export function createEditorStore() {
         })),
       })),
 
+    updateMaterialColor: (materialId, color) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          materials: project.materials.map((m) =>
+            m.id === materialId ? { ...m, color } : m,
+          ),
+        })),
+      })),
+
+    duplicateMaterial: (materialId) =>
+      set((state) => {
+        const source = state.project.materials.find((m) => m.id === materialId);
+        if (!source) return state;
+        const copy: MaterialNode = {
+          ...source,
+          id: randomId(),
+          name: `${source.name} Copy`,
+          defaultSize: source.defaultSize ? { ...source.defaultSize } : undefined,
+        };
+        const next = withProjectHistory(state, (project) => ({
+          ...project,
+          materials: [...project.materials, copy],
+        }));
+        return { ...next, selectedMaterialId: copy.id };
+      }),
+
+    deleteMaterialGroup: (groupId) =>
+      set((state) => {
+        const hasMaterials = state.project.materials.some((m) => m.groupId === groupId);
+        const hasChildGroups = state.project.materialGroups.some((g) => g.parentGroupId === groupId);
+        if (hasMaterials || hasChildGroups) return state;
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            materialGroups: project.materialGroups.filter((g) => g.id !== groupId),
+          })),
+        };
+      }),
+
     setPartGeometry: (partId, geometry) =>
       set((state) => ({
         ...withProjectHistory(state, (project) => ({
@@ -713,12 +761,19 @@ export function createEditorStore() {
               return part;
             }
 
-            return {
+            // Copy the new profile's lock fields onto the part, then re-normalize
+            // the size against those new locks. The part stays self-contained:
+            // its locks live on it, not on the catalog.
+            const lockFields = extractLockFields(profile);
+            const nextPart: PartNode = {
               ...part,
               profileId,
-              size: applyProfileToSize(profile, part.size),
               color: profile.color,
+              crossSectionWidthMm: lockFields.crossSectionWidthMm,
+              crossSectionHeightMm: lockFields.crossSectionHeightMm,
+              thicknessMm: lockFields.thicknessMm,
             };
+            return { ...nextPart, size: normalizePartSize(nextPart, part.size) };
           }),
         })),
       })),

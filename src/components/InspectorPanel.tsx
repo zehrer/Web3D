@@ -97,24 +97,8 @@ function isFlatShapeObject(objectType: string) {
   return objectType === "rectangle" || objectType === "circle";
 }
 
-function getProfileFieldLabel(objectType: ObjectType) {
-  if (objectType === "sheet") {
-    return "Sheet profile";
-  }
-
-  if (objectType === "timber") {
-    return "Timber profile";
-  }
-
-  if (objectType === "cladding") {
-    return "Cladding profile";
-  }
-
-  if (objectType === "glass") {
-    return "Glass profile";
-  }
-
-  return "Shape";
+function getProfileFieldLabel(_objectType: ObjectType) {
+  return "Profile";
 }
 
 function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): string {
@@ -130,14 +114,19 @@ function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): s
     return `${formatLength(part.size.x, unitPreference)} × ${formatLength(part.size.y, unitPreference)}`;
   }
 
+  if (part.objectType === "cube") {
+    return `${formatLength(part.size.x, unitPreference)} × ${formatLength(part.size.y, unitPreference)} × ${formatLength(part.size.z, unitPreference)}`;
+  }
+
   return formatLength(part.size.x, unitPreference);
 }
 
 function MaterialOverview() {
   const parts = useEditorStore((store) => store.project.parts);
+  const materials = useEditorStore((store) => store.project.materials);
   const unitPreference = useEditorStore((store) => store.project.unitPreference);
   const selectPart = useEditorStore((store) => store.selectPart);
-  const materialSummary = useMemo(() => getMaterialUsageSummary(parts), [parts]);
+  const materialSummary = useMemo(() => getMaterialUsageSummary(parts, materials), [parts, materials]);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (!materialSummary.length) {
@@ -149,7 +138,8 @@ function MaterialOverview() {
       <p className="material-summary__intro">Used material by type and profile.</p>
       {materialSummary.map((item) => {
         const isExpanded = expandedKey === item.key;
-        const itemParts = parts.filter((part) => `${part.objectType}:${part.profileId}` === item.key);
+        const itemPartIds = new Set(item.partIds);
+        const itemParts = parts.filter((part) => itemPartIds.has(part.id));
 
         return (
           <div className="material-summary__row" key={item.key}>
@@ -204,8 +194,10 @@ function MaterialInspector() {
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
   const renameMaterial = useEditorStore((state) => state.renameMaterial);
   const updateMaterialDefaultSize = useEditorStore((state) => state.updateMaterialDefaultSize);
+  const updateMaterialColor = useEditorStore((state) => state.updateMaterialColor);
   const addObjectFromMaterial = useEditorStore((state) => state.addObjectFromMaterial);
   const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
+  const duplicateMaterial = useEditorStore((state) => state.duplicateMaterial);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
 
   const material = materials.find((m) => m.id === selectedMaterialId);
@@ -254,6 +246,16 @@ function MaterialInspector() {
         <div className="field__input field__input--readonly">{profile.label}</div>
       </label>
 
+      <label className="field inspector-field">
+        <span>Color</span>
+        <input
+          className="field__input field__input--color"
+          type="color"
+          value={material.color}
+          onChange={(e) => updateMaterialColor(material.id, e.target.value)}
+        />
+      </label>
+
       {editableAxes.map(({ axis, label }) => (
         <FieldRow
           key={axis}
@@ -265,6 +267,9 @@ function MaterialInspector() {
 
       <button className="inspector-action-button" onClick={() => addObjectFromMaterial(material.id)} type="button">
         Add to Scene
+      </button>
+      <button className="inspector-action-button" onClick={() => duplicateMaterial(material.id)} type="button">
+        Duplicate
       </button>
       <button
         className="inspector-action-button inspector-action-button--danger"
@@ -334,7 +339,7 @@ export function InspectorPanel() {
 
         {selectedPart ? (
           <>
-            {!isFlatShapeObject(selectedPart.objectType) ? (
+            {!isFlatShapeObject(selectedPart.objectType) && selectedPart.objectType !== "cube" ? (
               <label className="field inspector-field">
                 <span>{getProfileFieldLabel(selectedPart.objectType)}</span>
                 <select
@@ -381,36 +386,33 @@ export function InspectorPanel() {
                 vector={selectedPart.size}
                 unitPreference={unitPreference}
                 columns={1}
-                axes={selectedPart.objectType === "glass" ? ["x", "y"] : undefined}
+                axes={["x", "y"]}
+                onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
+              />
+            ) : selectedPart.objectType === "cube" ? (
+              <VectorFields
+                label="Size"
+                vector={selectedPart.size}
+                unitPreference={unitPreference}
+                columns={1}
                 onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
               />
             ) : (
-              <>
-                <FieldRow
-                  label={`Length (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
-                  value={toDisplayUnits(selectedPart.size.x, unitPreference)}
-                  onChange={(value) =>
-                    setPartGeometry(selectedPart.id, {
-                      size: {
-                        ...selectedPart.size,
-                        x: fromDisplayUnits(value, unitPreference),
-                      },
-                    })
-                  }
-                />
-                <label className="field inspector-field">
-                  <span>Cross-section</span>
-                  <div className="field__input field__input--readonly">
-                    {(() => {
-                      const profile = getProfileById(selectedPart.profileId);
-                      return `${profile.label}`;
-                    })()}
-                  </div>
-                </label>
-              </>
+              <FieldRow
+                label={`Length (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                value={toDisplayUnits(selectedPart.size.x, unitPreference)}
+                onChange={(value) =>
+                  setPartGeometry(selectedPart.id, {
+                    size: {
+                      ...selectedPart.size,
+                      x: fromDisplayUnits(value, unitPreference),
+                    },
+                  })
+                }
+              />
             )}
 
-            {isFlatShapeObject(selectedPart.objectType) ? (
+            {isFlatShapeObject(selectedPart.objectType) || selectedPart.objectType === "cube" ? (
               <label className="field inspector-field">
                 <span>Color</span>
                 <input
@@ -455,15 +457,6 @@ export function InspectorPanel() {
                 })
               }
             />
-
-            {isPanelObject(selectedPart.objectType) && selectedPart.objectType !== "glass" ? (
-              <label className="field inspector-field">
-                <span>Thickness</span>
-                <div className="field__input field__input--readonly">
-                  {getProfileById(selectedPart.profileId).label}
-                </div>
-              </label>
-            ) : null}
 
             {selectedPart.objectType === "cladding" ? (
               <div className="field-group">

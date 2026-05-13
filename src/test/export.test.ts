@@ -33,6 +33,7 @@ describe("3D export", () => {
         resizeIncrement: 5,
         rotateIncrementDeg: 15,
       },
+      gridSettings: { size: 6000, originX: 0, originZ: 0 },
       cameraState: {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },
@@ -65,7 +66,7 @@ describe("3D export", () => {
     const project = { name: "Garden Shelf / Draft 1" } as ProjectDocument;
     expect(createStlFilename(project)).toBe("garden-shelf-draft-1.stl");
     expect(createGltfFilename(project)).toBe("garden-shelf-draft-1.gltf");
-    expect(createWeb3dFilename(project)).toBe("garden-shelf-draft-1.web3d");
+    expect(createWeb3dFilename(project)).toMatch(/^\d{10}_garden-shelf-draft-1\.web3d$/);
   });
 
   it("exports glTF with complete Web3D project metadata", async () => {
@@ -80,6 +81,7 @@ describe("3D export", () => {
         resizeIncrement: 5,
         rotateIncrementDeg: 15,
       },
+      gridSettings: { size: 6000, originX: 0, originZ: 0 },
       cameraState: {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },
@@ -137,6 +139,7 @@ describe("3D export", () => {
         resizeIncrement: 5,
         rotateIncrementDeg: 15,
       },
+      gridSettings: { size: 6000, originX: 0, originZ: 0 },
       cameraState: {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },

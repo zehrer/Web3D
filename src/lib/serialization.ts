@@ -1,6 +1,6 @@
-import { PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
+import { DEFAULT_GRID_SETTINGS, PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
-import { getProfileById } from "./profiles";
+import { extractLockFields, getProfileById } from "./profiles";
 import type { MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
 
 const WEB3D_PROJECT_FILE_FORMAT = "web3d-project";
@@ -40,6 +40,13 @@ type ProjectDocumentV3 = Omit<ProjectDocument, "measurements" | "version"> & {
 type ProjectDocumentV4 = Omit<ProjectDocument, "materialGroups" | "materials" | "version"> & {
   version: 4;
   parts: Array<Omit<PartNode, "materialId">>;
+};
+
+type ProjectDocumentV5 = Omit<ProjectDocument, "gridSettings" | "version"> & { version: 5 };
+
+type ProjectDocumentV6 = Omit<ProjectDocument, "version" | "parts"> & {
+  version: 6;
+  parts: Array<Omit<PartNode, "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">>;
 };
 
 type Web3dProjectFile = {
@@ -121,14 +128,46 @@ function migrateProjectV3ToCurrent(project: ProjectDocumentV3): ProjectDocument 
 
 function migrateProjectV4ToCurrent(project: ProjectDocumentV4): ProjectDocument {
   const { materialGroups, materials, profileToMaterialId } = createInitialMaterials();
-  return {
+  const v5: ProjectDocumentV5 = {
     ...project,
-    version: PROJECT_SCHEMA_VERSION,
+    version: 5 as const,
     materialGroups,
     materials,
     parts: project.parts.map((part) => ({
       ...part,
       materialId: profileToMaterialId.get(part.profileId) ?? null,
+    })),
+  };
+  return migrateProjectV5ToCurrent(v5);
+}
+
+const LEGACY_MATERIAL_GROUP_RENAMES: Record<string, string> = {
+  "Sheet Goods": "Sheet",
+  "Structural Timber": "Timber",
+  "Rhombus Cladding": "Cladding",
+};
+
+function migrateProjectV5ToCurrent(project: ProjectDocumentV5): ProjectDocument {
+  const v6: ProjectDocumentV6 = {
+    ...project,
+    version: 6 as const,
+    gridSettings: { ...DEFAULT_GRID_SETTINGS },
+    materialGroups: project.materialGroups.map((group) =>
+      LEGACY_MATERIAL_GROUP_RENAMES[group.name]
+        ? { ...group, name: LEGACY_MATERIAL_GROUP_RENAMES[group.name] }
+        : group,
+    ),
+  };
+  return migrateProjectV6ToCurrent(v6);
+}
+
+function migrateProjectV6ToCurrent(project: ProjectDocumentV6): ProjectDocument {
+  return {
+    ...project,
+    version: PROJECT_SCHEMA_VERSION,
+    parts: project.parts.map((part) => ({
+      ...part,
+      ...extractLockFields(getProfileById(part.profileId)),
     })),
   };
 }
@@ -166,6 +205,14 @@ export function deserializeProject(payload: string): ProjectDocument {
 
   if (parsed.version === 4) {
     return migrateProjectV4ToCurrent(parsed as unknown as ProjectDocumentV4);
+  }
+
+  if (parsed.version === 5) {
+    return migrateProjectV5ToCurrent(parsed as unknown as ProjectDocumentV5);
+  }
+
+  if (parsed.version === 6) {
+    return migrateProjectV6ToCurrent(parsed as unknown as ProjectDocumentV6);
   }
 
   if (parsed.version !== PROJECT_SCHEMA_VERSION) {

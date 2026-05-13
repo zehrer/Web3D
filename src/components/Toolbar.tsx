@@ -92,6 +92,7 @@ export function Toolbar({
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const updateUnitPreference = useEditorStore((state) => state.updateUnitPreference);
   const updateSnapSettings = useEditorStore((state) => state.updateSnapSettings);
+  const updateGridSettings = useEditorStore((state) => state.updateGridSettings);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
@@ -337,6 +338,56 @@ export function Toolbar({
                       value={project.snapSettings.rotateIncrementDeg}
                       onChange={(event) =>
                         updateSnapSettings({ rotateIncrementDeg: Math.max(0, Number(event.target.value || 0)) })
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="menu-dropdown__divider" />
+
+                <div className="field-grid">
+                  <label className="field">
+                    <span>Grid size</span>
+                    <input
+                      className="field__input"
+                      type="number"
+                      step="100"
+                      min="100"
+                      value={Number(toDisplayUnits(project.gridSettings.size, project.unitPreference).toFixed(1))}
+                      onChange={(event) =>
+                        updateGridSettings({
+                          size: Math.max(100, fromDisplayUnits(Number(event.target.value || 100), project.unitPreference)),
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Origin X</span>
+                    <input
+                      className="field__input"
+                      type="number"
+                      step="100"
+                      value={Number(toDisplayUnits(project.gridSettings.originX, project.unitPreference).toFixed(1))}
+                      onChange={(event) =>
+                        updateGridSettings({
+                          originX: fromDisplayUnits(Number(event.target.value || 0), project.unitPreference),
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Origin Z</span>
+                    <input
+                      className="field__input"
+                      type="number"
+                      step="100"
+                      value={Number(toDisplayUnits(project.gridSettings.originZ, project.unitPreference).toFixed(1))}
+                      onChange={(event) =>
+                        updateGridSettings({
+                          originZ: fromDisplayUnits(Number(event.target.value || 0), project.unitPreference),
+                        })
                       }
                     />
                   </label>

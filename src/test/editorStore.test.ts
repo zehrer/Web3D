@@ -28,6 +28,7 @@ describe("editor store", () => {
   it("supports undo and redo around geometry edits", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());
+    store.getState().addObject("sheet");
 
     const selectedPartId = store.getState().project.parts[0].id;
     const originalSizeX = store.getState().project.parts[0].size.x;
@@ -196,9 +197,11 @@ describe("editor store", () => {
     const store = createEditorStore();
     const project = createProject();
     store.getState().hydrateProject(project);
+    store.getState().addObject("sheet");
 
     const selectedPartId = store.getState().project.parts[0].id;
     const originalPositionX = store.getState().project.parts[0].position.x;
+    const undoLengthBefore = store.getState().undoStack.length;
     const snapshot = JSON.parse(JSON.stringify(store.getState().project));
 
     store.getState().previewPartGeometry(selectedPartId, {
@@ -210,7 +213,7 @@ describe("editor store", () => {
     store.getState().finalizeTransientChange(snapshot);
 
     expect(store.getState().project.parts[0].position.x).toBe(200);
-    expect(store.getState().undoStack).toHaveLength(1);
+    expect(store.getState().undoStack).toHaveLength(undoLengthBefore + 1);
 
     store.getState().undo();
     expect(store.getState().project.parts[0].position.x).toBe(originalPositionX);
@@ -219,6 +222,7 @@ describe("editor store", () => {
   it("organizes objects in nested groups", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());
+    store.getState().addObject("sheet");
     const partId = store.getState().project.parts[0].id;
 
     store.getState().addGroup();
