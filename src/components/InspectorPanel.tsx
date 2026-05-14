@@ -307,6 +307,334 @@ function PartsListPrintReport({
   );
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildPartsListReportHtml({
+  projectName,
+  items,
+  parts,
+  materials,
+  materialGroups,
+  unitPreference,
+}: {
+  projectName: string;
+  items: ReturnType<typeof getMaterialUsageSummary>;
+  parts: PartNode[];
+  materials: MaterialNode[];
+  materialGroups: MaterialGroupNode[];
+  unitPreference: UnitPreference;
+}): string {
+  const printedAt = new Date().toLocaleString();
+  const linearItems = items.filter((item) => item.cutPlan);
+  const nonLinearItems = items.filter((item) => !item.cutPlan);
+
+  const renderStockCard = (stock: NonNullable<(typeof linearItems)[number]["cutPlan"]>["stock"][number]) => `
+    <article class="stock-card">
+      <header>
+        <strong>Stock ${stock.index}</strong>
+        <span>${formatCutLength(stock.leftoverLengthMm)} left</span>
+      </header>
+      <ol>
+        ${stock.cuts
+          .map(
+            (cut) => `
+              <li>
+                <span>${escapeHtml(cut.partName)}</span>
+                <strong>${formatCutLength(cut.lengthMm)}</strong>
+              </li>
+            `,
+          )
+          .join("")}
+      </ol>
+    </article>
+  `;
+
+  const renderLinearMaterial = (item: (typeof linearItems)[number]) => {
+    const cutPlan = item.cutPlan;
+    if (!cutPlan) return "";
+    const oversizeParts = cutPlan.oversizePartIds
+      .map((partId) => parts.find((part) => part.id === partId))
+      .filter((part): part is PartNode => Boolean(part));
+
+    return `
+      <section class="material-section">
+        <header class="material-header">
+          <div>
+            <h2>${escapeHtml(item.label)}</h2>
+            <p>${escapeHtml(getMaterialUsageCategoryLabel(item, materials, materialGroups))} · ${item.count} ${item.count === 1 ? "piece" : "pieces"} · ${cutPlan.stockCount} stock</p>
+          </div>
+          <strong>${formatCutLength(cutPlan.totalWasteMm)} waste</strong>
+        </header>
+        <div class="metrics">
+          <span>Raw stock <strong>${formatCutLength(cutPlan.rawStockLengthMm)}</strong></span>
+          <span>Kerf <strong>${formatCutLength(cutPlan.kerfMm)}</strong></span>
+          <span>Total cuts <strong>${formatCutLength(item.totalLengthMm)}</strong></span>
+          <span>Leftover <strong>${formatCutLength(cutPlan.totalWasteMm)}</strong></span>
+        </div>
+        <div class="stock-grid">
+          ${cutPlan.stock.map(renderStockCard).join("")}
+        </div>
+        ${
+          oversizeParts.length > 0
+            ? `
+              <table class="warning-table">
+                <thead><tr><th>Oversize part</th><th>ID</th><th>Length</th></tr></thead>
+                <tbody>
+                  ${oversizeParts
+                    .map(
+                      (part) => `
+                        <tr>
+                          <td>${escapeHtml(part.name)}</td>
+                          <td>${escapeHtml(part.id)}</td>
+                          <td>${formatCutLength(part.size.x)}</td>
+                        </tr>
+                      `,
+                    )
+                    .join("")}
+                </tbody>
+              </table>
+            `
+            : ""
+        }
+      </section>
+    `;
+  };
+
+  const areaSections = nonLinearItems
+    .map((item) => {
+      const itemPartIds = new Set(item.partIds);
+      const itemParts = parts.filter((part) => itemPartIds.has(part.id));
+      return `
+        <table class="parts-table">
+          <thead><tr><th>${escapeHtml(item.label)}</th><th>ID</th><th>Dimensions</th></tr></thead>
+          <tbody>
+            ${itemParts
+              .map(
+                (part) => `
+                  <tr>
+                    <td>${escapeHtml(part.name)}</td>
+                    <td>${escapeHtml(part.id)}</td>
+                    <td>${escapeHtml(formatPartDimensions(part, unitPreference))}</td>
+                  </tr>
+                `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+    })
+    .join("");
+
+  const overviewRows = items
+    .map(
+      (item) => `
+        <tr>
+          <td>${escapeHtml(item.label)}</td>
+          <td>${escapeHtml(getMaterialUsageCategoryLabel(item, materials, materialGroups))}</td>
+          <td>${item.count}</td>
+          <td>${item.kind === "linear" ? formatMeters(item.totalLengthMm) : formatSquareMeters(item.totalAreaMm2)}</td>
+          <td>${item.cutPlan ? item.cutPlan.stockCount : "-"}</td>
+          <td>${item.cutPlan ? formatCutLength(item.cutPlan.totalWasteMm) : "-"}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(projectName)} - Cutting Plan</title>
+    <style>
+      @page { size: A4 portrait; margin: 7mm; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: #111820;
+        background: #fff;
+        font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+        font-size: 8.4pt;
+        line-height: 1.18;
+      }
+      .report { width: 100%; }
+      .report-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8mm;
+        align-items: flex-start;
+        border-bottom: 1px solid #1f2933;
+        padding-bottom: 2.5mm;
+        margin-bottom: 3mm;
+      }
+      h1 { margin: 0; font-size: 17pt; line-height: 1.05; }
+      h2 { margin: 0; font-size: 11pt; line-height: 1.1; }
+      p { margin: 0.8mm 0 0; color: #4a5560; }
+      .meta { display: flex; flex-direction: column; gap: 1mm; text-align: right; white-space: nowrap; color: #4a5560; }
+      .material-section { break-inside: avoid; page-break-inside: avoid; margin-top: 3.5mm; }
+      .material-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 6mm;
+        align-items: baseline;
+        border-bottom: 1px solid #7b858f;
+        padding-bottom: 1mm;
+        margin-bottom: 1.5mm;
+      }
+      .material-header > strong { white-space: nowrap; }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.4mm;
+        margin-bottom: 2mm;
+      }
+      .metrics span {
+        border: 1px solid #d1d6db;
+        background: #f5f7f8;
+        padding: 1mm 1.3mm;
+        white-space: nowrap;
+      }
+      .stock-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 2mm;
+      }
+      .stock-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border: 1px solid #bfc6cc;
+      }
+      .stock-card header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.5mm;
+        background: #eef1f3;
+        border-bottom: 1px solid #bfc6cc;
+        padding: 1mm 1.2mm;
+      }
+      .stock-card header span { white-space: nowrap; }
+      .stock-card ol {
+        list-style: none;
+        margin: 0;
+        padding: 0.8mm 1.2mm 1mm;
+      }
+      .stock-card li {
+        display: flex;
+        justify-content: space-between;
+        gap: 1.4mm;
+        border-bottom: 1px solid #eceff1;
+        padding: 0.55mm 0;
+      }
+      .stock-card li:last-child { border-bottom: 0; }
+      .stock-card li span { overflow-wrap: anywhere; }
+      .stock-card li strong { white-space: nowrap; }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 0 0 3mm;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      th, td {
+        border: 1px solid #c8cdd2;
+        padding: 1mm 1.3mm;
+        text-align: left;
+        vertical-align: top;
+      }
+      th { background: #eef1f3; font-weight: 700; }
+      td:nth-child(3), td:nth-child(5), td:nth-child(6),
+      th:nth-child(3), th:nth-child(5), th:nth-child(6) {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .area-section, .overview { margin-top: 5mm; }
+      .warning-table th { background: #f7e5e2; }
+      @media screen {
+        body { background: #d8dce0; padding: 12px; }
+        .report { background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 7mm; box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="report">
+      <header class="report-header">
+        <div>
+          <h1>Cutting Plan</h1>
+          <p>${escapeHtml(projectName)}</p>
+        </div>
+        <div class="meta">
+          <span>${escapeHtml(printedAt)}</span>
+          <span>${parts.length} parts</span>
+        </div>
+      </header>
+      ${linearItems.map(renderLinearMaterial).join("")}
+      ${
+        nonLinearItems.length > 0
+          ? `
+            <section class="area-section">
+              <div class="material-header">
+                <div>
+                  <h2>Area And Shape Parts</h2>
+                  <p>Detailed part dimensions. Sheet nesting is not calculated in this version.</p>
+                </div>
+              </div>
+              ${areaSections}
+            </section>
+          `
+          : ""
+      }
+      <section class="overview">
+        <h2>Overview</h2>
+        <table>
+          <thead><tr><th>Material</th><th>Group</th><th>Pieces</th><th>Total</th><th>Stock</th><th>Waste</th></tr></thead>
+          <tbody>${overviewRows}</tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      window.addEventListener("load", () => {
+        window.focus();
+        setTimeout(() => window.print(), 100);
+      });
+    </script>
+  </body>
+</html>`;
+}
+
+function openPartsListPrintWindow({
+  projectName,
+  items,
+  parts,
+  materials,
+  materialGroups,
+  unitPreference,
+}: {
+  projectName: string;
+  items: ReturnType<typeof getMaterialUsageSummary>;
+  parts: PartNode[];
+  materials: MaterialNode[];
+  materialGroups: MaterialGroupNode[];
+  unitPreference: UnitPreference;
+}) {
+  const reportWindow = window.open("", "web3d-parts-list-report", "width=1200,height=900");
+  if (!reportWindow) {
+    window.alert("The print report window was blocked by the browser. Allow popups for this site and try again.");
+    return;
+  }
+
+  reportWindow.document.open();
+  reportWindow.document.write(
+    buildPartsListReportHtml({ projectName, items, parts, materials, materialGroups, unitPreference }),
+  );
+  reportWindow.document.close();
+}
+
 function PartsList() {
   const projectName = useEditorStore((store) => store.project.name);
   const parts = useEditorStore((store) => store.project.parts);
@@ -326,7 +654,21 @@ function PartsList() {
     <div className="material-summary">
       <div className="material-summary__toolbar">
         <p className="material-summary__intro">Parts grouped by project material.</p>
-        <button className="material-summary__print" onClick={() => window.print()} title="Print Parts List" type="button">
+        <button
+          className="material-summary__print"
+          onClick={() =>
+            openPartsListPrintWindow({
+              projectName,
+              items: materialSummary,
+              parts,
+              materials,
+              materialGroups,
+              unitPreference,
+            })
+          }
+          title="Print Parts List"
+          type="button"
+        >
           <PrintIcon width={15} height={15} />
           <span>Print</span>
         </button>
