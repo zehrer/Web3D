@@ -27,6 +27,7 @@ export type LinearCutPlan = {
 
 export type MaterialUsageItem = {
   key: string;
+  materialId: string | null;
   label: string;
   objectType: ObjectType;
   objectTypeLabel: string;
@@ -106,6 +107,7 @@ export function getMaterialUsageSummary(
 
     const current = usageByKey.get(key) ?? {
       key,
+      materialId: material?.id ?? null,
       label,
       objectType: part.objectType,
       objectTypeLabel: getObjectTypeLabel(part.objectType),

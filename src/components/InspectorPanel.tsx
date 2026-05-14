@@ -106,6 +106,15 @@ function getMaterialGroupName(material: MaterialNode, materialGroups: MaterialGr
   return material.groupId ? (materialGroups.find((group) => group.id === material.groupId)?.name ?? "Ungrouped") : "Ungrouped";
 }
 
+function getMaterialUsageCategoryLabel(
+  item: ReturnType<typeof getMaterialUsageSummary>[number],
+  materials: MaterialNode[],
+  materialGroups: MaterialGroupNode[],
+): string {
+  const material = item.materialId ? materials.find((candidate) => candidate.id === item.materialId) : null;
+  return material ? getMaterialGroupName(material, materialGroups) : item.objectTypeLabel;
+}
+
 function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): string {
   if (part.objectType === "circle") {
     return `⌀ ${formatLength(part.size.x, unitPreference)}`;
@@ -130,11 +139,15 @@ function PartsListPrintReport({
   projectName,
   items,
   parts,
+  materials,
+  materialGroups,
   unitPreference,
 }: {
   projectName: string;
   items: ReturnType<typeof getMaterialUsageSummary>;
   parts: PartNode[];
+  materials: MaterialNode[];
+  materialGroups: MaterialGroupNode[];
   unitPreference: UnitPreference;
 }) {
   const printedAt = new Date().toLocaleString();
@@ -167,7 +180,7 @@ function PartsListPrintReport({
           {items.map((item) => (
             <tr key={item.key}>
               <td>{item.label}</td>
-              <td>{item.objectTypeLabel}</td>
+              <td>{getMaterialUsageCategoryLabel(item, materials, materialGroups)}</td>
               <td>{item.count}</td>
               <td>{item.kind === "linear" ? formatMeters(item.totalLengthMm) : formatSquareMeters(item.totalAreaMm2)}</td>
               <td>{item.cutPlan ? item.cutPlan.stockCount : "-"}</td>
@@ -191,7 +204,7 @@ function PartsListPrintReport({
             <div className="print-report__material-header">
               <h2>{item.label}</h2>
               <p>
-                {item.objectTypeLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
+                {getMaterialUsageCategoryLabel(item, materials, materialGroups)} · {item.count} {item.count === 1 ? "piece" : "pieces"}
                 {item.cutPlan
                   ? ` · ${item.cutPlan.stockCount} stock · ${formatLength(item.cutPlan.totalWasteMm, unitPreference)} waste`
                   : ""}
@@ -274,6 +287,7 @@ function PartsList() {
   const projectName = useEditorStore((store) => store.project.name);
   const parts = useEditorStore((store) => store.project.parts);
   const materials = useEditorStore((store) => store.globalMaterialLibrary.materials);
+  const materialGroups = useEditorStore((store) => store.globalMaterialLibrary.materialGroups);
   const kerfMm = useEditorStore((store) => store.project.cutSettings.kerfMm);
   const unitPreference = useEditorStore((store) => store.project.unitPreference);
   const selectPart = useEditorStore((store) => store.selectPart);
@@ -297,6 +311,7 @@ function PartsList() {
         const isExpanded = expandedKey === item.key;
         const itemPartIds = new Set(item.partIds);
         const itemParts = parts.filter((part) => itemPartIds.has(part.id));
+        const categoryLabel = getMaterialUsageCategoryLabel(item, materials, materialGroups);
         const oversizeParts = item.cutPlan
           ? item.cutPlan.oversizePartIds
               .map((partId) => parts.find((part) => part.id === partId))
@@ -313,7 +328,7 @@ function PartsList() {
               <div className="material-summary__label">
                 <strong>{item.label}</strong>
                 <small>
-                  {item.objectTypeLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
+                  {categoryLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
                 </small>
               </div>
               <div className="material-summary__total">
@@ -401,6 +416,8 @@ function PartsList() {
       })}
       <PartsListPrintReport
         items={materialSummary}
+        materialGroups={materialGroups}
+        materials={materials}
         parts={parts}
         projectName={projectName}
         unitPreference={unitPreference}
