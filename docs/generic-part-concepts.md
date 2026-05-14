@@ -6,7 +6,7 @@ This document was originally a design exploration. Since then, a concrete refact
 
 ### Direction chosen
 
-**Concept 1 first**, with one important addition learned along the way: library entries are **creation-time templates, not live references**. Editing a library material does NOT mutate already-placed parts — woodworking depends on exact cross-sections, and silently shifting joints when stock metadata changes would break the design. So scene parts copy what they need from the library at creation time and stay self-contained afterwards.
+**Concept 1 first**, with one important addition learned along the way: there is one browser-local internal material library, but placed geometry stays self-contained. Renaming a library material updates project labels because parts reference the library material ID. Editing default dimensions or fixed axes does NOT mutate already-placed parts — woodworking depends on exact cross-sections, and silently shifting joints when stock metadata changes would break the design.
 
 The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still object-type discriminators in the code. They have not yet become "families" in the Concept 2 sense, but the surface area where they matter is shrinking each step.
 
@@ -14,9 +14,10 @@ The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still o
 
 | Document term | Code today |
 |---|---|
-| Project Part Definitions | `project.materials` (`MaterialNode[]`) and `project.materialGroups` |
+| Project Part Definitions | Browser-local `globalMaterialLibrary` (`MaterialLibraryDocument`) |
 | Scene Object Instance | `PartNode` |
 | Reference from instance to definition | `part.materialId: string \| null` |
+| Portable export material subset | `project.materials` / `project.materialGroups` in `.web3d` payloads |
 | Hardcoded global catalog | `SHEET_PROFILES`, `TIMBER_PROFILES`, `CLADDING_PROFILES`, `GLASS_PROFILES`, `SHAPE_PROFILES` in `src/lib/profiles.ts` |
 | Family | Still implicit (the `objectType` discriminator) |
 
@@ -41,14 +42,14 @@ After Step 6, the hardcoded catalog is no longer load-bearing at runtime. Stored
 
 | Step | Status | What |
 |---|---|---|
-| User-editable library | ✅/⏭ | The browser stores a global editable material library shared across projects. Adding from it copies a material into the project for reproducibility. Still missing: first-class "new material" form, group selection/move controls, and future import from a shared GitHub-hosted library. |
+| User-editable library | ✅/⏭ | The browser stores one internal editable material library shared across projects. Parts reference it directly. Export embeds only used materials; import deduplicates/remaps those embedded materials into the internal library. Still missing: first-class "new material" form, group selection/move controls, and future import from a shared GitHub-hosted library. |
 | Concept-2 evaluation | ⏭ | The discriminator `objectType` is the last vestige of "types as code". Evaluate whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
 | Global Library | ✅/⏭ | A browser-local global library exists. GitHub-hosted import/sync with linked/modified/local-only status is still future work. |
 
 ### Behavioral consequences already shipped
 
 - **Renaming a material** updates the cut-list label everywhere. It does NOT change the cross-section of placed parts.
-- **Adding a new part from a library material** copies the material's `defaultSize` and lock fields onto the part. The part is then independent.
+- **Adding a new part from a library material** stores the library material ID on the part and copies the material's `defaultSize` and lock fields onto the part's geometry. The part geometry is then independent, while labels continue to resolve through the library.
 - **Resize tool / drag handles** for a timber show only the X axis. Sheet/glass shows X and Y. Cube shows all three (no lock).
 - **Inspector** hides locked axes entirely instead of showing them as readonly. The redundant readonly "Thickness" and "Cross-section" rows are gone.
 

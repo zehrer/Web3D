@@ -1,7 +1,8 @@
 import { DEFAULT_CUT_SETTINGS, DEFAULT_GRID_SETTINGS, PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
 import { createSizeFromProfile, extractLockFields, getProfileById } from "./profiles";
-import type { AxisLocks, MaterialNode, MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
+import type { AxisLocks, MaterialLibraryDocument, MaterialNode, MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
+import { buildPortableProject } from "./materialLibrary";
 
 // Legacy shapes carry profileId (dropped from current PartNode/MaterialNode at v9).
 // Used by migration paths to read profileId from the on-disk format.
@@ -293,13 +294,14 @@ export function serializeProject(project: ProjectDocument): string {
   return JSON.stringify(project);
 }
 
-export function serializeProjectFile(project: ProjectDocument): string {
+export function serializeProjectFile(project: ProjectDocument, library?: MaterialLibraryDocument): string {
+  const portableProject = library ? buildPortableProject(project, library) : project;
   const projectFile: Web3dProjectFile = {
     format: WEB3D_PROJECT_FILE_FORMAT,
     formatVersion: WEB3D_PROJECT_FILE_FORMAT_VERSION,
     application: "Web3D Designer",
     exportedAt: new Date().toISOString(),
-    project,
+    project: portableProject,
   };
 
   return JSON.stringify(projectFile, null, 2);

@@ -75,11 +75,12 @@ export function findOverlappingParts(candidate: PartNode, parts: PartNode[]): Pa
 
 export function getPartMaterialChangeOverlaps(
   project: ProjectDocument,
+  materials: MaterialNode[],
   partId: string,
   materialId: string,
 ): { candidate: PartNode; material: MaterialNode; overlaps: PartNode[] } | null {
   const part = project.parts.find((item) => item.id === partId);
-  const material = project.materials.find((item) => item.id === materialId);
+  const material = materials.find((item) => item.id === materialId);
   if (!part || !material || material.objectType !== part.objectType) {
     return null;
   }

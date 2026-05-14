@@ -2,8 +2,9 @@ import { BoxGeometry, CircleGeometry, DoubleSide, Group, Mesh, MeshStandardMater
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { USDZExporter } from "three/examples/jsm/exporters/USDZExporter.js";
+import { buildPortableProject } from "./materialLibrary";
 import { serializeProject, serializeProjectFile } from "./serialization";
-import type { PartNode, ProjectDocument } from "../types/model";
+import type { MaterialLibraryDocument, PartNode, ProjectDocument } from "../types/model";
 
 const GLTF_METERS_PER_MILLIMETER = 0.001;
 
@@ -148,7 +149,8 @@ export function exportProjectToStl(project: ProjectDocument): string {
   return exporter.parse(sceneRoot, { binary: false }) as string;
 }
 
-export function exportProjectToGltf(project: ProjectDocument): Promise<string> {
+export function exportProjectToGltf(project: ProjectDocument, library?: MaterialLibraryDocument): Promise<string> {
+  const portableProject = library ? buildPortableProject(project, library) : project;
   const sceneRoot = createProjectScene(project, GLTF_METERS_PER_MILLIMETER);
   const exporter = new GLTFExporter();
 
@@ -171,7 +173,7 @@ export function exportProjectToGltf(project: ProjectDocument): Promise<string> {
                   sourceLength: "millimeter",
                   sourceToExportScale: GLTF_METERS_PER_MILLIMETER,
                 },
-                web3dProjectDocument: JSON.parse(serializeProject(project)),
+                web3dProjectDocument: JSON.parse(serializeProject(portableProject)),
               },
             },
             null,
@@ -202,13 +204,13 @@ export function downloadProjectAsStl(project: ProjectDocument): void {
   downloadTextFile(exportProjectToStl(project), createStlFilename(project), "model/stl");
 }
 
-export async function downloadProjectAsGltf(project: ProjectDocument): Promise<void> {
-  const payload = await exportProjectToGltf(project);
+export async function downloadProjectAsGltf(project: ProjectDocument, library?: MaterialLibraryDocument): Promise<void> {
+  const payload = await exportProjectToGltf(project, library);
   downloadTextFile(payload, createGltfFilename(project), "model/gltf+json");
 }
 
-export function downloadProjectAsWeb3d(project: ProjectDocument): void {
-  downloadTextFile(serializeProjectFile(project), createWeb3dFilename(project), "application/json");
+export function downloadProjectAsWeb3d(project: ProjectDocument, library?: MaterialLibraryDocument): void {
+  downloadTextFile(serializeProjectFile(project, library), createWeb3dFilename(project), "application/json");
 }
 
 export async function exportProjectToUsdz(project: ProjectDocument): Promise<Uint8Array> {

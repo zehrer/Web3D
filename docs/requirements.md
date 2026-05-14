@@ -23,11 +23,13 @@ The "last used material per group" state is tracked locally in the `Viewport` co
 Selecting a material in the Material tab shows **only** that material at its default size, drawn at world origin `(0, 0, 0)`. The actual design parts and measurements are hidden while a material is selected — the preview is meant to show what a raw piece looks like, not to filter the scene. Deselecting the material restores the design.
 
 ### Global vs project materials
-The browser stores one global material library in IndexedDB, separate from project documents. The Material tab defaults to **All**, which shows this global library. Its filter button switches to **Used**, which shows only materials referenced by parts in the current project.
+The browser stores one internal material library in IndexedDB. The Material tab defaults to **All**, which shows this internal library. Its filter button switches to **Used**, which shows only internal-library materials referenced by parts in the current project.
 
-Adding a global material to the scene copies it into the project first, then places the part. The project copy is what parts reference and what `.web3d` export contains, so old projects stay reproducible even if the global library changes later.
+Parts reference internal-library material IDs directly. There is no separate editable project material library during normal work, so renaming a library group or material is immediately reflected in the project tree, material inspector, and Parts List.
 
-Project materials that are used by scene parts are locked for editing. Duplicate first, edit the duplicate, then explicitly apply the new material to selected parts.
+Placed parts remain self-contained for geometry. Editing a material's default dimensions or fixed axes changes the library template and future parts, but it does not silently resize already placed parts. To change existing geometry, explicitly apply a different material to selected parts.
+
+`.web3d` export remains self-contained by embedding only the material definitions referenced by project parts. Import merges those embedded materials into the internal library, reuses duplicates when possible, and remaps imported part material IDs to the local internal-library IDs.
 
 ## Default Profiles
 
@@ -79,7 +81,7 @@ Exported `.web3d` files are prefixed with a `YYMMDDHHMM` timestamp, e.g. `260512
 
 The hardcoded profile catalog in `src/lib/profiles.ts` is the next architectural step to remove. Decision principles:
 
-- **Library material = creation-time template, not a live reference.** Editing a library entry (e.g. renaming "Timber 100×100" or changing its default cross-section) does NOT mutate existing parts. Existing parts retain the dimensions they were built with. Real woodworking projects depend on exact cross-sections — quietly updating placed parts would shift joints and stacking and silently break the design.
+- **Library material = one internal definition plus self-contained placed geometry.** Renaming a library entry updates project labels because parts reference the internal library ID. Editing default dimensions or fixed axes does NOT mutate existing parts; placed parts retain the dimensions they were built with. Real woodworking projects depend on exact cross-sections — quietly updating placed parts would shift joints and stacking and silently break the design.
 - **Parts become self-contained.** `PartNode` keeps everything it needs to render and behave correctly: `size`, `position`, `rotation`, `color`, `objectType`, and `lockedAxes`. The old `crossSectionWidthMm`/`crossSectionHeightMm`/`thicknessMm` fields are still populated for compatibility and fallback labels, but generic lock behavior now comes from `lockedAxes`.
 - **`materialId` stays as a tag.** It groups parts in the cut-list (the library material's *name* becomes the label). A part with no `materialId` falls back to a label generated from its own dimensions.
 - **Changing a part's cross-section becomes an explicit operation.** "Change Profile" on a selected part rewrites its locked dimensions, with a warning if the change would cause overlaps with neighbors.

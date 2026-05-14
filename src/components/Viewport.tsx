@@ -430,14 +430,10 @@ function isMeasurementVisible(measurement: MeasurementNode, groups: import("../t
 function Scene() {
   const allParts = useEditorStore((state) => state.project.parts);
   const groups = useEditorStore((state) => state.project.groups);
-  const projectMaterials = useEditorStore((state) => state.project.materials);
   const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
-  const selectedMaterialSource = useEditorStore((state) => state.selectedMaterialSource);
   const selectedMaterial = selectedMaterialId
-    ? selectedMaterialSource === "global"
-      ? (globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId) ?? null)
-      : (projectMaterials.find((m) => m.id === selectedMaterialId) ?? null)
+    ? (globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId) ?? null)
     : null;
   const previewPart = selectedMaterial ? buildPreviewPart(selectedMaterial) : null;
   const parts = allParts.filter((part) => isPartVisible(part, groups));

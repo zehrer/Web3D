@@ -59,9 +59,7 @@ describe("collision detection", () => {
     timber.crossSectionHeightMm = smallMaterial.crossSectionHeightMm;
     neighbor.objectType = "timber";
     project.parts = [timber, neighbor];
-    project.materials = materials;
-
-    const result = getPartMaterialChangeOverlaps(project, timber.id, largeMaterial.id);
+    const result = getPartMaterialChangeOverlaps(project, materials, timber.id, largeMaterial.id);
 
     expect(result?.candidate.size).toEqual({ x: 1000, y: 120, z: 120 });
     expect(result?.overlaps.map((part) => part.id)).toEqual(["neighbor"]);

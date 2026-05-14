@@ -127,7 +127,7 @@ function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): s
 
 function PartsList() {
   const parts = useEditorStore((store) => store.project.parts);
-  const materials = useEditorStore((store) => store.project.materials);
+  const materials = useEditorStore((store) => store.globalMaterialLibrary.materials);
   const kerfMm = useEditorStore((store) => store.project.cutSettings.kerfMm);
   const unitPreference = useEditorStore((store) => store.project.unitPreference);
   const selectPart = useEditorStore((store) => store.selectPart);
@@ -253,39 +253,23 @@ function PartsList() {
 
 function MaterialInspector() {
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
-  const selectedMaterialSource = useEditorStore((state) => state.selectedMaterialSource);
-  const materials = useEditorStore((state) => state.project.materials);
-  const materialGroups = useEditorStore((state) => state.project.materialGroups);
   const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const parts = useEditorStore((state) => state.project.parts);
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
-  const renameMaterial = useEditorStore((state) => state.renameMaterial);
   const renameGlobalMaterial = useEditorStore((state) => state.renameGlobalMaterial);
-  const updateMaterialDefaultSize = useEditorStore((state) => state.updateMaterialDefaultSize);
   const updateGlobalMaterialDefaultSize = useEditorStore((state) => state.updateGlobalMaterialDefaultSize);
-  const updateMaterialAxisLock = useEditorStore((state) => state.updateMaterialAxisLock);
   const updateGlobalMaterialAxisLock = useEditorStore((state) => state.updateGlobalMaterialAxisLock);
-  const updateMaterialColor = useEditorStore((state) => state.updateMaterialColor);
   const updateGlobalMaterialColor = useEditorStore((state) => state.updateGlobalMaterialColor);
   const addObjectFromMaterial = useEditorStore((state) => state.addObjectFromMaterial);
-  const addObjectFromGlobalMaterial = useEditorStore((state) => state.addObjectFromGlobalMaterial);
-  const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
   const deleteGlobalMaterial = useEditorStore((state) => state.deleteGlobalMaterial);
-  const duplicateMaterial = useEditorStore((state) => state.duplicateMaterial);
   const duplicateGlobalMaterial = useEditorStore((state) => state.duplicateGlobalMaterial);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
 
-  const material = selectedMaterialSource === "global"
-    ? globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId)
-    : materials.find((m) => m.id === selectedMaterialId);
+  const material = globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId);
   if (!material) return null;
 
-  const isProjectMaterial = selectedMaterialSource === "project";
-  const isUsed = isProjectMaterial && parts.some((p) => p.materialId === selectedMaterialId);
-  const materialGroupName = getMaterialGroupName(
-    material,
-    selectedMaterialSource === "global" ? globalMaterialLibrary.materialGroups : materialGroups,
-  );
+  const isUsed = parts.some((p) => p.materialId === selectedMaterialId);
+  const materialGroupName = getMaterialGroupName(material, globalMaterialLibrary.materialGroups);
 
   const dimensionAxes: Array<{ axis: keyof Vector3Like; label: string }> = [
     { axis: "x", label: "X" },
@@ -303,9 +287,8 @@ function MaterialInspector() {
           className="field__input"
           type="text"
           value={material.name}
-          disabled={isUsed}
-          onBlur={(e) => selectedMaterialSource === "global" ? renameGlobalMaterial(material.id, e.target.value) : renameMaterial(material.id, e.target.value)}
-          onChange={(e) => selectedMaterialSource === "global" ? renameGlobalMaterial(material.id, e.target.value) : renameMaterial(material.id, e.target.value)}
+          onBlur={(e) => renameGlobalMaterial(material.id, e.target.value)}
+          onChange={(e) => renameGlobalMaterial(material.id, e.target.value)}
         />
       </label>
 
@@ -320,14 +303,13 @@ function MaterialInspector() {
           className="field__input field__input--color"
           type="color"
           value={material.color}
-          disabled={isUsed}
-          onChange={(e) => selectedMaterialSource === "global" ? updateGlobalMaterialColor(material.id, e.target.value) : updateMaterialColor(material.id, e.target.value)}
+          onChange={(e) => updateGlobalMaterialColor(material.id, e.target.value)}
         />
       </label>
 
       {isUsed ? (
         <p className="inspector-note">
-          This material is used in the scene. Duplicate it to create an editable variant.
+          This material is used in the scene. Name and color update the library; size and fixed-axis changes affect future parts unless you explicitly apply the material to existing parts.
         </p>
       ) : null}
 
@@ -340,22 +322,12 @@ function MaterialInspector() {
             <FieldRow
               label={label}
               value={toDisplayUnits(effectiveValue(axis), unitPreference)}
-              disabled={isUsed}
-              onChange={(value) =>
-                selectedMaterialSource === "global"
-                  ? updateGlobalMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))
-                  : updateMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))
-              }
+              onChange={(value) => updateGlobalMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))}
             />
             <label className="material-axis-row__lock">
               <input
                 checked={Boolean(material.lockedAxes?.[axis])}
-                disabled={isUsed}
-                onChange={(event) =>
-                  selectedMaterialSource === "global"
-                    ? updateGlobalMaterialAxisLock(material.id, axis, event.target.checked)
-                    : updateMaterialAxisLock(material.id, axis, event.target.checked)
-                }
+                onChange={(event) => updateGlobalMaterialAxisLock(material.id, axis, event.target.checked)}
                 type="checkbox"
               />
               <span>Fixed</span>
@@ -366,12 +338,12 @@ function MaterialInspector() {
 
       <button
         className="inspector-action-button"
-        onClick={() => selectedMaterialSource === "global" ? addObjectFromGlobalMaterial(material.id) : addObjectFromMaterial(material.id)}
+        onClick={() => addObjectFromMaterial(material.id)}
         type="button"
       >
         Add to Scene
       </button>
-      <button className="inspector-action-button" onClick={() => selectedMaterialSource === "global" ? duplicateGlobalMaterial(material.id) : duplicateMaterial(material.id)} type="button">
+      <button className="inspector-action-button" onClick={() => duplicateGlobalMaterial(material.id)} type="button">
         Duplicate
       </button>
       <button
@@ -379,8 +351,7 @@ function MaterialInspector() {
         disabled={isUsed}
         title={isUsed ? "This material is used by parts in the scene" : "Remove from library"}
         onClick={() => {
-          if (selectedMaterialSource === "global") deleteGlobalMaterial(material.id);
-          else deleteMaterial(material.id);
+          deleteGlobalMaterial(material.id);
           selectMaterial(null);
         }}
         type="button"
@@ -399,7 +370,7 @@ export function InspectorPanel() {
   const setPartGeometry = state.setPartGeometry;
   const setPartMaterial = state.setPartMaterial;
   const updatePart = state.updatePart;
-  const projectMaterials = state.project.materials;
+  const projectMaterials = state.globalMaterialLibrary.materials;
   const createCladdingPattern = state.createCladdingPattern;
   const updateMeasurement = state.updateMeasurement;
   const [patternAxis, setPatternAxis] = useState<keyof Vector3Like>("y");
@@ -423,18 +394,19 @@ export function InspectorPanel() {
 
   const selectedMaterialId = state.selectedMaterialId;
   const selectedMaterial = selectedMaterialId
-    ? state.selectedMaterialSource === "global"
-      ? state.globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId) ?? null
-      : state.project.materials.find((m) => m.id === selectedMaterialId) ?? null
+    ? state.globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId) ?? null
     : null;
   const selectedMaterialGroupName = selectedMaterial
-    ? getMaterialGroupName(
-        selectedMaterial,
-        state.selectedMaterialSource === "global" ? state.globalMaterialLibrary.materialGroups : state.project.materialGroups,
-      )
+    ? getMaterialGroupName(selectedMaterial, state.globalMaterialLibrary.materialGroups)
+    : null;
+  const selectedPartMaterial = selectedPart?.materialId
+    ? state.globalMaterialLibrary.materials.find((material) => material.id === selectedPart.materialId) ?? null
+    : null;
+  const selectedPartMaterialGroupName = selectedPartMaterial
+    ? getMaterialGroupName(selectedPartMaterial, state.globalMaterialLibrary.materialGroups)
     : null;
   const changePartMaterial = (part: PartNode, materialId: string): boolean => {
-    const overlapCheck = getPartMaterialChangeOverlaps(state.project, part.id, materialId);
+    const overlapCheck = getPartMaterialChangeOverlaps(state.project, state.globalMaterialLibrary.materials, part.id, materialId);
     if (overlapCheck && overlapCheck.overlaps.length > 0) {
       const names = overlapCheck.overlaps.slice(0, 5).map((item) => item.name).join(", ");
       const moreCount = overlapCheck.overlaps.length - 5;
@@ -460,7 +432,7 @@ export function InspectorPanel() {
           </span>
           <span className="panel-card__meta">
             {selectedPart
-              ? getObjectTypeLabel(selectedPart.objectType)
+              ? selectedPartMaterialGroupName ?? getObjectTypeLabel(selectedPart.objectType)
               : selectedMeasurement
                 ? "Measure"
                 : selectedMaterial
@@ -486,6 +458,11 @@ export function InspectorPanel() {
                 >
                   {selectedPart.materialId === null ? (
                     <option value="" disabled>(no material)</option>
+                  ) : null}
+                  {selectedPart.materialId && !selectedPartMaterial ? (
+                    <option value={selectedPart.materialId} disabled>
+                      Missing material
+                    </option>
                   ) : null}
                   {projectMaterials
                     .filter((m) => m.objectType === selectedPart.objectType)

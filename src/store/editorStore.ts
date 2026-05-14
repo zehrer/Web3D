@@ -1,7 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { applyMaterialToPart, legacyLockFieldsFromSize } from "../lib/partMaterial";
-import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
+import { cloneProject, createInitialMaterials, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
 import { applyLockToSize, getDefaultProfileId } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
@@ -112,7 +112,8 @@ const MAX_HISTORY = 50;
 const DUPLICATE_OFFSET_MM = 10;
 
 function createEmptyMaterialLibrary(): MaterialLibraryDocument {
-  return { materialGroups: [], materials: [] };
+  const { materialGroups, materials } = createInitialMaterials();
+  return { materialGroups, materials };
 }
 
 function randomId(): string {
@@ -169,61 +170,6 @@ function isDescendantGroup(groups: GroupNode[], candidateGroupId: string, parent
 
 function isMaterialUsed(project: ProjectDocument, materialId: string): boolean {
   return project.parts.some((part) => part.materialId === materialId);
-}
-
-function copyGlobalMaterialIntoProject(
-  project: ProjectDocument,
-  globalLibrary: MaterialLibraryDocument,
-  material: MaterialNode,
-): { project: ProjectDocument; materialId: string } {
-  const existing = project.materials.find((item) => item.sourceLibraryMaterialId === material.id);
-  if (existing) {
-    return { project, materialId: existing.id };
-  }
-
-  const sourceGroup = material.groupId ? globalLibrary.materialGroups.find((group) => group.id === material.groupId) : null;
-  let groupId: string | null = null;
-  let materialGroups = project.materialGroups;
-
-  if (sourceGroup) {
-    const existingGroup = project.materialGroups.find(
-      (group) => group.sourceLibraryGroupId === sourceGroup.id || (group.parentGroupId === null && group.name === sourceGroup.name),
-    );
-    if (existingGroup) {
-      groupId = existingGroup.id;
-    } else {
-      groupId = randomId();
-      materialGroups = [
-        ...materialGroups,
-        {
-          id: groupId,
-          name: sourceGroup.name,
-          parentGroupId: null,
-          sourceLibraryGroupId: sourceGroup.id,
-        },
-      ];
-    }
-  }
-
-  const materialId = randomId();
-  return {
-    materialId,
-    project: {
-      ...project,
-      materialGroups,
-      materials: [
-        ...project.materials,
-        {
-          ...material,
-          id: materialId,
-          groupId,
-          defaultSize: { ...material.defaultSize },
-          lockedAxes: { ...material.lockedAxes },
-          sourceLibraryMaterialId: material.id,
-        },
-      ],
-    },
-  };
 }
 
 function getLocalAxisVector(axis: keyof Vector3Like): Vector3Like {
@@ -303,7 +249,7 @@ export function createEditorStore() {
     selectedPartId: null,
     selectedMeasurementId: null,
     selectedMaterialId: null,
-    selectedMaterialSource: "project",
+    selectedMaterialSource: "global",
     activeTool: "move",
     undoStack: [],
     redoStack: [],
@@ -319,7 +265,7 @@ export function createEditorStore() {
         selectedPartId: null,
         selectedMeasurementId: null,
         selectedMaterialId: null,
-        selectedMaterialSource: "project",
+        selectedMaterialSource: "global",
         undoStack: [],
         redoStack: [],
       }),
@@ -343,7 +289,7 @@ export function createEditorStore() {
           selectedPartId: project.parts[0]?.id ?? null,
           selectedMeasurementId: null,
           selectedMaterialId: null,
-          selectedMaterialSource: "project",
+          selectedMaterialSource: "global",
           undoStack: [],
           redoStack: [],
         };
@@ -352,7 +298,7 @@ export function createEditorStore() {
     selectPart: (partId) => set({ selectedPartId: partId, selectedMeasurementId: null }),
     selectMeasurement: (measurementId) => set({ selectedMeasurementId: measurementId, selectedPartId: null }),
 
-    selectMaterial: (materialId, source = "project") =>
+    selectMaterial: (materialId, source = "global") =>
       set({ selectedMaterialId: materialId, selectedMaterialSource: source, selectedPartId: null, selectedMeasurementId: null }),
 
     addMaterialGroup: (parentGroupId = null) =>
@@ -731,7 +677,7 @@ export function createEditorStore() {
 
     addObjectFromMaterial: (materialId) =>
       set((state) => {
-        const material = state.project.materials.find((m) => m.id === materialId);
+        const material = state.globalMaterialLibrary.materials.find((m) => m.id === materialId);
         if (!material) return state;
 
         const nextIndex = state.project.parts.length;
@@ -764,24 +710,19 @@ export function createEditorStore() {
         const globalMaterial = state.globalMaterialLibrary.materials.find((m) => m.id === materialId);
         if (!globalMaterial) return state;
 
-        let copiedMaterialId = "";
         const history = withProjectHistory(state, (project) => {
-          const copied = copyGlobalMaterialIntoProject(project, state.globalMaterialLibrary, globalMaterial);
-          copiedMaterialId = copied.materialId;
-          const material = copied.project.materials.find((m) => m.id === copiedMaterialId);
-          if (!material) return copied.project;
-          const nextPart = createObjectPart(copied.project.parts.length, {
-            objectType: material.objectType,
-            size: { ...material.defaultSize },
+          const nextPart = createObjectPart(project.parts.length, {
+            objectType: globalMaterial.objectType,
+            size: { ...globalMaterial.defaultSize },
             position: { x: 0, y: 0, z: 0 },
-            materialId: material.id,
+            materialId: globalMaterial.id,
           });
-          nextPart.color = material.color;
-          nextPart.lockedAxes = { ...material.lockedAxes };
-          Object.assign(nextPart, legacyLockFieldsFromSize(material.defaultSize, material.lockedAxes));
+          nextPart.color = globalMaterial.color;
+          nextPart.lockedAxes = { ...globalMaterial.lockedAxes };
+          Object.assign(nextPart, legacyLockFieldsFromSize(globalMaterial.defaultSize, globalMaterial.lockedAxes));
           return {
-            ...copied.project,
-            parts: [...copied.project.parts, nextPart],
+            ...project,
+            parts: [...project.parts, nextPart],
           };
         });
 
@@ -791,7 +732,7 @@ export function createEditorStore() {
           selectedPartId,
           selectedMeasurementId: null,
           selectedMaterialId: null,
-          selectedMaterialSource: "project",
+          selectedMaterialSource: "global",
         };
       }),
 
@@ -1015,7 +956,7 @@ export function createEditorStore() {
 
     setPartMaterial: (partId, materialId) =>
       set((state) => {
-        const material = state.project.materials.find((m) => m.id === materialId);
+        const material = state.globalMaterialLibrary.materials.find((m) => m.id === materialId);
         if (!material) return state;
         return {
           ...withProjectHistory(state, (project) => ({
