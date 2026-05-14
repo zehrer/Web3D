@@ -152,6 +152,37 @@ describe("editor store", () => {
     expect(store.getState().project.parts.filter((part) => part.materialId === "global-material")).toHaveLength(2);
   });
 
+  it("creates editable global material folders and basic material templates", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+    const initialGroupCount = store.getState().globalMaterialLibrary.materialGroups.length;
+    const initialMaterialCount = store.getState().globalMaterialLibrary.materials.length;
+
+    store.getState().addGlobalMaterialGroup();
+    expect(store.getState().globalMaterialLibrary.materialGroups).toHaveLength(initialGroupCount + 1);
+    expect(store.getState().globalMaterialLibrary.materialGroups.at(-1)?.name).toBe(`Folder ${initialGroupCount + 1}`);
+
+    store.getState().createGlobalMaterial("timber");
+    const timber = store.getState().globalMaterialLibrary.materials.at(-1)!;
+    expect(store.getState().globalMaterialLibrary.materials).toHaveLength(initialMaterialCount + 1);
+    expect(timber).toMatchObject({
+      name: "New Timber",
+      objectType: "timber",
+      defaultSize: { x: 2500, y: 100, z: 100 },
+      lockedAxes: { y: true, z: true },
+    });
+    expect(store.getState().selectedMaterialId).toBe(timber.id);
+
+    store.getState().createGlobalMaterial("cube");
+    const cube = store.getState().globalMaterialLibrary.materials.at(-1)!;
+    expect(cube).toMatchObject({
+      name: "New Cube",
+      objectType: "cube",
+      defaultSize: { x: 500, y: 500, z: 500 },
+    });
+    expect(cube.lockedAxes).toBeUndefined();
+  });
+
   it("creates rhombus cladding objects with fixed profile and editable length", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProjectWithProjectMaterials());

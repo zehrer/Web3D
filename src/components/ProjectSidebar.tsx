@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FilterIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FilterIcon, FolderIcon, GlassIcon, PlusIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -10,6 +10,7 @@ type DraggedTreeItem = { kind: "part" | "group" | "measurement"; id: string };
 type DropTarget = "root" | string | null;
 
 const TREE_DRAG_MIME = "application/x-web3d-tree-item";
+const BASIC_MATERIAL_TYPES: ObjectType[] = ["timber", "sheet", "cladding", "glass", "cube", "rectangle", "circle"];
 
 function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
   if (objectType === "sheet") return <SheetIcon width={14} height={14} />;
@@ -38,6 +39,8 @@ function MaterialPanel() {
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
   const renameGlobalMaterial = useEditorStore((state) => state.renameGlobalMaterial);
   const renameGlobalMaterialGroup = useEditorStore((state) => state.renameGlobalMaterialGroup);
+  const addGlobalMaterialGroup = useEditorStore((state) => state.addGlobalMaterialGroup);
+  const createGlobalMaterial = useEditorStore((state) => state.createGlobalMaterial);
   const deleteGlobalMaterial = useEditorStore((state) => state.deleteGlobalMaterial);
 
   const [filterMode, setFilterMode] = useState<"all" | "used">("all");
@@ -206,18 +209,52 @@ function MaterialPanel() {
             {filterMode === "all" ? `${globalMaterialLibrary.materials.length} global materials` : `${activeLibrary.materials.length} used in project`}
           </p>
         </div>
-        <button
-          aria-label={filterMode === "all" ? "Show used materials" : "Show all materials"}
-          className={`browser-card__header-action ${filterMode === "used" ? "browser-card__header-action--active" : ""}`}
-          onClick={() => {
-            setEditingItem(null);
-            setFilterMode((mode) => (mode === "all" ? "used" : "all"));
-          }}
-          title={filterMode === "all" ? "Show only materials used in this project" : "Show global material library"}
-          type="button"
-        >
-          <FilterIcon width={16} height={16} />
-        </button>
+        <div className="browser-card__header-actions">
+          <button
+            aria-label="Create material folder"
+            className="browser-card__header-action"
+            onClick={() => {
+              setFilterMode("all");
+              addGlobalMaterialGroup();
+            }}
+            title="Create material folder"
+            type="button"
+          >
+            <FolderIcon width={16} height={16} />
+          </button>
+          <button
+            aria-label={filterMode === "all" ? "Show used materials" : "Show all materials"}
+            className={`browser-card__header-action ${filterMode === "used" ? "browser-card__header-action--active" : ""}`}
+            onClick={() => {
+              setEditingItem(null);
+              setFilterMode((mode) => (mode === "all" ? "used" : "all"));
+            }}
+            title={filterMode === "all" ? "Show only materials used in this project" : "Show global material library"}
+            type="button"
+          >
+            <FilterIcon width={16} height={16} />
+          </button>
+        </div>
+      </div>
+
+      <div className="material-create-strip" aria-label="Create basic material">
+        <span className="material-create-strip__label">New</span>
+        {BASIC_MATERIAL_TYPES.map((objectType) => (
+          <button
+            aria-label={`Create ${objectType} material`}
+            className="material-create-strip__button"
+            key={objectType}
+            onClick={() => {
+              setFilterMode("all");
+              createGlobalMaterial(objectType);
+            }}
+            title={`Create ${objectType} material`}
+            type="button"
+          >
+            <PartTypeIcon objectType={objectType} />
+            <PlusIcon width={9} height={9} />
+          </button>
+        ))}
       </div>
 
       <div className="object-browser">

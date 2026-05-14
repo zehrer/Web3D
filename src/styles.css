@@ -600,6 +600,12 @@ button {
   margin-bottom: 0.85rem;
 }
 
+.browser-card__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
 .browser-card__header-action {
   width: 2.05rem;
   height: 2.05rem;
@@ -627,6 +633,48 @@ button {
   margin: 0.2rem 0 0;
   color: #73818c;
   font-size: 0.88rem;
+}
+
+.material-create-strip {
+  display: grid;
+  grid-template-columns: auto repeat(7, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.25rem;
+  border-top: 1px solid rgba(174, 182, 190, 0.32);
+  border-bottom: 1px solid rgba(174, 182, 190, 0.32);
+  padding: 0.45rem 0;
+  margin: -0.25rem 0 0.55rem;
+}
+
+.material-create-strip__label {
+  color: #73818c;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.material-create-strip__button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 1.85rem;
+  border: 1px solid rgba(163, 174, 184, 0.42);
+  background: rgba(248, 250, 251, 0.82);
+  color: #53616c;
+  padding: 0;
+}
+
+.material-create-strip__button:hover {
+  background: rgba(226, 231, 236, 0.9);
+  color: #22303c;
+}
+
+.material-create-strip__button svg:last-child {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.18rem;
+  background: rgba(248, 250, 251, 0.92);
 }
 
 .search-field {

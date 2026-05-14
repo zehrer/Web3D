@@ -2,7 +2,7 @@ import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { applyMaterialToPart, legacyLockFieldsFromSize } from "../lib/partMaterial";
 import { cloneProject, createInitialMaterials, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
-import { applyLockToSize, getDefaultProfileId } from "../lib/profiles";
+import { applyLockToSize, createSizeFromProfile, extractLockFields, getDefaultProfileId, getObjectTypeLabel, getProfileById } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
@@ -94,6 +94,8 @@ export interface EditorActions {
   updateGlobalMaterialColor: (materialId: string, color: string) => void;
   updateGlobalMaterialDefaultSize: (materialId: string, axis: keyof Vector3Like, valueMm: number) => void;
   updateGlobalMaterialAxisLock: (materialId: string, axis: keyof Vector3Like, locked: boolean) => void;
+  addGlobalMaterialGroup: (parentGroupId?: string | null) => void;
+  createGlobalMaterial: (objectType: ObjectType) => void;
   duplicateGlobalMaterial: (materialId: string) => void;
   deleteGlobalMaterial: (materialId: string) => void;
   deleteMaterialGroup: (groupId: string) => void;
@@ -896,6 +898,66 @@ export function createEditorStore() {
           }),
         },
       })),
+
+    addGlobalMaterialGroup: (parentGroupId = null) =>
+      set((state) => {
+        const parentExists = parentGroupId
+          ? state.globalMaterialLibrary.materialGroups.some((group) => group.id === parentGroupId)
+          : true;
+        const group: MaterialGroupNode = {
+          id: randomId(),
+          name: `Folder ${state.globalMaterialLibrary.materialGroups.length + 1}`,
+          parentGroupId: parentExists ? parentGroupId : null,
+        };
+
+        return {
+          globalMaterialLibrary: {
+            ...state.globalMaterialLibrary,
+            materialGroups: [...state.globalMaterialLibrary.materialGroups, group],
+          },
+          selectedMaterialId: null,
+          selectedMaterialSource: "global",
+        };
+      }),
+
+    createGlobalMaterial: (objectType) =>
+      set((state) => {
+        const profile = getProfileById(getDefaultProfileId(objectType));
+        const defaultSize = createSizeFromProfile(profile);
+        let materialGroups = state.globalMaterialLibrary.materialGroups;
+        let groupId = state.globalMaterialLibrary.materials.find((material) => material.objectType === objectType)?.groupId ?? null;
+
+        if (!groupId && objectType !== "rectangle" && objectType !== "circle" && objectType !== "cube") {
+          const group = {
+            id: randomId(),
+            name: getObjectTypeLabel(objectType),
+            parentGroupId: null,
+          };
+          materialGroups = [...materialGroups, group];
+          groupId = group.id;
+        }
+
+        const material: MaterialNode = {
+          id: randomId(),
+          name: `New ${getObjectTypeLabel(objectType)}`,
+          groupId,
+          objectType,
+          color: profile.color,
+          defaultSize,
+          ...extractLockFields(profile),
+        };
+
+        return {
+          globalMaterialLibrary: {
+            materialGroups,
+            materials: [...state.globalMaterialLibrary.materials, material],
+          },
+          selectedMaterialId: material.id,
+          selectedMaterialSource: "global",
+          selectedPartId: null,
+          selectedMeasurementId: null,
+        };
+      }),
 
     duplicateGlobalMaterial: (materialId) =>
       set((state) => {
