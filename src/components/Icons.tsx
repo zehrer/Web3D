@@ -48,6 +48,17 @@ export function ExportIcon(props: IconProps) {
   );
 }
 
+export function PrintIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M7 8V4.5h10V8" />
+      <path d="M7 17.5H5a2 2 0 0 1-2-2V11a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v4.5a2 2 0 0 1-2 2h-2" />
+      <path d="M7 14h10v5.5H7z" />
+      <path d="M17.5 11.5h.01" />
+    </BaseIcon>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

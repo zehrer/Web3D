@@ -4,6 +4,7 @@ import { getMaterialUsageSummary } from "../lib/materialSummary";
 import { getObjectTypeLabel } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
+import { PrintIcon } from "./Icons";
 import type { MaterialGroupNode, MaterialNode, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
@@ -125,7 +126,152 @@ function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): s
   return formatLength(part.size.x, unitPreference);
 }
 
+function PartsListPrintReport({
+  projectName,
+  items,
+  parts,
+  unitPreference,
+}: {
+  projectName: string;
+  items: ReturnType<typeof getMaterialUsageSummary>;
+  parts: PartNode[];
+  unitPreference: UnitPreference;
+}) {
+  const printedAt = new Date().toLocaleString();
+
+  return (
+    <div className="print-report" aria-hidden="true">
+      <header className="print-report__header">
+        <div>
+          <h1>Parts List</h1>
+          <p>{projectName}</p>
+        </div>
+        <div className="print-report__meta">
+          <span>{printedAt}</span>
+          <span>{parts.length} parts</span>
+        </div>
+      </header>
+
+      <table className="print-report__summary">
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th>Type</th>
+            <th>Pieces</th>
+            <th>Total</th>
+            <th>Stock</th>
+            <th>Waste</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.key}>
+              <td>{item.label}</td>
+              <td>{item.objectTypeLabel}</td>
+              <td>{item.count}</td>
+              <td>{item.kind === "linear" ? formatMeters(item.totalLengthMm) : formatSquareMeters(item.totalAreaMm2)}</td>
+              <td>{item.cutPlan ? item.cutPlan.stockCount : "-"}</td>
+              <td>{item.cutPlan ? formatLength(item.cutPlan.totalWasteMm, unitPreference) : "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {items.map((item) => {
+        const itemPartIds = new Set(item.partIds);
+        const itemParts = parts.filter((part) => itemPartIds.has(part.id));
+        const oversizeParts = item.cutPlan
+          ? item.cutPlan.oversizePartIds
+              .map((partId) => parts.find((part) => part.id === partId))
+              .filter((part): part is PartNode => Boolean(part))
+          : [];
+
+        return (
+          <section className="print-report__material" key={item.key}>
+            <div className="print-report__material-header">
+              <h2>{item.label}</h2>
+              <p>
+                {item.objectTypeLabel} · {item.count} {item.count === 1 ? "piece" : "pieces"}
+                {item.cutPlan
+                  ? ` · ${item.cutPlan.stockCount} stock · ${formatLength(item.cutPlan.totalWasteMm, unitPreference)} waste`
+                  : ""}
+              </p>
+            </div>
+
+            {item.cutPlan ? (
+              <>
+                <p className="print-report__note">
+                  Raw stock {formatLength(item.cutPlan.rawStockLengthMm, unitPreference)} · Kerf {formatLength(item.cutPlan.kerfMm, unitPreference)}
+                </p>
+                {item.cutPlan.stock.map((stock) => (
+                  <table className="print-report__cuts" key={stock.index}>
+                    <thead>
+                      <tr>
+                        <th colSpan={2}>Stock {stock.index}</th>
+                        <th>{formatLength(stock.leftoverLengthMm, unitPreference)} left</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stock.cuts.map((cut) => (
+                        <tr key={cut.partId}>
+                          <td>{cut.partName}</td>
+                          <td>{cut.partId}</td>
+                          <td>{formatLength(cut.lengthMm, unitPreference)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ))}
+                {oversizeParts.length > 0 ? (
+                  <table className="print-report__cuts print-report__cuts--warning">
+                    <thead>
+                      <tr>
+                        <th>Oversize part</th>
+                        <th>ID</th>
+                        <th>Length</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {oversizeParts.map((part) => (
+                        <tr key={part.id}>
+                          <td>{part.name}</td>
+                          <td>{part.id}</td>
+                          <td>{formatLength(part.size.x, unitPreference)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : null}
+              </>
+            ) : (
+              <table className="print-report__cuts">
+                <thead>
+                  <tr>
+                    <th>Part</th>
+                    <th>ID</th>
+                    <th>Dimensions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemParts.map((part) => (
+                    <tr key={part.id}>
+                      <td>{part.name}</td>
+                      <td>{part.id}</td>
+                      <td>{formatPartDimensions(part, unitPreference)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function PartsList() {
+  const projectName = useEditorStore((store) => store.project.name);
   const parts = useEditorStore((store) => store.project.parts);
   const materials = useEditorStore((store) => store.globalMaterialLibrary.materials);
   const kerfMm = useEditorStore((store) => store.project.cutSettings.kerfMm);
@@ -140,7 +286,13 @@ function PartsList() {
 
   return (
     <div className="material-summary">
-      <p className="material-summary__intro">Parts grouped by project material.</p>
+      <div className="material-summary__toolbar">
+        <p className="material-summary__intro">Parts grouped by project material.</p>
+        <button className="material-summary__print" onClick={() => window.print()} title="Print Parts List" type="button">
+          <PrintIcon width={15} height={15} />
+          <span>Print</span>
+        </button>
+      </div>
       {materialSummary.map((item) => {
         const isExpanded = expandedKey === item.key;
         const itemPartIds = new Set(item.partIds);
@@ -247,6 +399,12 @@ function PartsList() {
           </div>
         );
       })}
+      <PartsListPrintReport
+        items={materialSummary}
+        parts={parts}
+        projectName={projectName}
+        unitPreference={unitPreference}
+      />
     </div>
   );
 }

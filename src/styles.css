@@ -340,10 +340,37 @@ button {
   gap: 0.55rem;
 }
 
+.material-summary__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
 .material-summary__intro {
   margin: 0 0 0.2rem;
   color: #65737f;
   font-size: 0.86rem;
+}
+
+.material-summary__print {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  border: 1px solid rgba(149, 160, 170, 0.55);
+  background: rgba(248, 250, 251, 0.9);
+  color: #31404d;
+  padding: 0.32rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.material-summary__print:hover {
+  background: rgba(228, 233, 238, 0.9);
+}
+
+.print-report {
+  display: none;
 }
 
 .material-summary__row {
@@ -1240,5 +1267,127 @@ button {
   .sidebar,
   .inspector {
     max-height: 50vh;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-report,
+  .print-report * {
+    visibility: visible;
+  }
+
+  .print-report {
+    display: block;
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    color: #111;
+    background: #fff;
+    font-family: "Avenir Next", "Segoe UI", sans-serif;
+    font-size: 10pt;
+    line-height: 1.28;
+  }
+
+  .print-report__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12mm;
+    align-items: flex-start;
+    border-bottom: 1px solid #222;
+    padding-bottom: 5mm;
+    margin-bottom: 5mm;
+  }
+
+  .print-report h1 {
+    margin: 0;
+    font-size: 20pt;
+    line-height: 1.1;
+  }
+
+  .print-report h2 {
+    margin: 0;
+    font-size: 13pt;
+    line-height: 1.2;
+  }
+
+  .print-report p {
+    margin: 1.5mm 0 0;
+  }
+
+  .print-report__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1mm;
+    color: #444;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .print-report table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0 0 5mm;
+    page-break-inside: avoid;
+  }
+
+  .print-report th,
+  .print-report td {
+    border: 1px solid #c8cdd2;
+    padding: 1.8mm 2.2mm;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .print-report th {
+    background: #eef1f3;
+    font-weight: 700;
+  }
+
+  .print-report__summary td:nth-child(3),
+  .print-report__summary td:nth-child(5),
+  .print-report__summary td:nth-child(6),
+  .print-report__summary th:nth-child(3),
+  .print-report__summary th:nth-child(5),
+  .print-report__summary th:nth-child(6),
+  .print-report__cuts td:last-child,
+  .print-report__cuts th:last-child {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .print-report__material {
+    margin-top: 6mm;
+    page-break-inside: avoid;
+  }
+
+  .print-report__material-header {
+    margin-bottom: 2mm;
+  }
+
+  .print-report__material-header p,
+  .print-report__note {
+    color: #444;
+  }
+
+  .print-report__cuts--warning th {
+    background: #f7e5e2;
   }
 }
