@@ -103,6 +103,37 @@ describe("material summary", () => {
     });
   });
 
+  it("plans sheet cuts into raw boards with kerf", () => {
+    const material = { ...SHEET_MATERIAL, defaultSize: { x: 2000, y: 600, z: 18 } };
+    const parts = [
+      { ...createObjectPart(0, { objectType: "sheet", profileId: "osb3-18", size: { x: 1000, y: 600, z: 18 } }), name: "Panel A", materialId: material.id },
+      { ...createObjectPart(1, { objectType: "sheet", profileId: "osb3-18", size: { x: 997, y: 600, z: 18 } }), name: "Panel B", materialId: material.id },
+      { ...createObjectPart(2, { objectType: "sheet", profileId: "osb3-18", size: { x: 500, y: 300, z: 18 } }), name: "Panel C", materialId: material.id },
+    ];
+
+    const summary = getMaterialUsageSummary(parts, [material], 3);
+
+    expect(summary[0].panelPlan?.rawWidthMm).toBe(2000);
+    expect(summary[0].panelPlan?.rawHeightMm).toBe(600);
+    expect(summary[0].panelPlan?.stockCount).toBe(2);
+    expect(summary[0].panelPlan?.stock[0].shelves[0].cuts.map((cut) => cut.partName)).toEqual(["Panel A", "Panel B"]);
+    expect(summary[0].panelPlan?.stock[1].shelves[0].cuts.map((cut) => cut.partName)).toEqual(["Panel C"]);
+  });
+
+  it("flags oversized sheet cuts and keeps them out of sheet packing", () => {
+    const material = { ...SHEET_MATERIAL, defaultSize: { x: 2000, y: 600, z: 18 } };
+    const parts = [
+      { ...createObjectPart(0, { objectType: "sheet", profileId: "osb3-18", size: { x: 2100, y: 600, z: 18 } }), name: "Too Long", materialId: material.id },
+      { ...createObjectPart(1, { objectType: "sheet", profileId: "osb3-18", size: { x: 500, y: 300, z: 18 } }), name: "Small", materialId: material.id },
+    ];
+
+    const summary = getMaterialUsageSummary(parts, [material], 3);
+
+    expect(summary[0].panelPlan?.oversizePartIds).toEqual([parts[0].id]);
+    expect(summary[0].panelPlan?.stockCount).toBe(1);
+    expect(summary[0].panelPlan?.stock[0].shelves[0].cuts.map((cut) => cut.partName)).toEqual(["Small"]);
+  });
+
   it("plans linear cuts into the required number of raw stock pieces with kerf", () => {
     const parts = Array.from({ length: 10 }, (_, index) => ({
       ...createObjectPart(index, { objectType: "timber", profileId: "timber-100x100", size: { x: 300, y: 100, z: 100 } }),

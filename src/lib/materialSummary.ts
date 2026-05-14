@@ -25,6 +25,37 @@ export type LinearCutPlan = {
   oversizePartIds: string[];
 };
 
+export type PanelPlanCut = {
+  partId: string;
+  partName: string;
+  widthMm: number;
+  heightMm: number;
+  rotated: boolean;
+};
+
+export type PanelPlanShelf = {
+  cuts: PanelPlanCut[];
+  usedWidthMm: number;
+  heightMm: number;
+};
+
+export type PanelPlanStock = {
+  index: number;
+  shelves: PanelPlanShelf[];
+  usedAreaMm2: number;
+  wasteAreaMm2: number;
+};
+
+export type PanelCutPlan = {
+  rawWidthMm: number;
+  rawHeightMm: number;
+  kerfMm: number;
+  stock: PanelPlanStock[];
+  stockCount: number;
+  totalWasteMm2: number;
+  oversizePartIds: string[];
+};
+
 export type MaterialUsageItem = {
   key: string;
   materialId: string | null;
@@ -37,6 +68,7 @@ export type MaterialUsageItem = {
   totalAreaMm2: number;
   partIds: string[];
   cutPlan?: LinearCutPlan;
+  panelPlan?: PanelCutPlan;
 };
 
 const OBJECT_TYPE_SORT_ORDER: Record<ObjectType, number> = {
@@ -63,6 +95,10 @@ function getPartAreaMm2(part: PartNode): number {
   }
 
   return part.size.x * part.size.y;
+}
+
+function canPlanAsPanel(part: PartNode): boolean {
+  return part.objectType === "sheet" || part.objectType === "glass";
 }
 
 /**
@@ -133,21 +169,25 @@ export function getMaterialUsageSummary(
   const normalizedKerfMm = Math.max(0, Number.isFinite(kerfMm) ? kerfMm : 0);
 
   usageByKey.forEach((item) => {
-    if (item.kind !== "linear" || !item.key.startsWith("mat:")) {
+    if (!item.key.startsWith("mat:")) {
       return;
     }
     const material = materialById.get(item.key.slice(4));
-    if (!material || material.defaultSize.x <= 0) {
+    if (!material) {
       return;
     }
 
-    item.cutPlan = createLinearCutPlan(
-      item.partIds
-        .map((partId) => byPartId.get(partId))
-        .filter((part): part is PartNode => Boolean(part)),
-      material.defaultSize.x,
-      normalizedKerfMm,
-    );
+    const itemParts = item.partIds
+      .map((partId) => byPartId.get(partId))
+      .filter((part): part is PartNode => Boolean(part));
+
+    if (item.kind === "linear" && material.defaultSize.x > 0) {
+      item.cutPlan = createLinearCutPlan(itemParts, material.defaultSize.x, normalizedKerfMm);
+    }
+
+    if (item.kind === "area" && itemParts.every(canPlanAsPanel) && material.defaultSize.x > 0 && material.defaultSize.y > 0) {
+      item.panelPlan = createPanelCutPlan(itemParts, material.defaultSize.x, material.defaultSize.y, normalizedKerfMm);
+    }
   });
 
   return [...usageByKey.values()].sort((a, b) => {
@@ -193,6 +233,124 @@ function createLinearCutPlan(parts: PartNode[], rawStockLengthMm: number, kerfMm
     stock,
     stockCount: stock.length,
     totalWasteMm: stock.reduce((sum, item) => sum + item.leftoverLengthMm, 0),
+    oversizePartIds,
+  };
+}
+
+function createPanelCutPlan(parts: PartNode[], rawWidthMm: number, rawHeightMm: number, kerfMm: number): PanelCutPlan {
+  const rawAreaMm2 = rawWidthMm * rawHeightMm;
+  const oversizePartIds: string[] = [];
+  const cuts = parts
+    .map((part) => ({
+      part,
+      orientations: [
+        { widthMm: part.size.x, heightMm: part.size.y, rotated: false },
+        { widthMm: part.size.y, heightMm: part.size.x, rotated: true },
+      ].filter((orientation, index, all) =>
+        index === 0 || orientation.widthMm !== all[0].widthMm || orientation.heightMm !== all[0].heightMm,
+      ),
+    }))
+    .filter(({ part, orientations }) => {
+      const fits = orientations.some((orientation) => orientation.widthMm <= rawWidthMm && orientation.heightMm <= rawHeightMm);
+      if (!fits) {
+        oversizePartIds.push(part.id);
+        return false;
+      }
+      return true;
+    })
+    .sort((left, right) => {
+      const leftMax = Math.max(left.part.size.x, left.part.size.y);
+      const rightMax = Math.max(right.part.size.x, right.part.size.y);
+      const leftMin = Math.min(left.part.size.x, left.part.size.y);
+      const rightMin = Math.min(right.part.size.x, right.part.size.y);
+      return rightMax - leftMax || rightMin - leftMin || left.part.name.localeCompare(right.part.name) || left.part.id.localeCompare(right.part.id);
+    });
+
+  const stock: PanelPlanStock[] = [];
+
+  cuts.forEach(({ part, orientations }) => {
+    const orientationChoices = orientations
+      .filter((orientation) => orientation.widthMm <= rawWidthMm && orientation.heightMm <= rawHeightMm)
+      .sort((left, right) => right.heightMm - left.heightMm || right.widthMm - left.widthMm);
+
+    let placed = false;
+    for (const board of stock) {
+      for (const shelf of board.shelves) {
+        const match = orientationChoices.find((orientation) => {
+          const requiredWidth = shelf.usedWidthMm + (shelf.cuts.length > 0 ? kerfMm : 0) + orientation.widthMm;
+          return orientation.heightMm <= shelf.heightMm && requiredWidth <= rawWidthMm;
+        });
+        if (!match) {
+          continue;
+        }
+
+        shelf.usedWidthMm += (shelf.cuts.length > 0 ? kerfMm : 0) + match.widthMm;
+        shelf.cuts.push({
+          partId: part.id,
+          partName: part.name,
+          widthMm: match.widthMm,
+          heightMm: match.heightMm,
+          rotated: match.rotated,
+        });
+        board.usedAreaMm2 += part.size.x * part.size.y;
+        board.wasteAreaMm2 = rawAreaMm2 - board.usedAreaMm2;
+        placed = true;
+        break;
+      }
+
+      if (placed) {
+        break;
+      }
+
+      const usedHeightMm = board.shelves.reduce((sum, shelf) => sum + shelf.heightMm, 0) + Math.max(0, board.shelves.length - 1) * kerfMm;
+      const match = orientationChoices.find((orientation) => usedHeightMm + (board.shelves.length > 0 ? kerfMm : 0) + orientation.heightMm <= rawHeightMm);
+      if (match) {
+        board.shelves.push({
+          cuts: [{
+            partId: part.id,
+            partName: part.name,
+            widthMm: match.widthMm,
+            heightMm: match.heightMm,
+            rotated: match.rotated,
+          }],
+          usedWidthMm: match.widthMm,
+          heightMm: match.heightMm,
+        });
+        board.usedAreaMm2 += part.size.x * part.size.y;
+        board.wasteAreaMm2 = rawAreaMm2 - board.usedAreaMm2;
+        placed = true;
+        break;
+      }
+    }
+
+    if (!placed) {
+      const first = orientationChoices[0];
+      stock.push({
+        index: stock.length + 1,
+        shelves: [{
+          cuts: [{
+            partId: part.id,
+            partName: part.name,
+            widthMm: first.widthMm,
+            heightMm: first.heightMm,
+            rotated: first.rotated,
+          }],
+          usedWidthMm: first.widthMm,
+          heightMm: first.heightMm,
+        }],
+        usedAreaMm2: part.size.x * part.size.y,
+        wasteAreaMm2: rawAreaMm2 - part.size.x * part.size.y,
+      });
+    }
+  });
+
+  return {
+    rawWidthMm,
+    rawHeightMm,
+    kerfMm,
+    stock,
+    stockCount: stock.length,
+    totalWasteMm2: stock.reduce((sum, item) => sum + item.wasteAreaMm2, 0),
     oversizePartIds,
   };
 }
