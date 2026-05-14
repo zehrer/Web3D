@@ -68,6 +68,26 @@ User noted other CAD tools have nicer property inspectors (presets, grouping, vi
 
 **Principle confirmed (2026-05-13):** locked dimensions are hidden from the inspector entirely — not shown as readonly fields. If a part has `thicknessMm`, its Z is hidden in the size editor; if a part has `crossSectionWidthMm`/`Height`, those axes are hidden. The hidden axes are still enforced at the data layer by `applyLockToSize`. Currently this is done with per-type branches in `InspectorPanel.tsx`; should fall out naturally from the generic-part refactor.
 
+## Recommended Next Step: User-Editable Material Library
+
+After Step 5 of the refactor, the data path supports user-created materials end-to-end (lock fields, color, default size all live on `MaterialNode`). The remaining gap is the **UI** — there's no way for a user to create a new material like "Timber 120 × 80 mm" without editing code. This is the recommended next step because:
+
+1. It unblocks the original motivation for the whole refactor (custom timber sizes, local market standards).
+2. It gives the planned Step 6 ("Change Cross-Section" warning) something useful to be triggered by — without user-creatable materials the only triggers are the seeded 18 entries.
+3. It's incremental: the data shape and migrations stay untouched. Schema does **not** need to bump.
+
+### Scope
+
+- "Add Material" button on the Material sidebar (likely on each group's row, similar to "Add Folder").
+- Form with: name, group, object type (timber/cladding/sheet/glass), color, default size X/Y/Z, lock fields (the appropriate ones for the chosen type — cross-section for timber/cladding, thickness for sheet/glass).
+- New action `addMaterial(...)` in the editor store; undo/redo-aware via `withProjectHistory`.
+- Optional: "Create from selected part" — seed the form from the selected part's dimensions.
+
+### Out of scope for this step
+
+- Editing existing materials' lock fields after creation. (Renaming, color, default size are already editable; lock fields are not, and changing them retroactively would violate the "library = template, not live reference" principle without an explicit per-part propagation flow.)
+- Importing materials from a Global Library (a separate planned item).
+
 ## Planned: Y-up / Z-up Display Toggle
 
 Internally the model and Three.js scene are **y-up** (Y is vertical). Many CAD tools (SketchUp, Blender, AutoCAD) use **z-up** convention. Add a setting (Settings menu, next to Display units) to switch between the two — but **purely as a presentation layer**:
@@ -90,7 +110,7 @@ Treat as a shared service so each consumer doesn't reimplement the math.
 
 ## Schema Versions
 
-Current `PROJECT_SCHEMA_VERSION` is **7**. Bumps must add a corresponding `migrateProjectVnToCurrent` function in `src/lib/serialization.ts` and chain it through any older migrations.
+Current `PROJECT_SCHEMA_VERSION` is **9**. Bumps must add a corresponding `migrateProjectVnToCurrent` function in `src/lib/serialization.ts` and chain it through any older migrations.
 
 | Version | Change |
 |---|---|

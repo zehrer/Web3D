@@ -38,8 +38,8 @@ After Step 5, the hardcoded catalog is no longer load-bearing at runtime. Stored
 
 | Step | Status | What |
 |---|---|---|
-| 6 | ⏭ | "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. |
-| User-editable library | ⏭ | Currently `createInitialMaterials()` always seeds the same 18 materials from the hardcoded catalog. To let users add new sizes ("Timber 120 × 80 mm") without a code change, the *creation* of materials needs a UI form (cross-section + default size + color + group). The data path already supports it — only the UI is missing. |
+| **Recommended next: User-editable library** | ⏭ | Currently `createInitialMaterials()` always seeds the same 18 materials from the hardcoded catalog. To let users add new sizes ("Timber 120 × 80 mm") without a code change, the *creation* of materials needs a UI form (cross-section + default size + color + group). The data path already supports it — only the UI is missing. This unblocks the original motivation for the whole refactor and gives Step 6 something useful to be triggered by ("user creates a new material, then swaps an existing part to it"). |
+| 6 | ⏭ | "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. Build on top of the user-editable library — without that, the only triggers are the hardcoded library entries. |
 | Concept-2 evaluation | ⏭ | The discriminator `objectType` is the last vestige of "types as code". Evaluate whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
 | Global Library | ⏭ | The "Project Library" (materials) exists. The "Global Library" (GitHub-hosted, shared catalog with linked/modified/local-only status, source IDs, sync) is still future work. Planned: ship after the user-editable library and inspector polish stabilize. |
 
