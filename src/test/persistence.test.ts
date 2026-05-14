@@ -4,8 +4,10 @@ import {
   deleteProjectDocument,
   getLastProjectId,
   listProjectSummaries,
+  loadGlobalMaterialLibrary,
   loadMostRecentProject,
   loadProjectDocument,
+  saveGlobalMaterialLibrary,
   saveProjectDocument,
 } from "../lib/persistence";
 
@@ -52,5 +54,21 @@ describe("project persistence", () => {
 
     await expect(loadProjectDocument(project.id)).resolves.toBeNull();
     await expect(getLastProjectId()).resolves.toBeNull();
+  });
+
+  it("seeds and persists the global material library separately from projects", async () => {
+    const library = await loadGlobalMaterialLibrary();
+    expect(library.materials.length).toBeGreaterThan(0);
+
+    const renamed = {
+      ...library,
+      materials: library.materials.map((material, index) =>
+        index === 0 ? { ...material, name: "Custom Global Material" } : material,
+      ),
+    };
+    await saveGlobalMaterialLibrary(renamed);
+
+    const loaded = await loadGlobalMaterialLibrary();
+    expect(loaded.materials[0].name).toBe("Custom Global Material");
   });
 });

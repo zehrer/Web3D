@@ -14,6 +14,17 @@ const TIMBER_MATERIAL: MaterialNode = {
   crossSectionHeightMm: 100,
 };
 
+const TIMBER_60_MATERIAL: MaterialNode = {
+  id: "mat-timber-60",
+  name: "Timber 60×80",
+  groupId: null,
+  objectType: "timber",
+  color: "#a77b4e",
+  defaultSize: { x: 2000, y: 60, z: 80 },
+  crossSectionWidthMm: 60,
+  crossSectionHeightMm: 80,
+};
+
 const SHEET_MATERIAL: MaterialNode = {
   id: "mat-osb-18",
   name: "OSB/3 18 mm",
@@ -90,5 +101,70 @@ describe("material summary", () => {
       kind: "area",
       totalAreaMm2: 500000,
     });
+  });
+
+  it("plans linear cuts into the required number of raw stock pieces with kerf", () => {
+    const parts = Array.from({ length: 10 }, (_, index) => ({
+      ...createObjectPart(index, { objectType: "timber", profileId: "timber-100x100", size: { x: 300, y: 100, z: 100 } }),
+      name: `Cut ${index + 1}`,
+      materialId: TIMBER_60_MATERIAL.id,
+    }));
+
+    const summary = getMaterialUsageSummary(parts, [TIMBER_60_MATERIAL], 3);
+
+    expect(summary[0].cutPlan?.rawStockLengthMm).toBe(2000);
+    expect(summary[0].cutPlan?.stockCount).toBe(2);
+    expect(summary[0].cutPlan?.stock[0].cuts).toHaveLength(6);
+    expect(summary[0].cutPlan?.stock[0].usedLengthMm).toBe(1815);
+  });
+
+  it("handles exact linear stock fits with and without kerf", () => {
+    const parts = [
+      { ...createObjectPart(0, { objectType: "timber", profileId: "timber-100x100", size: { x: 1000, y: 100, z: 100 } }), materialId: TIMBER_MATERIAL.id },
+      { ...createObjectPart(1, { objectType: "timber", profileId: "timber-100x100", size: { x: 1000, y: 100, z: 100 } }), materialId: TIMBER_MATERIAL.id },
+    ];
+
+    const noKerf = getMaterialUsageSummary(parts, [{ ...TIMBER_MATERIAL, defaultSize: { x: 2000, y: 100, z: 100 } }], 0);
+    const withKerf = getMaterialUsageSummary(parts, [{ ...TIMBER_MATERIAL, defaultSize: { x: 2003, y: 100, z: 100 } }], 3);
+
+    expect(noKerf[0].cutPlan?.stock).toMatchObject([{ usedLengthMm: 2000, leftoverLengthMm: 0 }]);
+    expect(withKerf[0].cutPlan?.stock).toMatchObject([{ usedLengthMm: 2003, leftoverLengthMm: 0 }]);
+  });
+
+  it("packs longest cuts first deterministically", () => {
+    const parts = [
+      { ...createObjectPart(0, { objectType: "timber", profileId: "timber-100x100", size: { x: 300, y: 100, z: 100 } }), name: "Short", materialId: TIMBER_60_MATERIAL.id },
+      { ...createObjectPart(1, { objectType: "timber", profileId: "timber-100x100", size: { x: 900, y: 100, z: 100 } }), name: "Long", materialId: TIMBER_60_MATERIAL.id },
+      { ...createObjectPart(2, { objectType: "timber", profileId: "timber-100x100", size: { x: 700, y: 100, z: 100 } }), name: "Mid", materialId: TIMBER_60_MATERIAL.id },
+    ];
+
+    const summary = getMaterialUsageSummary(parts, [TIMBER_60_MATERIAL], 0);
+
+    expect(summary[0].cutPlan?.stock[0].cuts.map((cut) => cut.partName)).toEqual(["Long", "Mid", "Short"]);
+  });
+
+  it("flags oversized cuts and keeps them out of stock packing", () => {
+    const parts = [
+      { ...createObjectPart(0, { objectType: "timber", profileId: "timber-100x100", size: { x: 2100, y: 100, z: 100 } }), materialId: TIMBER_60_MATERIAL.id },
+      { ...createObjectPart(1, { objectType: "timber", profileId: "timber-100x100", size: { x: 500, y: 100, z: 100 } }), materialId: TIMBER_60_MATERIAL.id },
+    ];
+
+    const summary = getMaterialUsageSummary(parts, [TIMBER_60_MATERIAL], 3);
+
+    expect(summary[0].cutPlan?.oversizePartIds).toEqual([parts[0].id]);
+    expect(summary[0].cutPlan?.stockCount).toBe(1);
+    expect(summary[0].cutPlan?.stock[0].cuts.map((cut) => cut.partId)).toEqual([parts[1].id]);
+  });
+
+  it("plans different materials independently", () => {
+    const parts = [
+      { ...createObjectPart(0, { objectType: "timber", profileId: "timber-100x100", size: { x: 1200, y: 100, z: 100 } }), materialId: TIMBER_MATERIAL.id },
+      { ...createObjectPart(1, { objectType: "timber", profileId: "timber-60x80", size: { x: 1200, y: 60, z: 80 } }), materialId: TIMBER_60_MATERIAL.id },
+    ];
+
+    const summary = getMaterialUsageSummary(parts, [TIMBER_MATERIAL, TIMBER_60_MATERIAL], 3);
+
+    expect(summary).toHaveLength(2);
+    expect(summary.every((item) => item.cutPlan?.stockCount === 1)).toBe(true);
   });
 });

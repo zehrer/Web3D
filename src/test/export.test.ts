@@ -34,6 +34,7 @@ describe("3D export", () => {
         rotateIncrementDeg: 15,
       },
       gridSettings: { size: 6000, originX: 0, originZ: 0 },
+      cutSettings: { kerfMm: 3 },
       cameraState: {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },
@@ -82,6 +83,7 @@ describe("3D export", () => {
         rotateIncrementDeg: 15,
       },
       gridSettings: { size: 6000, originX: 0, originZ: 0 },
+      cutSettings: { kerfMm: 3 },
       cameraState: {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },
@@ -140,6 +142,7 @@ describe("3D export", () => {
         rotateIncrementDeg: 15,
       },
       gridSettings: { size: 6000, originX: 0, originZ: 0 },
+      cutSettings: { kerfMm: 3 },
       cameraState: {
         position: { x: 1000, y: 800, z: 1000 },
         target: { x: 0, y: 0, z: 0 },

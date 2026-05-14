@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { getPartMaterialChangeOverlaps } from "../lib/collision";
 import { getMaterialUsageSummary } from "../lib/materialSummary";
 import { getObjectTypeLabel } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
-import type { ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
+import type { MaterialGroupNode, MaterialNode, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
   const parsed = Number(value);
@@ -16,18 +17,21 @@ function FieldRow({
   min,
   onChange,
   step = "0.1",
+  disabled = false,
 }: {
   label: string;
   value: number;
   min?: number;
   onChange: (value: number) => void;
   step?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className="field inspector-field">
       <span>{label}</span>
       <input
         className="field__input"
+        disabled={disabled}
         min={min}
         type="number"
         step={step}
@@ -97,6 +101,9 @@ function isFlatShapeObject(objectType: string) {
   return objectType === "rectangle" || objectType === "circle";
 }
 
+function getMaterialGroupName(material: MaterialNode, materialGroups: MaterialGroupNode[]): string {
+  return material.groupId ? (materialGroups.find((group) => group.id === material.groupId)?.name ?? "Ungrouped") : "Ungrouped";
+}
 
 function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): string {
   if (part.objectType === "circle") {
@@ -118,25 +125,31 @@ function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): s
   return formatLength(part.size.x, unitPreference);
 }
 
-function MaterialOverview() {
+function PartsList() {
   const parts = useEditorStore((store) => store.project.parts);
   const materials = useEditorStore((store) => store.project.materials);
+  const kerfMm = useEditorStore((store) => store.project.cutSettings.kerfMm);
   const unitPreference = useEditorStore((store) => store.project.unitPreference);
   const selectPart = useEditorStore((store) => store.selectPart);
-  const materialSummary = useMemo(() => getMaterialUsageSummary(parts, materials), [parts, materials]);
+  const materialSummary = useMemo(() => getMaterialUsageSummary(parts, materials, kerfMm), [kerfMm, parts, materials]);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (!materialSummary.length) {
-    return <p className="panel-card__empty">No material objects in this project yet.</p>;
+    return <p className="panel-card__empty">No parts in this project yet.</p>;
   }
 
   return (
     <div className="material-summary">
-      <p className="material-summary__intro">Used material by type and profile.</p>
+      <p className="material-summary__intro">Parts grouped by project material.</p>
       {materialSummary.map((item) => {
         const isExpanded = expandedKey === item.key;
         const itemPartIds = new Set(item.partIds);
         const itemParts = parts.filter((part) => itemPartIds.has(part.id));
+        const oversizeParts = item.cutPlan
+          ? item.cutPlan.oversizePartIds
+              .map((partId) => parts.find((part) => part.id === partId))
+              .filter((part): part is PartNode => Boolean(part))
+          : [];
 
         return (
           <div className="material-summary__row" key={item.key}>
@@ -153,28 +166,82 @@ function MaterialOverview() {
               </div>
               <div className="material-summary__total">
                 <strong>
-                  {item.kind === "linear"
-                    ? formatMeters(item.totalLengthMm)
-                    : formatSquareMeters(item.totalAreaMm2)}
+                  {item.cutPlan
+                    ? `${item.cutPlan.stockCount} stock`
+                    : item.kind === "linear"
+                      ? formatMeters(item.totalLengthMm)
+                      : formatSquareMeters(item.totalAreaMm2)}
                 </strong>
-                <small>{item.kind === "linear" ? "total length" : "total area"}</small>
+                <small>
+                  {item.cutPlan
+                    ? `${formatLength(item.cutPlan.totalWasteMm, unitPreference)} waste`
+                    : item.kind === "linear"
+                      ? "total length"
+                      : "total area"}
+                </small>
               </div>
             </button>
             {isExpanded ? (
               <div className="material-summary__part-list">
-                {itemParts.map((part) => (
-                  <button
-                    key={part.id}
-                    className="material-summary__part-row"
-                    onClick={() => selectPart(part.id)}
-                    type="button"
-                  >
-                    <span>{part.name}</span>
-                    <span className="material-summary__part-dim">
-                      {formatPartDimensions(part, unitPreference)}
-                    </span>
-                  </button>
-                ))}
+                {item.cutPlan ? (
+                  <div className="cut-plan">
+                    <div className="cut-plan__meta">
+                      Raw stock {formatLength(item.cutPlan.rawStockLengthMm, unitPreference)} · Kerf {formatLength(item.cutPlan.kerfMm, unitPreference)}
+                    </div>
+                    {item.cutPlan.stock.map((stock) => (
+                      <div className="cut-plan__stock" key={stock.index}>
+                        <div className="cut-plan__stock-header">
+                          <strong>Stock {stock.index}</strong>
+                          <span>{formatLength(stock.leftoverLengthMm, unitPreference)} left</span>
+                        </div>
+                        <div className="cut-plan__cuts">
+                          {stock.cuts.map((cut) => (
+                            <button
+                              className="cut-plan__cut"
+                              key={cut.partId}
+                              onClick={() => selectPart(cut.partId)}
+                              type="button"
+                            >
+                              <span>{cut.partName}</span>
+                              <span>{formatLength(cut.lengthMm, unitPreference)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    {oversizeParts.length > 0 ? (
+                      <div className="cut-plan__oversize">
+                        <strong>Oversize</strong>
+                        {oversizeParts.map((part) => (
+                          <button
+                            className="cut-plan__cut cut-plan__cut--oversize"
+                            key={part.id}
+                            onClick={() => selectPart(part.id)}
+                            type="button"
+                          >
+                            <span>{part.name}</span>
+                            <span>{formatLength(part.size.x, unitPreference)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {!item.cutPlan
+                  ? itemParts.map((part) => (
+                      <button
+                        key={part.id}
+                        className="material-summary__part-row"
+                        onClick={() => selectPart(part.id)}
+                        type="button"
+                      >
+                        <span>{part.name}</span>
+                        <span className="material-summary__part-dim">
+                          {formatPartDimensions(part, unitPreference)}
+                        </span>
+                      </button>
+                    ))
+                  : null}
               </div>
             ) : null}
           </div>
@@ -186,32 +253,45 @@ function MaterialOverview() {
 
 function MaterialInspector() {
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
+  const selectedMaterialSource = useEditorStore((state) => state.selectedMaterialSource);
   const materials = useEditorStore((state) => state.project.materials);
+  const materialGroups = useEditorStore((state) => state.project.materialGroups);
+  const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const parts = useEditorStore((state) => state.project.parts);
   const unitPreference = useEditorStore((state) => state.project.unitPreference);
   const renameMaterial = useEditorStore((state) => state.renameMaterial);
+  const renameGlobalMaterial = useEditorStore((state) => state.renameGlobalMaterial);
   const updateMaterialDefaultSize = useEditorStore((state) => state.updateMaterialDefaultSize);
+  const updateGlobalMaterialDefaultSize = useEditorStore((state) => state.updateGlobalMaterialDefaultSize);
+  const updateMaterialAxisLock = useEditorStore((state) => state.updateMaterialAxisLock);
+  const updateGlobalMaterialAxisLock = useEditorStore((state) => state.updateGlobalMaterialAxisLock);
   const updateMaterialColor = useEditorStore((state) => state.updateMaterialColor);
+  const updateGlobalMaterialColor = useEditorStore((state) => state.updateGlobalMaterialColor);
   const addObjectFromMaterial = useEditorStore((state) => state.addObjectFromMaterial);
+  const addObjectFromGlobalMaterial = useEditorStore((state) => state.addObjectFromGlobalMaterial);
   const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
+  const deleteGlobalMaterial = useEditorStore((state) => state.deleteGlobalMaterial);
   const duplicateMaterial = useEditorStore((state) => state.duplicateMaterial);
+  const duplicateGlobalMaterial = useEditorStore((state) => state.duplicateGlobalMaterial);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
 
-  const material = materials.find((m) => m.id === selectedMaterialId);
+  const material = selectedMaterialSource === "global"
+    ? globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId)
+    : materials.find((m) => m.id === selectedMaterialId);
   if (!material) return null;
 
-  const isUsed = parts.some((p) => p.materialId === selectedMaterialId);
+  const isProjectMaterial = selectedMaterialSource === "project";
+  const isUsed = isProjectMaterial && parts.some((p) => p.materialId === selectedMaterialId);
+  const materialGroupName = getMaterialGroupName(
+    material,
+    selectedMaterialSource === "global" ? globalMaterialLibrary.materialGroups : materialGroups,
+  );
 
-  const editableAxes: Array<{ axis: keyof Vector3Like; label: string }> =
-    material.objectType === "timber" || material.objectType === "cladding"
-      ? [{ axis: "x", label: "Default Length" }]
-      : material.objectType === "sheet" || material.objectType === "glass"
-        ? [{ axis: "x", label: "Default Length" }, { axis: "y", label: "Default Width" }]
-        : material.objectType === "circle"
-          ? [{ axis: "x", label: "Default Diameter" }]
-          : material.objectType === "cube"
-            ? [{ axis: "x", label: "Default Width" }, { axis: "y", label: "Default Height" }, { axis: "z", label: "Default Depth" }]
-            : [{ axis: "x", label: "Default Width" }, { axis: "z", label: "Default Depth" }];
+  const dimensionAxes: Array<{ axis: keyof Vector3Like; label: string }> = [
+    { axis: "x", label: "X" },
+    { axis: "y", label: "Y" },
+    { axis: "z", label: "Z" },
+  ];
 
   const effectiveValue = (axis: keyof Vector3Like) => material.defaultSize[axis];
 
@@ -223,14 +303,15 @@ function MaterialInspector() {
           className="field__input"
           type="text"
           value={material.name}
-          onBlur={(e) => renameMaterial(material.id, e.target.value)}
-          onChange={(e) => renameMaterial(material.id, e.target.value)}
+          disabled={isUsed}
+          onBlur={(e) => selectedMaterialSource === "global" ? renameGlobalMaterial(material.id, e.target.value) : renameMaterial(material.id, e.target.value)}
+          onChange={(e) => selectedMaterialSource === "global" ? renameGlobalMaterial(material.id, e.target.value) : renameMaterial(material.id, e.target.value)}
         />
       </label>
 
       <label className="field inspector-field">
-        <span>Type</span>
-        <div className="field__input field__input--readonly">{getObjectTypeLabel(material.objectType)}</div>
+        <span>Group</span>
+        <div className="field__input field__input--readonly">{materialGroupName}</div>
       </label>
 
       <label className="field inspector-field">
@@ -239,23 +320,58 @@ function MaterialInspector() {
           className="field__input field__input--color"
           type="color"
           value={material.color}
-          onChange={(e) => updateMaterialColor(material.id, e.target.value)}
+          disabled={isUsed}
+          onChange={(e) => selectedMaterialSource === "global" ? updateGlobalMaterialColor(material.id, e.target.value) : updateMaterialColor(material.id, e.target.value)}
         />
       </label>
 
-      {editableAxes.map(({ axis, label }) => (
-        <FieldRow
-          key={axis}
-          label={`${label} (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
-          value={toDisplayUnits(effectiveValue(axis), unitPreference)}
-          onChange={(value) => updateMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))}
-        />
-      ))}
+      {isUsed ? (
+        <p className="inspector-note">
+          This material is used in the scene. Duplicate it to create an editable variant.
+        </p>
+      ) : null}
 
-      <button className="inspector-action-button" onClick={() => addObjectFromMaterial(material.id)} type="button">
+      <div className="field-group">
+        <span className="field-group__label inspector-section-label">
+          Default size <small>{UNIT_DEFINITIONS[unitPreference].shortLabel}</small>
+        </span>
+        {dimensionAxes.map(({ axis, label }) => (
+          <div className="material-axis-row" key={axis}>
+            <FieldRow
+              label={label}
+              value={toDisplayUnits(effectiveValue(axis), unitPreference)}
+              disabled={isUsed}
+              onChange={(value) =>
+                selectedMaterialSource === "global"
+                  ? updateGlobalMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))
+                  : updateMaterialDefaultSize(material.id, axis, fromDisplayUnits(value, unitPreference))
+              }
+            />
+            <label className="material-axis-row__lock">
+              <input
+                checked={Boolean(material.lockedAxes?.[axis])}
+                disabled={isUsed}
+                onChange={(event) =>
+                  selectedMaterialSource === "global"
+                    ? updateGlobalMaterialAxisLock(material.id, axis, event.target.checked)
+                    : updateMaterialAxisLock(material.id, axis, event.target.checked)
+                }
+                type="checkbox"
+              />
+              <span>Fixed</span>
+            </label>
+          </div>
+        ))}
+      </div>
+
+      <button
+        className="inspector-action-button"
+        onClick={() => selectedMaterialSource === "global" ? addObjectFromGlobalMaterial(material.id) : addObjectFromMaterial(material.id)}
+        type="button"
+      >
         Add to Scene
       </button>
-      <button className="inspector-action-button" onClick={() => duplicateMaterial(material.id)} type="button">
+      <button className="inspector-action-button" onClick={() => selectedMaterialSource === "global" ? duplicateGlobalMaterial(material.id) : duplicateMaterial(material.id)} type="button">
         Duplicate
       </button>
       <button
@@ -263,7 +379,8 @@ function MaterialInspector() {
         disabled={isUsed}
         title={isUsed ? "This material is used by parts in the scene" : "Remove from library"}
         onClick={() => {
-          deleteMaterial(material.id);
+          if (selectedMaterialSource === "global") deleteGlobalMaterial(material.id);
+          else deleteMaterial(material.id);
           selectMaterial(null);
         }}
         type="button"
@@ -305,14 +422,41 @@ export function InspectorPanel() {
   }, [selectedPart?.id, selectedPart?.objectType]);
 
   const selectedMaterialId = state.selectedMaterialId;
-  const selectedMaterial = selectedMaterialId ? state.project.materials.find((m) => m.id === selectedMaterialId) ?? null : null;
+  const selectedMaterial = selectedMaterialId
+    ? state.selectedMaterialSource === "global"
+      ? state.globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId) ?? null
+      : state.project.materials.find((m) => m.id === selectedMaterialId) ?? null
+    : null;
+  const selectedMaterialGroupName = selectedMaterial
+    ? getMaterialGroupName(
+        selectedMaterial,
+        state.selectedMaterialSource === "global" ? state.globalMaterialLibrary.materialGroups : state.project.materialGroups,
+      )
+    : null;
+  const changePartMaterial = (part: PartNode, materialId: string): boolean => {
+    const overlapCheck = getPartMaterialChangeOverlaps(state.project, part.id, materialId);
+    if (overlapCheck && overlapCheck.overlaps.length > 0) {
+      const names = overlapCheck.overlaps.slice(0, 5).map((item) => item.name).join(", ");
+      const moreCount = overlapCheck.overlaps.length - 5;
+      const suffix = moreCount > 0 ? ` and ${moreCount} more` : "";
+      const confirmed = window.confirm(
+        `Changing to "${overlapCheck.material.name}" will overlap ${names}${suffix}.\n\nApply the material anyway?`,
+      );
+      if (!confirmed) {
+        return false;
+      }
+    }
+
+    setPartMaterial(part.id, materialId);
+    return true;
+  };
 
   return (
     <aside className="inspector">
       <section className="panel-card">
         <div className="panel-card__header">
           <span className="panel-card__title">
-            {selectedPart ? "Object" : selectedMeasurement ? "Measure" : selectedMaterial ? "Material" : "Material Overview"}
+            {selectedPart ? "Object" : selectedMeasurement ? "Measure" : selectedMaterial ? "Material" : "Parts List"}
           </span>
           <span className="panel-card__meta">
             {selectedPart
@@ -320,7 +464,7 @@ export function InspectorPanel() {
               : selectedMeasurement
                 ? "Measure"
                 : selectedMaterial
-                  ? getObjectTypeLabel(selectedMaterial.objectType)
+                  ? selectedMaterialGroupName
                   : `${state.project.parts.length} objects`}
           </span>
         </div>
@@ -335,7 +479,9 @@ export function InspectorPanel() {
                   value={selectedPart.materialId ?? ""}
                   onChange={(event) => {
                     const next = event.target.value;
-                    if (next) setPartMaterial(selectedPart.id, next);
+                    if (next && !changePartMaterial(selectedPart, next)) {
+                      event.currentTarget.value = selectedPart.materialId ?? "";
+                    }
                   }}
                 >
                   {selectedPart.materialId === null ? (
@@ -539,7 +685,7 @@ export function InspectorPanel() {
         ) : selectedMaterial ? (
           <MaterialInspector />
         ) : (
-          <MaterialOverview />
+          <PartsList />
         )}
       </section>
     </aside>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FilterIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -32,24 +32,41 @@ function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancest
 
 function MaterialPanel() {
   const project = useEditorStore((state) => state.project);
+  const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
+  const selectedMaterialSource = useEditorStore((state) => state.selectedMaterialSource);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
   const renameMaterial = useEditorStore((state) => state.renameMaterial);
+  const renameGlobalMaterial = useEditorStore((state) => state.renameGlobalMaterial);
   const renameMaterialGroup = useEditorStore((state) => state.renameMaterialGroup);
-  const addMaterialGroup = useEditorStore((state) => state.addMaterialGroup);
+  const renameGlobalMaterialGroup = useEditorStore((state) => state.renameGlobalMaterialGroup);
   const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
+  const deleteGlobalMaterial = useEditorStore((state) => state.deleteGlobalMaterial);
   const deleteMaterialGroup = useEditorStore((state) => state.deleteMaterialGroup);
 
+  const [filterMode, setFilterMode] = useState<"all" | "used">("all");
   const [editingItem, setEditingItem] = useState<EditingMaterialItem>(null);
   const [draftName, setDraftName] = useState("");
-  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set(project.materialGroups.map((g) => g.id)));
+  const activeLibrary = filterMode === "all" ? globalMaterialLibrary : { materialGroups: project.materialGroups, materials: project.materials.filter((m) => project.parts.some((p) => p.materialId === m.id)) };
+  const activeSource: "project" | "global" = filterMode === "all" ? "global" : "project";
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set(activeLibrary.materialGroups.map((g) => g.id)));
+
+  useEffect(() => {
+    setExpandedGroupIds(new Set(activeLibrary.materialGroups.map((group) => group.id)));
+  }, [filterMode, activeLibrary.materialGroups]);
 
   function commitRename() {
     if (!editingItem) return;
     const name = draftName.trim();
     if (name) {
-      if (editingItem.kind === "material") renameMaterial(editingItem.id, name);
-      else renameMaterialGroup(editingItem.id, name);
+      if (editingItem.kind === "material") {
+        if (activeSource === "global") renameGlobalMaterial(editingItem.id, name);
+        else renameMaterial(editingItem.id, name);
+      } else if (activeSource === "global") {
+        renameGlobalMaterialGroup(editingItem.id, name);
+      } else {
+        renameMaterialGroup(editingItem.id, name);
+      }
     }
     setEditingItem(null);
     setDraftName("");
@@ -98,17 +115,18 @@ function MaterialPanel() {
   }
 
   function renderMaterial(material: MaterialNode, depth: number) {
-    const isSelected = material.id === selectedMaterialId;
+    const isSelected = material.id === selectedMaterialId && selectedMaterialSource === activeSource;
     const isUsed = project.parts.some((p) => p.materialId === material.id);
+    const isGlobalCopied = activeSource === "global" && project.materials.some((m) => m.sourceLibraryMaterialId === material.id);
     return (
       <div
         key={material.id}
         className={`object-row ${isSelected ? "object-row--selected" : ""}`}
-        onClick={() => selectMaterial(isSelected ? null : material.id)}
+        onClick={() => selectMaterial(isSelected ? null : material.id, activeSource)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            selectMaterial(isSelected ? null : material.id);
+            selectMaterial(isSelected ? null : material.id, activeSource);
           }
         }}
         role="button"
@@ -122,15 +140,16 @@ function MaterialPanel() {
         <span className="object-row__content">
           {renderNameEditor("material", material.id, material.name)}
         </span>
-        {!isUsed ? (
+        {activeSource === "global" || !isUsed ? (
           <button
             aria-label={`Delete ${material.name}`}
             className="object-row__eye"
             onClick={(event) => {
               event.stopPropagation();
-              deleteMaterial(material.id);
+              if (activeSource === "global") deleteGlobalMaterial(material.id);
+              else deleteMaterial(material.id);
             }}
-            title="Delete unused material"
+            title={activeSource === "global" ? (isGlobalCopied ? "Delete global material; project copies stay unchanged" : "Delete global material") : "Delete unused material"}
             type="button"
           >
             <TrashIcon width={12} height={12} />
@@ -141,8 +160,8 @@ function MaterialPanel() {
   }
 
   function renderMaterialGroup(group: MaterialGroupNode, depth: number) {
-    const children = project.materials.filter((m) => m.groupId === group.id);
-    const childGroups = project.materialGroups.filter((g) => g.parentGroupId === group.id);
+    const children = activeLibrary.materials.filter((m) => m.groupId === group.id);
+    const childGroups = activeLibrary.materialGroups.filter((g) => g.parentGroupId === group.id);
     const isExpanded = expandedGroupIds.has(group.id);
     const isEmpty = children.length === 0 && childGroups.length === 0;
 
@@ -170,7 +189,7 @@ function MaterialPanel() {
           <span className="object-row__content">
             {renderNameEditor("materialGroup", group.id, group.name)}
           </span>
-          {isEmpty ? (
+          {isEmpty && activeSource === "project" ? (
             <button
               aria-label={`Delete folder ${group.name}`}
               className="object-row__eye"
@@ -195,8 +214,8 @@ function MaterialPanel() {
     );
   }
 
-  const rootGroups = project.materialGroups.filter((g) => g.parentGroupId === null);
-  const ungroupedMaterials = project.materials.filter((m) => m.groupId === null);
+  const rootGroups = activeLibrary.materialGroups.filter((g) => g.parentGroupId === null);
+  const ungroupedMaterials = activeLibrary.materials.filter((m) => m.groupId === null);
 
   return (
     <section className="panel-card browser-card">
@@ -204,17 +223,20 @@ function MaterialPanel() {
         <div>
           <span className="panel-card__title">Material</span>
           <p className="browser-card__subtitle">
-            {project.materials.length} materials · {project.materialGroups.length} groups
+            {filterMode === "all" ? `${globalMaterialLibrary.materials.length} global materials` : `${activeLibrary.materials.length} used in project`}
           </p>
         </div>
         <button
-          aria-label="Create material group"
-          className="browser-card__header-action"
-          onClick={() => addMaterialGroup()}
-          title="Create material group"
+          aria-label={filterMode === "all" ? "Show used materials" : "Show all materials"}
+          className={`browser-card__header-action ${filterMode === "used" ? "browser-card__header-action--active" : ""}`}
+          onClick={() => {
+            setEditingItem(null);
+            setFilterMode((mode) => (mode === "all" ? "used" : "all"));
+          }}
+          title={filterMode === "all" ? "Show only materials used in this project" : "Show global material library"}
           type="button"
         >
-          <FolderIcon width={16} height={16} />
+          <FilterIcon width={16} height={16} />
         </button>
       </div>
 
@@ -225,7 +247,7 @@ function MaterialPanel() {
             {ungroupedMaterials.map((m) => renderMaterial(m, 0))}
           </>
         ) : (
-          <p className="panel-card__empty">No materials defined yet.</p>
+          <p className="panel-card__empty">{filterMode === "all" ? "No materials defined yet." : "No materials used in this project yet."}</p>
         )}
       </div>
     </section>

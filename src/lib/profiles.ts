@@ -219,6 +219,14 @@ export function createSizeFromProfile(profile: ObjectProfile): Vector3Like {
  * discriminators because they don't carry lock fields.
  */
 export function applyLockToSize(part: PartNode, size: Vector3Like): Vector3Like {
+  if (part.lockedAxes) {
+    return {
+      x: part.lockedAxes.x ? part.size.x : size.x,
+      y: part.lockedAxes.y ? part.size.y : size.y,
+      z: part.lockedAxes.z ? part.size.z : size.z,
+    };
+  }
+
   if (part.objectType === "rectangle") {
     return { x: size.x, y: 0, z: size.z };
   }
@@ -257,12 +265,13 @@ export function extractLockFields(profile: ObjectProfile): {
   crossSectionWidthMm?: number;
   crossSectionHeightMm?: number;
   thicknessMm?: number;
+  lockedAxes?: Partial<Record<keyof Vector3Like, boolean>>;
 } {
   if (profile.objectType === "timber" || profile.objectType === "cladding") {
-    return { crossSectionWidthMm: profile.widthMm, crossSectionHeightMm: profile.heightMm };
+    return { crossSectionWidthMm: profile.widthMm, crossSectionHeightMm: profile.heightMm, lockedAxes: { y: true, z: true } };
   }
   if (profile.objectType === "sheet" || profile.objectType === "glass") {
-    return { thicknessMm: profile.thicknessMm };
+    return { thicknessMm: profile.thicknessMm, lockedAxes: { z: true } };
   }
   return {};
 }
@@ -277,6 +286,10 @@ export function isSheetObject(part: PartNode): boolean {
 }
 
 export function getResizableAxes(part: PartNode): Array<keyof Vector3Like> {
+  if (part.lockedAxes) {
+    return (["x", "y", "z"] as Array<keyof Vector3Like>).filter((axis) => !part.lockedAxes?.[axis] && part.size[axis] > 0);
+  }
+
   if (part.objectType === "sheet" || part.objectType === "glass") {
     return ["x", "y"];
   }

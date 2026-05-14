@@ -22,6 +22,8 @@ export interface Vector3Like {
   z: number;
 }
 
+export type AxisLocks = Partial<Record<keyof Vector3Like, boolean>>;
+
 export interface SnapSettings {
   enabled: boolean;
   moveIncrement: number;
@@ -33,6 +35,10 @@ export interface GridSettings {
   size: number;    // mm — total side length of the square grid
   originX: number; // mm — how far the world origin (0,0,0) is from the left edge
   originZ: number; // mm — how far the world origin (0,0,0) is from the front edge
+}
+
+export interface CutSettings {
+  kerfMm: number;
 }
 
 export interface CameraState {
@@ -58,6 +64,8 @@ export interface PartNode {
   crossSectionHeightMm?: number;
   /** Z-axis thickness lock for sheet/glass (mm). Absent for unlocked types. */
   thicknessMm?: number;
+  /** Generic axis locks copied from the material at placement/change time. Locked axes keep their current size while resizing. */
+  lockedAxes?: AxisLocks;
 }
 
 export interface MeasurementNode {
@@ -81,6 +89,7 @@ export interface MaterialGroupNode {
   id: string;
   name: string;
   parentGroupId: string | null;
+  sourceLibraryGroupId?: string;
 }
 
 export interface MaterialNode {
@@ -98,6 +107,15 @@ export interface MaterialNode {
   crossSectionHeightMm?: number;
   /** Z-axis thickness lock for sheet/glass (mm). Absent for unlocked types. */
   thicknessMm?: number;
+  /** Axes fixed for placed parts created from this material. Locked axes use defaultSize as their stock dimension. */
+  lockedAxes?: AxisLocks;
+  /** Present when this project material was copied from the global material library. */
+  sourceLibraryMaterialId?: string;
+}
+
+export interface MaterialLibraryDocument {
+  materialGroups: MaterialGroupNode[];
+  materials: MaterialNode[];
 }
 
 export interface ProjectDocument {
@@ -107,6 +125,7 @@ export interface ProjectDocument {
   unitPreference: UnitPreference;
   snapSettings: SnapSettings;
   gridSettings: GridSettings;
+  cutSettings: CutSettings;
   cameraState: CameraState;
   groups: GroupNode[];
   parts: PartNode[];

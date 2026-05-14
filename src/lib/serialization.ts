@@ -1,12 +1,11 @@
-import { DEFAULT_GRID_SETTINGS, PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
+import { DEFAULT_CUT_SETTINGS, DEFAULT_GRID_SETTINGS, PROJECT_SCHEMA_VERSION, createInitialMaterials } from "./project";
 import { DEFAULT_OBJECT_COLOR } from "./materials";
 import { createSizeFromProfile, extractLockFields, getProfileById } from "./profiles";
-import type { MaterialNode, MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
+import type { AxisLocks, MaterialNode, MeasurementNode, ObjectProfileId, PartNode, ProjectDocument } from "../types/model";
 
 // Legacy shapes carry profileId (dropped from current PartNode/MaterialNode at v9).
 // Used by migration paths to read profileId from the on-disk format.
 type LegacyPartWithProfileId = PartNode & { profileId: ObjectProfileId };
-type LegacyMaterialWithProfileId = MaterialNode & { profileId: ObjectProfileId };
 
 const WEB3D_PROJECT_FILE_FORMAT = "web3d-project";
 const WEB3D_PROJECT_FILE_FORMAT_VERSION = 1;
@@ -81,6 +80,16 @@ type ProjectDocumentV8 = Omit<ProjectDocument, "version" | "parts" | "materials"
   version: 8;
   parts: LegacyPartWithProfileId[];
   materials: FlexibleLegacyMaterial[];
+};
+
+type ProjectDocumentV9 = Omit<ProjectDocument, "version" | "parts" | "materials"> & {
+  version: 9;
+  parts: Array<Omit<PartNode, "lockedAxes">>;
+  materials: Array<Omit<MaterialNode, "lockedAxes">>;
+};
+
+type ProjectDocumentV10 = Omit<ProjectDocument, "version" | "cutSettings"> & {
+  version: 10;
 };
 
 type Web3dProjectFile = {
@@ -240,14 +249,43 @@ function migrateProjectV7ToCurrent(project: ProjectDocumentV7): ProjectDocument 
 
 function migrateProjectV8ToCurrent(project: ProjectDocumentV8): ProjectDocument {
   // v9: drop `profileId` from parts and materials. The hardcoded catalog is now seed-only.
-  return {
+  const v9: ProjectDocumentV9 = {
     ...project,
-    version: PROJECT_SCHEMA_VERSION,
+    version: 9 as const,
     parts: project.parts.map(({ profileId: _profileId, ...rest }) => rest),
     materials: project.materials.map(({ profileId: _profileId, defaultSize, ...rest }) => ({
       ...rest,
       defaultSize: defaultSize as PartNode["size"], // narrowed: v8 materials always have a complete defaultSize
     })),
+  };
+  return migrateProjectV9ToCurrent(v9);
+}
+
+function deriveLockedAxes(item: Pick<PartNode | MaterialNode, "crossSectionWidthMm" | "crossSectionHeightMm" | "thicknessMm">): AxisLocks | undefined {
+  if (item.crossSectionWidthMm !== undefined && item.crossSectionHeightMm !== undefined) {
+    return { y: true, z: true };
+  }
+  if (item.thicknessMm !== undefined) {
+    return { z: true };
+  }
+  return undefined;
+}
+
+function migrateProjectV9ToCurrent(project: ProjectDocumentV9): ProjectDocument {
+  const v10: ProjectDocumentV10 = {
+    ...project,
+    version: 10 as const,
+    parts: project.parts.map((part) => ({ ...part, lockedAxes: deriveLockedAxes(part) })),
+    materials: project.materials.map((material) => ({ ...material, lockedAxes: deriveLockedAxes(material) })),
+  };
+  return migrateProjectV10ToCurrent(v10);
+}
+
+function migrateProjectV10ToCurrent(project: ProjectDocumentV10): ProjectDocument {
+  return {
+    ...project,
+    version: PROJECT_SCHEMA_VERSION,
+    cutSettings: { ...DEFAULT_CUT_SETTINGS },
   };
 }
 
@@ -300,6 +338,14 @@ export function deserializeProject(payload: string): ProjectDocument {
 
   if (parsed.version === 8) {
     return migrateProjectV8ToCurrent(parsed as unknown as ProjectDocumentV8);
+  }
+
+  if (parsed.version === 9) {
+    return migrateProjectV9ToCurrent(parsed as unknown as ProjectDocumentV9);
+  }
+
+  if (parsed.version === 10) {
+    return migrateProjectV10ToCurrent(parsed as unknown as ProjectDocumentV10);
   }
 
   if (parsed.version !== PROJECT_SCHEMA_VERSION) {

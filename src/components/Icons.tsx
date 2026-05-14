@@ -57,6 +57,14 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
+export function FilterIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 6h16l-6.2 7.1V19l-3.6 1.8v-7.7L4 6Z" />
+    </BaseIcon>
+  );
+}
+
 export function MoveIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

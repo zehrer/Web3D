@@ -3,6 +3,28 @@ import type { MaterialNode, ObjectType, PartNode } from "../types/model";
 
 export type MaterialUsageKind = "linear" | "area";
 
+export type CutPlanCut = {
+  partId: string;
+  partName: string;
+  lengthMm: number;
+};
+
+export type CutPlanStock = {
+  index: number;
+  cuts: CutPlanCut[];
+  usedLengthMm: number;
+  leftoverLengthMm: number;
+};
+
+export type LinearCutPlan = {
+  rawStockLengthMm: number;
+  kerfMm: number;
+  stock: CutPlanStock[];
+  stockCount: number;
+  totalWasteMm: number;
+  oversizePartIds: string[];
+};
+
 export type MaterialUsageItem = {
   key: string;
   label: string;
@@ -13,6 +35,7 @@ export type MaterialUsageItem = {
   totalLengthMm: number;
   totalAreaMm2: number;
   partIds: string[];
+  cutPlan?: LinearCutPlan;
 };
 
 const OBJECT_TYPE_SORT_ORDER: Record<ObjectType, number> = {
@@ -70,6 +93,7 @@ function deriveOrphanKey(part: PartNode): string {
 export function getMaterialUsageSummary(
   parts: PartNode[],
   materials: MaterialNode[],
+  kerfMm = 0,
 ): MaterialUsageItem[] {
   const materialById = new Map(materials.map((m) => [m.id, m]));
   const usageByKey = new Map<string, MaterialUsageItem>();
@@ -103,8 +127,70 @@ export function getMaterialUsageSummary(
     usageByKey.set(key, current);
   }
 
+  const byPartId = new Map(parts.map((part) => [part.id, part]));
+  const normalizedKerfMm = Math.max(0, Number.isFinite(kerfMm) ? kerfMm : 0);
+
+  usageByKey.forEach((item) => {
+    if (item.kind !== "linear" || !item.key.startsWith("mat:")) {
+      return;
+    }
+    const material = materialById.get(item.key.slice(4));
+    if (!material || material.defaultSize.x <= 0) {
+      return;
+    }
+
+    item.cutPlan = createLinearCutPlan(
+      item.partIds
+        .map((partId) => byPartId.get(partId))
+        .filter((part): part is PartNode => Boolean(part)),
+      material.defaultSize.x,
+      normalizedKerfMm,
+    );
+  });
+
   return [...usageByKey.values()].sort((a, b) => {
     const typeOrder = OBJECT_TYPE_SORT_ORDER[a.objectType] - OBJECT_TYPE_SORT_ORDER[b.objectType];
     return typeOrder || a.label.localeCompare(b.label);
   });
+}
+
+function createLinearCutPlan(parts: PartNode[], rawStockLengthMm: number, kerfMm: number): LinearCutPlan {
+  const oversizePartIds: string[] = [];
+  const cuts = parts
+    .map((part): CutPlanCut => ({ partId: part.id, partName: part.name, lengthMm: part.size.x }))
+    .filter((cut) => {
+      if (cut.lengthMm > rawStockLengthMm) {
+        oversizePartIds.push(cut.partId);
+        return false;
+      }
+      return true;
+    })
+    .sort((left, right) => right.lengthMm - left.lengthMm || left.partName.localeCompare(right.partName) || left.partId.localeCompare(right.partId));
+
+  const stock: CutPlanStock[] = [];
+
+  cuts.forEach((cut) => {
+    const target = stock.find((candidate) => candidate.usedLengthMm + (candidate.cuts.length > 0 ? kerfMm : 0) + cut.lengthMm <= rawStockLengthMm);
+    if (target) {
+      target.usedLengthMm += (target.cuts.length > 0 ? kerfMm : 0) + cut.lengthMm;
+      target.leftoverLengthMm = rawStockLengthMm - target.usedLengthMm;
+      target.cuts.push(cut);
+    } else {
+      stock.push({
+        index: stock.length + 1,
+        cuts: [cut],
+        usedLengthMm: cut.lengthMm,
+        leftoverLengthMm: rawStockLengthMm - cut.lengthMm,
+      });
+    }
+  });
+
+  return {
+    rawStockLengthMm,
+    kerfMm,
+    stock,
+    stockCount: stock.length,
+    totalWasteMm: stock.reduce((sum, item) => sum + item.leftoverLengthMm, 0),
+    oversizePartIds,
+  };
 }

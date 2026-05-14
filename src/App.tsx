@@ -8,8 +8,10 @@ import { createDemoProject, createProject } from "./lib/project";
 import {
   deleteProjectDocument,
   listProjectSummaries,
+  loadGlobalMaterialLibrary,
   loadMostRecentProject,
   loadProjectDocument,
+  saveGlobalMaterialLibrary,
   saveProjectDocument,
 } from "./lib/persistence";
 import { deserializeProjectFile } from "./lib/serialization";
@@ -20,8 +22,10 @@ const AUTOSAVE_DELAY_MS = 350;
 export default function App() {
   const hydrated = useEditorStore((state) => state.hydrated);
   const project = useEditorStore((state) => state.project);
+  const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const setRecentProjects = useEditorStore((state) => state.setRecentProjects);
   const hydrateProject = useEditorStore((state) => state.hydrateProject);
+  const hydrateGlobalMaterialLibrary = useEditorStore((state) => state.hydrateGlobalMaterialLibrary);
   const setHydrated = useEditorStore((state) => state.setHydrated);
   const createNewProject = useEditorStore((state) => state.createNewProject);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -35,9 +39,10 @@ export default function App() {
 
     async function hydrate() {
       try {
-        const [recentProjects, recentProject] = await Promise.all([
+        const [recentProjects, recentProject, materialLibrary] = await Promise.all([
           listProjectSummaries().catch(() => []),
           loadMostRecentProject().catch(() => null),
+          loadGlobalMaterialLibrary(),
         ]);
 
         if (cancelled) {
@@ -45,6 +50,7 @@ export default function App() {
         }
 
         setRecentProjects(recentProjects);
+        hydrateGlobalMaterialLibrary(materialLibrary);
 
         if (recentProject) {
           hydrateProject(recentProject);
@@ -64,7 +70,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateProject, setHydrated, setRecentProjects]);
+  }, [hydrateGlobalMaterialLibrary, hydrateProject, setHydrated, setRecentProjects]);
 
   useEffect(() => {
     function handleResize() {
@@ -98,6 +104,18 @@ export default function App() {
 
     return () => window.clearTimeout(timeout);
   }, [hydrated, project, setRecentProjects]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void saveGlobalMaterialLibrary(globalMaterialLibrary).catch(() => setSaveState("error"));
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [globalMaterialLibrary, hydrated]);
 
   async function handleOpenProject(projectId: string) {
     const projectDocument = await loadProjectDocument(projectId);

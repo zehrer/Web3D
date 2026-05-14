@@ -63,8 +63,12 @@ describe("object profiles", () => {
   it("extractLockFields gives empty for unlocked types", () => {
     expect(extractLockFields(getProfileById("shape-rectangle"))).toEqual({});
     expect(extractLockFields(getProfileById("shape-cube"))).toEqual({});
-    expect(extractLockFields(getProfileById("timber-56x56"))).toEqual({ crossSectionWidthMm: 56, crossSectionHeightMm: 56 });
-    expect(extractLockFields(getProfileById("osb3-18"))).toEqual({ thicknessMm: 18 });
+    expect(extractLockFields(getProfileById("timber-56x56"))).toEqual({
+      crossSectionWidthMm: 56,
+      crossSectionHeightMm: 56,
+      lockedAxes: { y: true, z: true },
+    });
+    expect(extractLockFields(getProfileById("osb3-18"))).toEqual({ thicknessMm: 18, lockedAxes: { z: true } });
   });
 
   it("limits resize axes by object family", () => {

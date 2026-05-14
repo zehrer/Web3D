@@ -1,14 +1,17 @@
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
+import { applyMaterialToPart, legacyLockFieldsFromSize } from "../lib/partMaterial";
 import { cloneProject, createMeasurementNode, createObjectPart, createProject, touchProject } from "../lib/project";
 import { applyLockToSize, getDefaultProfileId } from "../lib/profiles";
 import { clampLength } from "../lib/units";
 import type {
   ActiveTool,
   CameraState,
+  CutSettings,
   GridSettings,
   GroupNode,
   MaterialGroupNode,
+  MaterialLibraryDocument,
   MaterialNode,
   MeasurementNode,
   ObjectProfileId,
@@ -35,21 +38,24 @@ type PatternOptions = {
 export interface EditorState extends HistoryState {
   hydrated: boolean;
   project: ProjectDocument;
+  globalMaterialLibrary: MaterialLibraryDocument;
   recentProjects: ProjectSummary[];
   selectedPartId: string | null;
   selectedMeasurementId: string | null;
   selectedMaterialId: string | null;
+  selectedMaterialSource: "project" | "global";
   activeTool: ActiveTool;
 }
 
 export interface EditorActions {
   hydrateProject: (project: ProjectDocument) => void;
+  hydrateGlobalMaterialLibrary: (library: MaterialLibraryDocument) => void;
   setHydrated: (value: boolean) => void;
   setRecentProjects: (projects: ProjectSummary[]) => void;
   createNewProject: () => void;
   selectPart: (partId: string | null) => void;
   selectMeasurement: (measurementId: string | null) => void;
-  selectMaterial: (materialId: string | null) => void;
+  selectMaterial: (materialId: string | null, source?: "project" | "global") => void;
   addMaterialGroup: (parentGroupId?: string | null) => void;
   renameMaterialGroup: (groupId: string, name: string) => void;
   renameMaterial: (materialId: string, name: string) => void;
@@ -58,6 +64,7 @@ export interface EditorActions {
   updateUnitPreference: (unitPreference: UnitPreference) => void;
   updateSnapSettings: (partial: Partial<SnapSettings>) => void;
   updateGridSettings: (partial: Partial<GridSettings>) => void;
+  updateCutSettings: (partial: Partial<CutSettings>) => void;
   addObject: (objectType: ObjectType, profileId?: ObjectProfileId) => void;
   addMeasurement: (start: Vector3Like, end: Vector3Like) => void;
   addGroup: (parentGroupId?: string | null) => void;
@@ -76,10 +83,19 @@ export interface EditorActions {
   toggleGroupVisibility: (groupId: string) => void;
   toggleMeasurementVisibility: (measurementId: string) => void;
   addObjectFromMaterial: (materialId: string) => void;
+  addObjectFromGlobalMaterial: (materialId: string) => void;
   deleteMaterial: (materialId: string) => void;
   duplicateMaterial: (materialId: string) => void;
   updateMaterialColor: (materialId: string, color: string) => void;
   updateMaterialDefaultSize: (materialId: string, axis: keyof Vector3Like, valueMm: number) => void;
+  updateMaterialAxisLock: (materialId: string, axis: keyof Vector3Like, locked: boolean) => void;
+  renameGlobalMaterialGroup: (groupId: string, name: string) => void;
+  renameGlobalMaterial: (materialId: string, name: string) => void;
+  updateGlobalMaterialColor: (materialId: string, color: string) => void;
+  updateGlobalMaterialDefaultSize: (materialId: string, axis: keyof Vector3Like, valueMm: number) => void;
+  updateGlobalMaterialAxisLock: (materialId: string, axis: keyof Vector3Like, locked: boolean) => void;
+  duplicateGlobalMaterial: (materialId: string) => void;
+  deleteGlobalMaterial: (materialId: string) => void;
   deleteMaterialGroup: (groupId: string) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
@@ -94,6 +110,10 @@ export type EditorStore = ReturnType<typeof createEditorStore>;
 
 const MAX_HISTORY = 50;
 const DUPLICATE_OFFSET_MM = 10;
+
+function createEmptyMaterialLibrary(): MaterialLibraryDocument {
+  return { materialGroups: [], materials: [] };
+}
 
 function randomId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `id-${Math.random().toString(36).slice(2, 10)}`;
@@ -145,6 +165,65 @@ function isDescendantGroup(groups: GroupNode[], candidateGroupId: string, parent
   }
 
   return false;
+}
+
+function isMaterialUsed(project: ProjectDocument, materialId: string): boolean {
+  return project.parts.some((part) => part.materialId === materialId);
+}
+
+function copyGlobalMaterialIntoProject(
+  project: ProjectDocument,
+  globalLibrary: MaterialLibraryDocument,
+  material: MaterialNode,
+): { project: ProjectDocument; materialId: string } {
+  const existing = project.materials.find((item) => item.sourceLibraryMaterialId === material.id);
+  if (existing) {
+    return { project, materialId: existing.id };
+  }
+
+  const sourceGroup = material.groupId ? globalLibrary.materialGroups.find((group) => group.id === material.groupId) : null;
+  let groupId: string | null = null;
+  let materialGroups = project.materialGroups;
+
+  if (sourceGroup) {
+    const existingGroup = project.materialGroups.find(
+      (group) => group.sourceLibraryGroupId === sourceGroup.id || (group.parentGroupId === null && group.name === sourceGroup.name),
+    );
+    if (existingGroup) {
+      groupId = existingGroup.id;
+    } else {
+      groupId = randomId();
+      materialGroups = [
+        ...materialGroups,
+        {
+          id: groupId,
+          name: sourceGroup.name,
+          parentGroupId: null,
+          sourceLibraryGroupId: sourceGroup.id,
+        },
+      ];
+    }
+  }
+
+  const materialId = randomId();
+  return {
+    materialId,
+    project: {
+      ...project,
+      materialGroups,
+      materials: [
+        ...project.materials,
+        {
+          ...material,
+          id: materialId,
+          groupId,
+          defaultSize: { ...material.defaultSize },
+          lockedAxes: { ...material.lockedAxes },
+          sourceLibraryMaterialId: material.id,
+        },
+      ],
+    },
+  };
 }
 
 function getLocalAxisVector(axis: keyof Vector3Like): Vector3Like {
@@ -219,10 +298,12 @@ export function createEditorStore() {
   return createStore<EditorState & EditorActions>((set) => ({
     hydrated: false,
     project: createProject(),
+    globalMaterialLibrary: createEmptyMaterialLibrary(),
     recentProjects: [],
     selectedPartId: null,
     selectedMeasurementId: null,
     selectedMaterialId: null,
+    selectedMaterialSource: "project",
     activeTool: "move",
     undoStack: [],
     redoStack: [],
@@ -232,13 +313,23 @@ export function createEditorStore() {
         project: {
           ...project,
           gridSettings: project.gridSettings ?? { size: 6000, originX: 0, originZ: 0 },
+          cutSettings: project.cutSettings ?? { kerfMm: 3 },
         },
         hydrated: true,
         selectedPartId: null,
         selectedMeasurementId: null,
         selectedMaterialId: null,
+        selectedMaterialSource: "project",
         undoStack: [],
         redoStack: [],
+      }),
+
+    hydrateGlobalMaterialLibrary: (library) =>
+      set({
+        globalMaterialLibrary: {
+          materialGroups: library.materialGroups,
+          materials: library.materials,
+        },
       }),
 
     setHydrated: (value) => set({ hydrated: value }),
@@ -252,6 +343,7 @@ export function createEditorStore() {
           selectedPartId: project.parts[0]?.id ?? null,
           selectedMeasurementId: null,
           selectedMaterialId: null,
+          selectedMaterialSource: "project",
           undoStack: [],
           redoStack: [],
         };
@@ -260,8 +352,8 @@ export function createEditorStore() {
     selectPart: (partId) => set({ selectedPartId: partId, selectedMeasurementId: null }),
     selectMeasurement: (measurementId) => set({ selectedMeasurementId: measurementId, selectedPartId: null }),
 
-    selectMaterial: (materialId) =>
-      set({ selectedMaterialId: materialId, selectedPartId: null, selectedMeasurementId: null }),
+    selectMaterial: (materialId, source = "project") =>
+      set({ selectedMaterialId: materialId, selectedMaterialSource: source, selectedPartId: null, selectedMeasurementId: null }),
 
     addMaterialGroup: (parentGroupId = null) =>
       set((state) => {
@@ -292,14 +384,17 @@ export function createEditorStore() {
       })),
 
     renameMaterial: (materialId, name) =>
-      set((state) => ({
-        ...withProjectHistory(state, (project) => ({
-          ...project,
-          materials: project.materials.map((m) =>
-            m.id === materialId ? { ...m, name: name.trim() || m.name } : m,
-          ),
-        })),
-      })),
+      set((state) => {
+        if (isMaterialUsed(state.project, materialId)) return state;
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            materials: project.materials.map((m) =>
+              m.id === materialId ? { ...m, name: name.trim() || m.name } : m,
+            ),
+          })),
+        };
+      }),
 
     setActiveTool: (tool) => set({ activeTool: tool }),
     renameProject: (name) =>
@@ -335,6 +430,17 @@ export function createEditorStore() {
           ...project,
           gridSettings: {
             ...project.gridSettings,
+            ...partial,
+          },
+        })),
+      })),
+
+    updateCutSettings: (partial) =>
+      set((state) => ({
+        ...withProjectHistory(state, (project) => ({
+          ...project,
+          cutSettings: {
+            ...project.cutSettings,
             ...partial,
           },
         })),
@@ -637,9 +743,8 @@ export function createEditorStore() {
         });
         // Override createObjectPart's profile-derived color/locks with the material's own.
         nextPart.color = material.color;
-        nextPart.crossSectionWidthMm = material.crossSectionWidthMm;
-        nextPart.crossSectionHeightMm = material.crossSectionHeightMm;
-        nextPart.thicknessMm = material.thicknessMm;
+        nextPart.lockedAxes = { ...material.lockedAxes };
+        Object.assign(nextPart, legacyLockFieldsFromSize(material.defaultSize, material.lockedAxes));
 
         const history = withProjectHistory(state, (project) => ({
           ...project,
@@ -654,10 +759,45 @@ export function createEditorStore() {
         };
       }),
 
+    addObjectFromGlobalMaterial: (materialId) =>
+      set((state) => {
+        const globalMaterial = state.globalMaterialLibrary.materials.find((m) => m.id === materialId);
+        if (!globalMaterial) return state;
+
+        let copiedMaterialId = "";
+        const history = withProjectHistory(state, (project) => {
+          const copied = copyGlobalMaterialIntoProject(project, state.globalMaterialLibrary, globalMaterial);
+          copiedMaterialId = copied.materialId;
+          const material = copied.project.materials.find((m) => m.id === copiedMaterialId);
+          if (!material) return copied.project;
+          const nextPart = createObjectPart(copied.project.parts.length, {
+            objectType: material.objectType,
+            size: { ...material.defaultSize },
+            position: { x: 0, y: 0, z: 0 },
+            materialId: material.id,
+          });
+          nextPart.color = material.color;
+          nextPart.lockedAxes = { ...material.lockedAxes };
+          Object.assign(nextPart, legacyLockFieldsFromSize(material.defaultSize, material.lockedAxes));
+          return {
+            ...copied.project,
+            parts: [...copied.project.parts, nextPart],
+          };
+        });
+
+        const selectedPartId = history.project.parts.at(-1)?.id ?? null;
+        return {
+          ...history,
+          selectedPartId,
+          selectedMeasurementId: null,
+          selectedMaterialId: null,
+          selectedMaterialSource: "project",
+        };
+      }),
+
     deleteMaterial: (materialId) =>
       set((state) => {
-        const isUsed = state.project.parts.some((p) => p.materialId === materialId);
-        if (isUsed) return state;
+        if (isMaterialUsed(state.project, materialId)) return state;
 
         const next = withProjectHistory(state, (project) => ({
           ...project,
@@ -671,24 +811,56 @@ export function createEditorStore() {
       }),
 
     updateMaterialDefaultSize: (materialId, axis, valueMm) =>
-      set((state) => ({
-        ...withProjectHistory(state, (project) => ({
-          ...project,
-          materials: project.materials.map((m) =>
-            m.id === materialId ? { ...m, defaultSize: { ...m.defaultSize, [axis]: valueMm } } : m,
-          ),
-        })),
-      })),
+      set((state) => {
+        if (isMaterialUsed(state.project, materialId)) return state;
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            materials: project.materials.map((m) => {
+              if (m.id !== materialId) return m;
+              const nextDefaultSize = { ...m.defaultSize, [axis]: valueMm };
+              return {
+                ...m,
+                defaultSize: nextDefaultSize,
+                ...legacyLockFieldsFromSize(nextDefaultSize, m.lockedAxes),
+              };
+            }),
+          })),
+        };
+      }),
+
+    updateMaterialAxisLock: (materialId, axis, locked) =>
+      set((state) => {
+        if (isMaterialUsed(state.project, materialId)) return state;
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            materials: project.materials.map((m) => {
+              if (m.id !== materialId) return m;
+              const nextLockedAxes = { ...m.lockedAxes, [axis]: locked };
+              if (!locked) delete nextLockedAxes[axis];
+              return {
+                ...m,
+                lockedAxes: nextLockedAxes,
+                ...legacyLockFieldsFromSize(m.defaultSize, nextLockedAxes),
+              };
+            }),
+          })),
+        };
+      }),
 
     updateMaterialColor: (materialId, color) =>
-      set((state) => ({
-        ...withProjectHistory(state, (project) => ({
-          ...project,
-          materials: project.materials.map((m) =>
-            m.id === materialId ? { ...m, color } : m,
-          ),
-        })),
-      })),
+      set((state) => {
+        if (isMaterialUsed(state.project, materialId)) return state;
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            materials: project.materials.map((m) =>
+              m.id === materialId ? { ...m, color } : m,
+            ),
+          })),
+        };
+      }),
 
     duplicateMaterial: (materialId) =>
       set((state) => {
@@ -699,6 +871,7 @@ export function createEditorStore() {
           id: randomId(),
           name: `${source.name} Copy`,
           defaultSize: { ...source.defaultSize },
+          lockedAxes: { ...source.lockedAxes },
         };
         const next = withProjectHistory(state, (project) => ({
           ...project,
@@ -719,6 +892,100 @@ export function createEditorStore() {
           })),
         };
       }),
+
+    renameGlobalMaterialGroup: (groupId, name) =>
+      set((state) => ({
+        globalMaterialLibrary: {
+          ...state.globalMaterialLibrary,
+          materialGroups: state.globalMaterialLibrary.materialGroups.map((group) =>
+            group.id === groupId ? { ...group, name: name.trim() || group.name } : group,
+          ),
+        },
+      })),
+
+    renameGlobalMaterial: (materialId, name) =>
+      set((state) => ({
+        globalMaterialLibrary: {
+          ...state.globalMaterialLibrary,
+          materials: state.globalMaterialLibrary.materials.map((material) =>
+            material.id === materialId ? { ...material, name: name.trim() || material.name } : material,
+          ),
+        },
+      })),
+
+    updateGlobalMaterialColor: (materialId, color) =>
+      set((state) => ({
+        globalMaterialLibrary: {
+          ...state.globalMaterialLibrary,
+          materials: state.globalMaterialLibrary.materials.map((material) =>
+            material.id === materialId ? { ...material, color } : material,
+          ),
+        },
+      })),
+
+    updateGlobalMaterialDefaultSize: (materialId, axis, valueMm) =>
+      set((state) => ({
+        globalMaterialLibrary: {
+          ...state.globalMaterialLibrary,
+          materials: state.globalMaterialLibrary.materials.map((material) => {
+            if (material.id !== materialId) return material;
+            const nextDefaultSize = { ...material.defaultSize, [axis]: valueMm };
+            return {
+              ...material,
+              defaultSize: nextDefaultSize,
+              ...legacyLockFieldsFromSize(nextDefaultSize, material.lockedAxes),
+            };
+          }),
+        },
+      })),
+
+    updateGlobalMaterialAxisLock: (materialId, axis, locked) =>
+      set((state) => ({
+        globalMaterialLibrary: {
+          ...state.globalMaterialLibrary,
+          materials: state.globalMaterialLibrary.materials.map((material) => {
+            if (material.id !== materialId) return material;
+            const nextLockedAxes = { ...material.lockedAxes, [axis]: locked };
+            if (!locked) delete nextLockedAxes[axis];
+            return {
+              ...material,
+              lockedAxes: nextLockedAxes,
+              ...legacyLockFieldsFromSize(material.defaultSize, nextLockedAxes),
+            };
+          }),
+        },
+      })),
+
+    duplicateGlobalMaterial: (materialId) =>
+      set((state) => {
+        const source = state.globalMaterialLibrary.materials.find((material) => material.id === materialId);
+        if (!source) return state;
+        const copy: MaterialNode = {
+          ...source,
+          id: randomId(),
+          name: `${source.name} Copy`,
+          defaultSize: { ...source.defaultSize },
+          lockedAxes: { ...source.lockedAxes },
+          sourceLibraryMaterialId: undefined,
+        };
+        return {
+          globalMaterialLibrary: {
+            ...state.globalMaterialLibrary,
+            materials: [...state.globalMaterialLibrary.materials, copy],
+          },
+          selectedMaterialId: copy.id,
+          selectedMaterialSource: "global",
+        };
+      }),
+
+    deleteGlobalMaterial: (materialId) =>
+      set((state) => ({
+        globalMaterialLibrary: {
+          ...state.globalMaterialLibrary,
+          materials: state.globalMaterialLibrary.materials.filter((material) => material.id !== materialId),
+        },
+        selectedMaterialId: state.selectedMaterialSource === "global" && state.selectedMaterialId === materialId ? null : state.selectedMaterialId,
+      })),
 
     setPartGeometry: (partId, geometry) =>
       set((state) => ({
@@ -753,23 +1020,7 @@ export function createEditorStore() {
         return {
           ...withProjectHistory(state, (project) => ({
             ...project,
-            parts: replacePart(project.parts, partId, (part) => {
-              if (material.objectType !== part.objectType) {
-                return part;
-              }
-              // The user explicitly picks a new material. Copy its lock fields, color,
-              // and link onto the part, then re-normalize the size against the new locks.
-              // Length (free axis) is preserved; locked axes update.
-              const nextPart: PartNode = {
-                ...part,
-                materialId: material.id,
-                color: material.color,
-                crossSectionWidthMm: material.crossSectionWidthMm,
-                crossSectionHeightMm: material.crossSectionHeightMm,
-                thicknessMm: material.thicknessMm,
-              };
-              return { ...nextPart, size: normalizePartSize(nextPart, part.size) };
-            }),
+            parts: replacePart(project.parts, partId, (part) => applyMaterialToPart(part, material)),
           })),
         };
       }),

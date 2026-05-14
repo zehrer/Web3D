@@ -22,7 +22,7 @@ The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still o
 
 ### What's implemented
 
-The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v9**. Each step shipped behind a migration so old saved projects continue to work.
+The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v11**. Each step shipped behind a migration so old saved projects continue to work.
 
 | Step | Schema | Status | What changed |
 |---|---|---|---|
@@ -31,17 +31,19 @@ The refactor is happening in small, schema-bump-per-step increments. Schema is c
 | 3 | — | ✅ | `materialSummary` (cut-list) groups by `materialId` (label = `material.name`). Parts without a material fall back to a dimensions-derived label (e.g. `Timber 100 × 100 mm`, `Sheet 18 mm`). The cut-list no longer imports `getProfileById`. |
 | 4 | v8 | ✅ | `MaterialNode` gains its own `crossSectionWidthMm` / `crossSectionHeightMm` / `thicknessMm` and a required complete `defaultSize: Vector3Like`. `addObjectFromMaterial`, `buildPreviewPart`, and the Material inspector all read from the material directly — no more `getProfileById(material.profileId)` calls at runtime. |
 | 5 | v9 | ✅ | `profileId` dropped from `PartNode` and `MaterialNode`. `setPartProfile` renamed to `setPartMaterial`: the part inspector's dropdown now lists materials of the same `objectType` instead of catalog profiles. Selecting a different material rewrites `materialId`, lock fields, color, then normalizes size. The hardcoded catalog (`SHEET_PROFILES`, `TIMBER_PROFILES`, …) is now seed-only — read by `createInitialMaterials()` and `createObjectPart()`'s default-size lookup, never via stored data. |
+| 6 | — | ✅ | `src/lib/collision.ts` provides oriented-box overlap checks. The part Material dropdown previews the new material via `applyMaterialToPart()` and warns when the candidate overlaps neighboring parts, while still allowing an explicit override. |
+| 7 | v10 | ✅ | `MaterialNode` and `PartNode` carry generic `lockedAxes`. The material inspector edits all default dimensions and lets users choose which axes are fixed for future placed parts. |
+| 8 | v11 | ✅ | The Parts List creates a linear cutting plan from material stock length (`defaultSize.x`), part lengths, and project kerf. |
 
-After Step 5, the hardcoded catalog is no longer load-bearing at runtime. Stored parts and materials are fully self-contained.
+After Step 6, the hardcoded catalog is no longer load-bearing at runtime. Stored parts and materials are fully self-contained.
 
 ### What's still open
 
 | Step | Status | What |
 |---|---|---|
-| 6 | ⏭ | "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. |
-| User-editable library | ⏭ | Currently `createInitialMaterials()` always seeds the same 18 materials from the hardcoded catalog. To let users add new sizes ("Timber 120 × 80 mm") without a code change, the *creation* of materials needs a UI form (cross-section + default size + color + group). The data path already supports it — only the UI is missing. |
+| User-editable library | ✅/⏭ | The browser stores a global editable material library shared across projects. Adding from it copies a material into the project for reproducibility. Still missing: first-class "new material" form, group selection/move controls, and future import from a shared GitHub-hosted library. |
 | Concept-2 evaluation | ⏭ | The discriminator `objectType` is the last vestige of "types as code". Evaluate whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
-| Global Library | ⏭ | The "Project Library" (materials) exists. The "Global Library" (GitHub-hosted, shared catalog with linked/modified/local-only status, source IDs, sync) is still future work. Planned: ship after the user-editable library and inspector polish stabilize. |
+| Global Library | ✅/⏭ | A browser-local global library exists. GitHub-hosted import/sync with linked/modified/local-only status is still future work. |
 
 ### Behavioral consequences already shipped
 
