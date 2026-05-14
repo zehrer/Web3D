@@ -135,6 +135,10 @@ function formatPartDimensions(part: PartNode, unitPreference: UnitPreference): s
   return formatLength(part.size.x, unitPreference);
 }
 
+function formatCutLength(valueMm: number): string {
+  return `${Math.round(valueMm)} mm`;
+}
+
 function PartsListPrintReport({
   projectName,
   items,
@@ -151,12 +155,14 @@ function PartsListPrintReport({
   unitPreference: UnitPreference;
 }) {
   const printedAt = new Date().toLocaleString();
+  const linearItems = items.filter((item) => item.cutPlan);
+  const nonLinearItems = items.filter((item) => !item.cutPlan);
 
   return (
     <div className="print-report" aria-hidden="true">
       <header className="print-report__header">
         <div>
-          <h1>Parts List</h1>
+          <h1>Cutting Plan</h1>
           <p>{projectName}</p>
         </div>
         <div className="print-report__meta">
@@ -165,34 +171,7 @@ function PartsListPrintReport({
         </div>
       </header>
 
-      <table className="print-report__summary">
-        <thead>
-          <tr>
-            <th>Material</th>
-            <th>Type</th>
-            <th>Pieces</th>
-            <th>Total</th>
-            <th>Stock</th>
-            <th>Waste</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item.key}>
-              <td>{item.label}</td>
-              <td>{getMaterialUsageCategoryLabel(item, materials, materialGroups)}</td>
-              <td>{item.count}</td>
-              <td>{item.kind === "linear" ? formatMeters(item.totalLengthMm) : formatSquareMeters(item.totalAreaMm2)}</td>
-              <td>{item.cutPlan ? item.cutPlan.stockCount : "-"}</td>
-              <td>{item.cutPlan ? formatLength(item.cutPlan.totalWasteMm, unitPreference) : "-"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {items.map((item) => {
-        const itemPartIds = new Set(item.partIds);
-        const itemParts = parts.filter((part) => itemPartIds.has(part.id));
+      {linearItems.map((item) => {
         const oversizeParts = item.cutPlan
           ? item.cutPlan.oversizePartIds
               .map((partId) => parts.find((part) => part.id === partId))
@@ -205,62 +184,79 @@ function PartsListPrintReport({
               <h2>{item.label}</h2>
               <p>
                 {getMaterialUsageCategoryLabel(item, materials, materialGroups)} · {item.count} {item.count === 1 ? "piece" : "pieces"}
-                {item.cutPlan
-                  ? ` · ${item.cutPlan.stockCount} stock · ${formatLength(item.cutPlan.totalWasteMm, unitPreference)} waste`
-                  : ""}
+                {item.cutPlan ? ` · ${item.cutPlan.stockCount} stock · ${formatCutLength(item.cutPlan.totalWasteMm)} waste` : ""}
               </p>
             </div>
 
             {item.cutPlan ? (
-              <>
-                <p className="print-report__note">
-                  Raw stock {formatLength(item.cutPlan.rawStockLengthMm, unitPreference)} · Kerf {formatLength(item.cutPlan.kerfMm, unitPreference)}
-                </p>
+              <div className="print-report__material-metrics">
+                <span>Raw stock {formatCutLength(item.cutPlan.rawStockLengthMm)}</span>
+                <span>Kerf {formatCutLength(item.cutPlan.kerfMm)}</span>
+                <span>Total cuts {formatCutLength(item.totalLengthMm)}</span>
+                <span>Leftover {formatCutLength(item.cutPlan.totalWasteMm)}</span>
+              </div>
+            ) : null}
+
+            {item.cutPlan ? (
+              <div className="print-report__stock-grid">
                 {item.cutPlan.stock.map((stock) => (
-                  <table className="print-report__cuts" key={stock.index}>
-                    <thead>
-                      <tr>
-                        <th colSpan={2}>Stock {stock.index}</th>
-                        <th>{formatLength(stock.leftoverLengthMm, unitPreference)} left</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <div className="print-report__stock-card" key={stock.index}>
+                    <div className="print-report__stock-title">
+                      <strong>Stock {stock.index}</strong>
+                      <span>{formatCutLength(stock.leftoverLengthMm)} left</span>
+                    </div>
+                    <ol className="print-report__cut-list">
                       {stock.cuts.map((cut) => (
-                        <tr key={cut.partId}>
-                          <td>{cut.partName}</td>
-                          <td>{cut.partId}</td>
-                          <td>{formatLength(cut.lengthMm, unitPreference)}</td>
-                        </tr>
+                        <li key={cut.partId}>
+                          <span>{cut.partName}</span>
+                          <strong>{formatCutLength(cut.lengthMm)}</strong>
+                        </li>
                       ))}
-                    </tbody>
-                  </table>
+                    </ol>
+                  </div>
                 ))}
-                {oversizeParts.length > 0 ? (
-                  <table className="print-report__cuts print-report__cuts--warning">
-                    <thead>
-                      <tr>
-                        <th>Oversize part</th>
-                        <th>ID</th>
-                        <th>Length</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {oversizeParts.map((part) => (
-                        <tr key={part.id}>
-                          <td>{part.name}</td>
-                          <td>{part.id}</td>
-                          <td>{formatLength(part.size.x, unitPreference)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : null}
-              </>
-            ) : (
-              <table className="print-report__cuts">
+              </div>
+            ) : null}
+
+            {oversizeParts.length > 0 ? (
+              <table className="print-report__cuts print-report__cuts--warning">
                 <thead>
                   <tr>
-                    <th>Part</th>
+                    <th>Oversize part</th>
+                    <th>ID</th>
+                    <th>Length</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {oversizeParts.map((part) => (
+                    <tr key={part.id}>
+                      <td>{part.name}</td>
+                      <td>{part.id}</td>
+                      <td>{formatCutLength(part.size.x)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
+          </section>
+        );
+      })}
+
+      {nonLinearItems.length > 0 ? (
+        <section className="print-report__material">
+          <div className="print-report__material-header">
+            <h2>Area And Shape Parts</h2>
+            <p>Detailed part dimensions. Sheet nesting is not calculated in this version.</p>
+          </div>
+          {nonLinearItems.map((item) => {
+            const itemPartIds = new Set(item.partIds);
+            const itemParts = parts.filter((part) => itemPartIds.has(part.id));
+
+            return (
+              <table className="print-report__cuts" key={item.key}>
+                <thead>
+                  <tr>
+                    <th>{item.label}</th>
                     <th>ID</th>
                     <th>Dimensions</th>
                   </tr>
@@ -275,10 +271,38 @@ function PartsListPrintReport({
                   ))}
                 </tbody>
               </table>
-            )}
-          </section>
-        );
-      })}
+            );
+          })}
+        </section>
+      ) : null}
+
+      <section className="print-report__overview">
+        <h2>Overview</h2>
+        <table className="print-report__summary">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Group</th>
+              <th>Pieces</th>
+              <th>Total</th>
+              <th>Stock</th>
+              <th>Waste</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.key}>
+                <td>{item.label}</td>
+                <td>{getMaterialUsageCategoryLabel(item, materials, materialGroups)}</td>
+                <td>{item.count}</td>
+                <td>{item.kind === "linear" ? formatMeters(item.totalLengthMm) : formatSquareMeters(item.totalAreaMm2)}</td>
+                <td>{item.cutPlan ? item.cutPlan.stockCount : "-"}</td>
+                <td>{item.cutPlan ? formatCutLength(item.cutPlan.totalWasteMm) : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
     </div>
   );
 }
