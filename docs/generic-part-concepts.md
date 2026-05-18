@@ -6,7 +6,7 @@ This document was originally a design exploration. Since then, a concrete refact
 
 ### Direction chosen
 
-**Concept 1 first**, with one important addition learned along the way: library entries are **creation-time templates, not live references**. Editing a library material does NOT mutate already-placed parts — woodworking depends on exact cross-sections, and silently shifting joints when stock metadata changes would break the design. So scene parts copy what they need from the library at creation time and stay self-contained afterwards.
+**Concept 1 first**, with one important addition learned along the way: there is one browser-local internal material library, but placed geometry stays self-contained. Renaming a library material updates project labels because parts reference the library material ID. Editing default dimensions or fixed axes does NOT mutate already-placed parts — woodworking depends on exact cross-sections, and silently shifting joints when stock metadata changes would break the design.
 
 The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still object-type discriminators in the code. They have not yet become "families" in the Concept 2 sense, but the surface area where they matter is shrinking each step.
 
@@ -14,15 +14,16 @@ The four built-in **types** (`sheet`, `timber`, `cladding`, `glass`) are still o
 
 | Document term | Code today |
 |---|---|
-| Project Part Definitions | `project.materials` (`MaterialNode[]`) and `project.materialGroups` |
+| Project Part Definitions | Browser-local `globalMaterialLibrary` (`MaterialLibraryDocument`) |
 | Scene Object Instance | `PartNode` |
 | Reference from instance to definition | `part.materialId: string \| null` |
+| Portable export material subset | `project.materials` / `project.materialGroups` in `.web3d` payloads |
 | Hardcoded global catalog | `SHEET_PROFILES`, `TIMBER_PROFILES`, `CLADDING_PROFILES`, `GLASS_PROFILES`, `SHAPE_PROFILES` in `src/lib/profiles.ts` |
 | Family | Still implicit (the `objectType` discriminator) |
 
 ### What's implemented
 
-The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v9**. Each step shipped behind a migration so old saved projects continue to work.
+The refactor is happening in small, schema-bump-per-step increments. Schema is currently at **v11**. Each step shipped behind a migration so old saved projects continue to work.
 
 | Step | Schema | Status | What changed |
 |---|---|---|---|
@@ -31,22 +32,24 @@ The refactor is happening in small, schema-bump-per-step increments. Schema is c
 | 3 | — | ✅ | `materialSummary` (cut-list) groups by `materialId` (label = `material.name`). Parts without a material fall back to a dimensions-derived label (e.g. `Timber 100 × 100 mm`, `Sheet 18 mm`). The cut-list no longer imports `getProfileById`. |
 | 4 | v8 | ✅ | `MaterialNode` gains its own `crossSectionWidthMm` / `crossSectionHeightMm` / `thicknessMm` and a required complete `defaultSize: Vector3Like`. `addObjectFromMaterial`, `buildPreviewPart`, and the Material inspector all read from the material directly — no more `getProfileById(material.profileId)` calls at runtime. |
 | 5 | v9 | ✅ | `profileId` dropped from `PartNode` and `MaterialNode`. `setPartProfile` renamed to `setPartMaterial`: the part inspector's dropdown now lists materials of the same `objectType` instead of catalog profiles. Selecting a different material rewrites `materialId`, lock fields, color, then normalizes size. The hardcoded catalog (`SHEET_PROFILES`, `TIMBER_PROFILES`, …) is now seed-only — read by `createInitialMaterials()` and `createObjectPart()`'s default-size lookup, never via stored data. |
+| 6 | — | ✅ | `src/lib/collision.ts` provides oriented-box overlap checks. The part Material dropdown previews the new material via `applyMaterialToPart()` and warns when the candidate overlaps neighboring parts, while still allowing an explicit override. |
+| 7 | v10 | ✅ | `MaterialNode` and `PartNode` carry generic `lockedAxes`. The material inspector edits all default dimensions and lets users choose which axes are fixed for future placed parts. |
+| 8 | v11 | ✅ | The Parts List creates a linear cutting plan from material stock length (`defaultSize.x`), part lengths, and project kerf. |
 
-After Step 5, the hardcoded catalog is no longer load-bearing at runtime. Stored parts and materials are fully self-contained.
+After Step 6, the hardcoded catalog is no longer load-bearing at runtime. Stored parts and materials are fully self-contained.
 
 ### What's still open
 
 | Step | Status | What |
 |---|---|---|
-| 6 | ⏭ | "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service. |
-| User-editable library | ⏭ | Currently `createInitialMaterials()` always seeds the same 18 materials from the hardcoded catalog. To let users add new sizes ("Timber 120 × 80 mm") without a code change, the *creation* of materials needs a UI form (cross-section + default size + color + group). The data path already supports it — only the UI is missing. |
+| User-editable library | ✅/⏭ | The browser stores one internal editable material library shared across projects. Parts reference it directly. Export embeds only used materials; import deduplicates/remaps those embedded materials into the internal library. Still missing: first-class "new material" form, group selection/move controls, and future import from a shared GitHub-hosted library. |
 | Concept-2 evaluation | ⏭ | The discriminator `objectType` is the last vestige of "types as code". Evaluate whether to formalize as explicit families (`panel`, `beam`, `flat-shape`) or keep type-driven branches in the inspector/renderer. |
-| Global Library | ⏭ | The "Project Library" (materials) exists. The "Global Library" (GitHub-hosted, shared catalog with linked/modified/local-only status, source IDs, sync) is still future work. Planned: ship after the user-editable library and inspector polish stabilize. |
+| Global Library | ✅/⏭ | A browser-local global library exists. GitHub-hosted import/sync with linked/modified/local-only status is still future work. |
 
 ### Behavioral consequences already shipped
 
 - **Renaming a material** updates the cut-list label everywhere. It does NOT change the cross-section of placed parts.
-- **Adding a new part from a library material** copies the material's `defaultSize` and lock fields onto the part. The part is then independent.
+- **Adding a new part from a library material** stores the library material ID on the part and copies the material's `defaultSize` and lock fields onto the part's geometry. The part geometry is then independent, while labels continue to resolve through the library.
 - **Resize tool / drag handles** for a timber show only the X axis. Sheet/glass shows X and Y. Cube shows all three (no lock).
 - **Inspector** hides locked axes entirely instead of showing them as readonly. The redundant readonly "Thickness" and "Cross-section" rows are gone.
 

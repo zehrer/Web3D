@@ -430,9 +430,11 @@ function isMeasurementVisible(measurement: MeasurementNode, groups: import("../t
 function Scene() {
   const allParts = useEditorStore((state) => state.project.parts);
   const groups = useEditorStore((state) => state.project.groups);
-  const materials = useEditorStore((state) => state.project.materials);
+  const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
-  const selectedMaterial = selectedMaterialId ? (materials.find((m) => m.id === selectedMaterialId) ?? null) : null;
+  const selectedMaterial = selectedMaterialId
+    ? (globalMaterialLibrary.materials.find((m) => m.id === selectedMaterialId) ?? null)
+    : null;
   const previewPart = selectedMaterial ? buildPreviewPart(selectedMaterial) : null;
   const parts = allParts.filter((part) => isPartVisible(part, groups));
   const allMeasurements = useEditorStore((state) => state.project.measurements);
@@ -762,9 +764,9 @@ export function Viewport() {
   const activeTool = useEditorStore((state) => state.activeTool);
   const setActiveTool = useEditorStore((state) => state.setActiveTool);
   const addObject = useEditorStore((state) => state.addObject);
-  const addObjectFromMaterial = useEditorStore((state) => state.addObjectFromMaterial);
-  const materialGroups = useEditorStore((state) => state.project.materialGroups);
-  const materials = useEditorStore((state) => state.project.materials);
+  const addObjectFromGlobalMaterial = useEditorStore((state) => state.addObjectFromGlobalMaterial);
+  const materialGroups = useEditorStore((state) => state.globalMaterialLibrary.materialGroups);
+  const materials = useEditorStore((state) => state.globalMaterialLibrary.materials);
   const duplicateSelectedPart = useEditorStore((state) => state.duplicateSelectedPart);
   const deleteSelectedPart = useEditorStore((state) => state.deleteSelectedPart);
   const deleteSelectedMeasurement = useEditorStore((state) => state.deleteSelectedMeasurement);
@@ -901,7 +903,7 @@ export function Viewport() {
                       key={group.id}
                       className="viewport-add-menu__item"
                       onClick={() => {
-                        addObjectFromMaterial(targetMaterial.id);
+                        addObjectFromGlobalMaterial(targetMaterial.id);
                         setLastUsedMaterialByGroup((prev) => new Map(prev).set(group.id, targetMaterial.id));
                         setOpenAddMenu(null);
                       }}

@@ -25,8 +25,9 @@ import type {
   Vector3Like,
 } from "../types/model";
 
-export const PROJECT_SCHEMA_VERSION = 9;
+export const PROJECT_SCHEMA_VERSION = 11;
 export const DEFAULT_GRID_SETTINGS = { size: 6000, originX: 0, originZ: 0 };
+export const DEFAULT_CUT_SETTINGS = { kerfMm: 3 };
 export const DEFAULT_WORKSPACE_FOCUS_XZ = 900;
 export const DEFAULT_CAMERA_HEIGHT = 160;
 
@@ -170,7 +171,6 @@ function createDemoMeasurements(sourceMeasurements: MeasurementNode[], groupIdMa
 
 export function createProject(name?: string): ProjectDocument {
   const now = new Date().toISOString();
-  const { materialGroups, materials } = createInitialMaterials();
 
   return {
     id: randomId(),
@@ -181,6 +181,7 @@ export function createProject(name?: string): ProjectDocument {
       ...gardenShedDemoProject.snapSettings,
     },
     gridSettings: { ...DEFAULT_GRID_SETTINGS },
+    cutSettings: { ...DEFAULT_CUT_SETTINGS },
     cameraState: {
       position: cloneVector(gardenShedDemoProject.cameraState.position),
       target: cloneVector(gardenShedDemoProject.cameraState.target),
@@ -188,8 +189,8 @@ export function createProject(name?: string): ProjectDocument {
     groups: [],
     parts: [],
     measurements: [],
-    materialGroups,
-    materials,
+    materialGroups: [],
+    materials: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -211,6 +212,7 @@ export function createDemoProject(): ProjectDocument {
       ...gardenShedDemoProject.snapSettings,
     },
     gridSettings: { ...DEFAULT_GRID_SETTINGS },
+    cutSettings: { ...DEFAULT_CUT_SETTINGS },
     cameraState: {
       position: cloneVector(gardenShedDemoProject.cameraState.position),
       target: cloneVector(gardenShedDemoProject.cameraState.target),

@@ -52,7 +52,9 @@ describe("project serialization", () => {
     expect(parsed.parts[0].groupId).toBeNull();
     expect(parsed.parts[0].objectType).toBe("sheet");
     expect(parsed.parts[0].thicknessMm).toBe(18);
+    expect(parsed.parts[0].lockedAxes).toEqual({ z: true });
     expect(parsed.gridSettings).toBeDefined();
+    expect(parsed.cutSettings).toEqual({ kerfMm: 3 });
   });
 
   it("migrates v2 object projects into grouped-capable projects", () => {
@@ -136,8 +138,29 @@ describe("project serialization", () => {
     expect("profileId" in parsed.materials[0]).toBe(false);
     // Geometry-driving fields survive the migration.
     expect(parsed.parts[0].crossSectionWidthMm).toBe(100);
+    expect(parsed.parts[0].lockedAxes).toEqual({ y: true, z: true });
     expect(parsed.materials[0].defaultSize).toEqual({ x: 2500, y: 100, z: 100 });
+    expect(parsed.materials[0].lockedAxes).toEqual({ y: true, z: true });
     expect(parsed.parts[0].materialId).toBe(v8MaterialId);
+  });
+
+  it("migrates v10 projects by adding cut settings", () => {
+    const project = createProject("V10");
+    const payload = JSON.stringify({ ...project, version: 10, cutSettings: undefined });
+
+    const parsed = deserializeProject(payload);
+
+    expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
+    expect(parsed.cutSettings).toEqual({ kerfMm: 3 });
+  });
+
+  it("round-trips project cut settings", () => {
+    const project = createProject("Cut Settings");
+    project.cutSettings = { kerfMm: 4.2 };
+
+    const parsed = deserializeProject(serializeProject(project));
+
+    expect(parsed.cutSettings).toEqual({ kerfMm: 4.2 });
   });
 
   it("migrates v7 projects by populating defaultSize and lock fields on materials", () => {
@@ -165,9 +188,11 @@ describe("project serialization", () => {
     expect(timber.defaultSize).toEqual({ x: 2200, y: 100, z: 100 });
     expect(timber.crossSectionWidthMm).toBe(100);
     expect(timber.crossSectionHeightMm).toBe(100);
+    expect(timber.lockedAxes).toEqual({ y: true, z: true });
     const sheet = parsed.materials.find((m) => m.id === "lm-sheet")!;
     expect(sheet.defaultSize).toEqual({ x: 1200, y: 600, z: 18 });
     expect(sheet.thicknessMm).toBe(18);
+    expect(sheet.lockedAxes).toEqual({ z: true });
   });
 
   it("migrates v6 projects by populating cross-section lock fields on parts", () => {
@@ -191,8 +216,10 @@ describe("project serialization", () => {
     expect(parsed.version).toBe(PROJECT_SCHEMA_VERSION);
     expect(parsed.parts[0].crossSectionWidthMm).toBe(100);
     expect(parsed.parts[0].crossSectionHeightMm).toBe(100);
+    expect(parsed.parts[0].lockedAxes).toEqual({ y: true, z: true });
     expect(parsed.parts[0].thicknessMm).toBeUndefined();
     expect(parsed.parts[1].thicknessMm).toBe(18);
+    expect(parsed.parts[1].lockedAxes).toEqual({ z: true });
     expect(parsed.parts[1].crossSectionWidthMm).toBeUndefined();
   });
 

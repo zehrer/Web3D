@@ -4,12 +4,15 @@ import { ProjectSidebar } from "./components/ProjectSidebar";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { Viewport } from "./components/Viewport";
 import { downloadProjectAsGltf, downloadProjectAsStl, downloadProjectAsUsdz, downloadProjectAsWeb3d } from "./lib/export";
-import { createDemoProject, createProject } from "./lib/project";
+import { reconcileProjectMaterials } from "./lib/materialLibrary";
+import { createDemoProject } from "./lib/project";
 import {
   deleteProjectDocument,
   listProjectSummaries,
+  loadGlobalMaterialLibrary,
   loadMostRecentProject,
   loadProjectDocument,
+  saveGlobalMaterialLibrary,
   saveProjectDocument,
 } from "./lib/persistence";
 import { deserializeProjectFile } from "./lib/serialization";
@@ -20,8 +23,10 @@ const AUTOSAVE_DELAY_MS = 350;
 export default function App() {
   const hydrated = useEditorStore((state) => state.hydrated);
   const project = useEditorStore((state) => state.project);
+  const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const setRecentProjects = useEditorStore((state) => state.setRecentProjects);
   const hydrateProject = useEditorStore((state) => state.hydrateProject);
+  const hydrateGlobalMaterialLibrary = useEditorStore((state) => state.hydrateGlobalMaterialLibrary);
   const setHydrated = useEditorStore((state) => state.setHydrated);
   const createNewProject = useEditorStore((state) => state.createNewProject);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -35,9 +40,10 @@ export default function App() {
 
     async function hydrate() {
       try {
-        const [recentProjects, recentProject] = await Promise.all([
+        const [recentProjects, recentProject, materialLibrary] = await Promise.all([
           listProjectSummaries().catch(() => []),
           loadMostRecentProject().catch(() => null),
+          loadGlobalMaterialLibrary(),
         ]);
 
         if (cancelled) {
@@ -45,13 +51,10 @@ export default function App() {
         }
 
         setRecentProjects(recentProjects);
-
-        if (recentProject) {
-          hydrateProject(recentProject);
-        } else {
-          const nextProject = createDemoProject();
-          hydrateProject(nextProject);
-        }
+        const sourceProject = recentProject ?? createDemoProject();
+        const reconciled = reconcileProjectMaterials(sourceProject, materialLibrary);
+        hydrateGlobalMaterialLibrary(reconciled.library);
+        hydrateProject(reconciled.project);
       } finally {
         if (!cancelled) {
           setHydrated(true);
@@ -64,7 +67,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateProject, setHydrated, setRecentProjects]);
+  }, [hydrateGlobalMaterialLibrary, hydrateProject, setHydrated, setRecentProjects]);
 
   useEffect(() => {
     function handleResize() {
@@ -99,10 +102,25 @@ export default function App() {
     return () => window.clearTimeout(timeout);
   }, [hydrated, project, setRecentProjects]);
 
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void saveGlobalMaterialLibrary(globalMaterialLibrary).catch(() => setSaveState("error"));
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [globalMaterialLibrary, hydrated]);
+
   async function handleOpenProject(projectId: string) {
     const projectDocument = await loadProjectDocument(projectId);
     if (projectDocument) {
-      editorStore.getState().hydrateProject(projectDocument);
+      const state = editorStore.getState();
+      const reconciled = reconcileProjectMaterials(projectDocument, state.globalMaterialLibrary);
+      state.hydrateGlobalMaterialLibrary(reconciled.library);
+      state.hydrateProject(reconciled.project);
     }
   }
 
@@ -141,11 +159,17 @@ export default function App() {
 
       const fallbackProject = await loadMostRecentProject();
       if (fallbackProject) {
-        editorStore.getState().hydrateProject(fallbackProject);
+        const state = editorStore.getState();
+        const reconciled = reconcileProjectMaterials(fallbackProject, state.globalMaterialLibrary);
+        state.hydrateGlobalMaterialLibrary(reconciled.library);
+        state.hydrateProject(reconciled.project);
       } else {
         const nextProject = createDemoProject();
-        editorStore.getState().hydrateProject(nextProject);
-        await saveProjectDocument(nextProject);
+        const state = editorStore.getState();
+        const reconciled = reconcileProjectMaterials(nextProject, state.globalMaterialLibrary);
+        state.hydrateGlobalMaterialLibrary(reconciled.library);
+        state.hydrateProject(reconciled.project);
+        await saveProjectDocument(reconciled.project);
       }
 
       const summaries = await listProjectSummaries();
@@ -162,11 +186,13 @@ export default function App() {
   }
 
   function handleExportWeb3d() {
-    downloadProjectAsWeb3d(editorStore.getState().project);
+    const state = editorStore.getState();
+    downloadProjectAsWeb3d(state.project, state.globalMaterialLibrary);
   }
 
   async function handleExportGltf() {
-    await downloadProjectAsGltf(editorStore.getState().project);
+    const state = editorStore.getState();
+    await downloadProjectAsGltf(state.project, state.globalMaterialLibrary);
   }
 
   async function handleExportUsdz() {
@@ -179,8 +205,12 @@ export default function App() {
     try {
       const payload = await file.text();
       const importedProject = deserializeProjectFile(payload);
-      editorStore.getState().hydrateProject(importedProject);
-      await saveProjectDocument(importedProject);
+      const state = editorStore.getState();
+      const reconciled = reconcileProjectMaterials(importedProject, state.globalMaterialLibrary);
+      state.hydrateGlobalMaterialLibrary(reconciled.library);
+      state.hydrateProject(reconciled.project);
+      await saveGlobalMaterialLibrary(reconciled.library);
+      await saveProjectDocument(reconciled.project);
       const summaries = await listProjectSummaries();
       editorStore.getState().setRecentProjects(summaries);
       setSaveState("saved");

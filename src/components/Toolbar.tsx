@@ -93,6 +93,7 @@ export function Toolbar({
   const updateUnitPreference = useEditorStore((state) => state.updateUnitPreference);
   const updateSnapSettings = useEditorStore((state) => state.updateSnapSettings);
   const updateGridSettings = useEditorStore((state) => state.updateGridSettings);
+  const updateCutSettings = useEditorStore((state) => state.updateCutSettings);
   const undo = useEditorStore((state) => state.undo);
   const redo = useEditorStore((state) => state.redo);
   const [activeMenu, setActiveMenu] = useState<MenuKey | null>(null);
@@ -342,6 +343,24 @@ export function Toolbar({
                     />
                   </label>
                 </div>
+
+                <div className="menu-dropdown__divider" />
+
+                <label className="field">
+                  <span>Saw kerf</span>
+                  <input
+                    className="field__input"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={Number(toDisplayUnits(project.cutSettings.kerfMm, project.unitPreference).toFixed(2))}
+                    onChange={(event) =>
+                      updateCutSettings({
+                        kerfMm: Math.max(0, fromDisplayUnits(Number(event.target.value || 0), project.unitPreference)),
+                      })
+                    }
+                  />
+                </label>
 
                 <div className="menu-dropdown__divider" />
 

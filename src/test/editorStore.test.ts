@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createProject } from "../lib/project";
+import { createInitialMaterials, createProject } from "../lib/project";
 import { createEditorStore } from "../store/editorStore";
+
+function createProjectWithProjectMaterials(name?: string) {
+  const project = createProject(name);
+  const { materialGroups, materials } = createInitialMaterials();
+  return { ...project, materialGroups, materials };
+}
 
 describe("editor store", () => {
   it("adds, duplicates, and deletes objects", () => {
@@ -27,7 +33,7 @@ describe("editor store", () => {
 
   it("supports undo and redo around geometry edits", () => {
     const store = createEditorStore();
-    store.getState().hydrateProject(createProject());
+    store.getState().hydrateProject(createProjectWithProjectMaterials());
     store.getState().addObject("sheet");
 
     const selectedPartId = store.getState().project.parts[0].id;
@@ -43,9 +49,23 @@ describe("editor store", () => {
     expect(store.getState().project.parts[0].size.x).toBe(700);
   });
 
-  it("creates timber objects with fixed cross-sections and editable length", () => {
+  it("supports undo and redo around cut setting edits", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());
+
+    store.getState().updateCutSettings({ kerfMm: 5 });
+    expect(store.getState().project.cutSettings.kerfMm).toBe(5);
+
+    store.getState().undo();
+    expect(store.getState().project.cutSettings.kerfMm).toBe(3);
+
+    store.getState().redo();
+    expect(store.getState().project.cutSettings.kerfMm).toBe(5);
+  });
+
+  it("creates timber objects with fixed cross-sections and editable length", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProjectWithProjectMaterials());
 
     store.getState().addObject("timber", "timber-100x100");
     const timber = store.getState().project.parts.at(-1)!;
@@ -59,7 +79,7 @@ describe("editor store", () => {
     });
     expect(store.getState().project.parts.at(-1)?.size.x).toBe(1800);
 
-    const timber120 = store.getState().project.materials.find((m) => m.name === "120 x 120 mm")!;
+    const timber120 = store.getState().globalMaterialLibrary.materials.find((m) => m.name === "120 x 120 mm")!;
     store.getState().setPartMaterial(timber.id, timber120.id);
     const updated = store.getState().project.parts.at(-1)!;
     expect(updated.size.x).toBe(1800);
@@ -67,9 +87,105 @@ describe("editor store", () => {
     expect(updated.size.z).toBe(120);
   });
 
-  it("creates rhombus cladding objects with fixed profile and editable length", () => {
+  it("uses editable material dimensions and locks when changing a part material", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProjectWithProjectMaterials());
+
+    store.getState().addObject("timber", "timber-100x100");
+    const timber = store.getState().project.parts.at(-1)!;
+    const material = store.getState().globalMaterialLibrary.materials.find((m) => m.name === "100 x 100 mm")!;
+
+    store.getState().updateGlobalMaterialDefaultSize(material.id, "y", 120);
+    store.getState().updateGlobalMaterialDefaultSize(material.id, "z", 80);
+    store.getState().renameGlobalMaterial(material.id, "120 x 80 mm");
+    store.getState().setPartGeometry(timber.id, { size: { ...timber.size, x: 1900 } });
+    store.getState().setPartMaterial(timber.id, material.id);
+
+    const updated = store.getState().project.parts.find((part) => part.id === timber.id)!;
+    expect(updated.size).toEqual({ x: 1900, y: 120, z: 80 });
+    expect(updated.lockedAxes).toEqual({ y: true, z: true });
+    expect(updated.crossSectionWidthMm).toBe(120);
+    expect(updated.crossSectionHeightMm).toBe(80);
+
+    store.getState().updateGlobalMaterialAxisLock(material.id, "y", false);
+    expect(store.getState().globalMaterialLibrary.materials.find((m) => m.id === material.id)?.lockedAxes).toEqual({ z: true });
+  });
+
+  it("keeps used material edits in the single global library without mutating placed dimensions", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProjectWithProjectMaterials());
+
+    const material = store.getState().globalMaterialLibrary.materials.find((m) => m.name === "100 x 100 mm")!;
+    store.getState().addObjectFromMaterial(material.id);
+    const placedPart = store.getState().project.parts.at(-1)!;
+
+    store.getState().renameGlobalMaterial(material.id, "Changed");
+    store.getState().updateGlobalMaterialDefaultSize(material.id, "y", 120);
+    store.getState().updateGlobalMaterialAxisLock(material.id, "y", false);
+    store.getState().updateGlobalMaterialColor(material.id, "#000000");
+
+    const changed = store.getState().globalMaterialLibrary.materials.find((m) => m.id === material.id)!;
+    expect(changed.name).toBe("Changed");
+    expect(changed.defaultSize.y).toBe(120);
+    expect(changed.lockedAxes).toEqual({ z: true });
+    expect(changed.color).toBe("#000000");
+    expect(store.getState().project.parts.find((part) => part.id === placedPart.id)?.size).toEqual(placedPart.size);
+  });
+
+  it("adds global library materials directly without project-local copies", () => {
     const store = createEditorStore();
     store.getState().hydrateProject(createProject());
+    const globalMaterial = store.getState().globalMaterialLibrary.materials.find((m) => m.name === "100 x 100 mm")!;
+    const globalGroup = store.getState().globalMaterialLibrary.materialGroups.find((g) => g.id === globalMaterial.groupId)!;
+    store.getState().hydrateGlobalMaterialLibrary({
+      materialGroups: [{ ...globalGroup, id: "global-group" }],
+      materials: [{ ...globalMaterial, id: "global-material", groupId: "global-group", name: "Global 100 x 100" }],
+    });
+
+    store.getState().addObjectFromGlobalMaterial("global-material");
+
+    expect(store.getState().project.materials).toHaveLength(0);
+    expect(store.getState().project.parts.at(-1)?.materialId).toBe("global-material");
+
+    store.getState().addObjectFromGlobalMaterial("global-material");
+    expect(store.getState().project.materials).toHaveLength(0);
+    expect(store.getState().project.parts.filter((part) => part.materialId === "global-material")).toHaveLength(2);
+  });
+
+  it("creates editable global material folders and basic material templates", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProject());
+    const initialGroupCount = store.getState().globalMaterialLibrary.materialGroups.length;
+    const initialMaterialCount = store.getState().globalMaterialLibrary.materials.length;
+
+    store.getState().addGlobalMaterialGroup();
+    expect(store.getState().globalMaterialLibrary.materialGroups).toHaveLength(initialGroupCount + 1);
+    expect(store.getState().globalMaterialLibrary.materialGroups.at(-1)?.name).toBe(`Folder ${initialGroupCount + 1}`);
+
+    store.getState().createGlobalMaterial("timber");
+    const timber = store.getState().globalMaterialLibrary.materials.at(-1)!;
+    expect(store.getState().globalMaterialLibrary.materials).toHaveLength(initialMaterialCount + 1);
+    expect(timber).toMatchObject({
+      name: "New Timber",
+      objectType: "timber",
+      defaultSize: { x: 2500, y: 100, z: 100 },
+      lockedAxes: { y: true, z: true },
+    });
+    expect(store.getState().selectedMaterialId).toBe(timber.id);
+
+    store.getState().createGlobalMaterial("cube");
+    const cube = store.getState().globalMaterialLibrary.materials.at(-1)!;
+    expect(cube).toMatchObject({
+      name: "New Cube",
+      objectType: "cube",
+      defaultSize: { x: 500, y: 500, z: 500 },
+    });
+    expect(cube.lockedAxes).toBeUndefined();
+  });
+
+  it("creates rhombus cladding objects with fixed profile and editable length", () => {
+    const store = createEditorStore();
+    store.getState().hydrateProject(createProjectWithProjectMaterials());
 
     store.getState().addObject("cladding", "rhombus-19x68");
     const cladding = store.getState().project.parts.at(-1)!;
@@ -82,7 +198,7 @@ describe("editor store", () => {
     });
     expect(store.getState().project.parts.at(-1)?.size.x).toBe(2400);
 
-    const rhombus27 = store.getState().project.materials.find((m) => m.name === "Rhombus 27 x 68 mm")!;
+    const rhombus27 = store.getState().globalMaterialLibrary.materials.find((m) => m.name === "Rhombus 27 x 68 mm")!;
     store.getState().setPartMaterial(cladding.id, rhombus27.id);
     const updated = store.getState().project.parts.at(-1)!;
     expect(updated.size).toEqual({ x: 2400, y: 68, z: 27 });
@@ -90,7 +206,7 @@ describe("editor store", () => {
 
   it("creates glass objects as plexiglass panels", () => {
     const store = createEditorStore();
-    store.getState().hydrateProject(createProject());
+    store.getState().hydrateProject(createProjectWithProjectMaterials());
 
     store.getState().addObject("glass", "plexiglass-3");
     const glass = store.getState().project.parts.at(-1)!;
@@ -104,7 +220,7 @@ describe("editor store", () => {
     });
     expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 3 });
 
-    const plexi10 = store.getState().project.materials.find((m) => m.name === "Plexiglass 10 mm")!;
+    const plexi10 = store.getState().globalMaterialLibrary.materials.find((m) => m.name === "Plexiglass 10 mm")!;
     store.getState().setPartMaterial(glass.id, plexi10.id);
     expect(store.getState().project.parts.at(-1)?.size).toEqual({ x: 1200, y: 800, z: 10 });
   });

@@ -48,11 +48,30 @@ export function ExportIcon(props: IconProps) {
   );
 }
 
+export function PrintIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M7 8V4.5h10V8" />
+      <path d="M7 17.5H5a2 2 0 0 1-2-2V11a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v4.5a2 2 0 0 1-2 2h-2" />
+      <path d="M7 14h10v5.5H7z" />
+      <path d="M17.5 11.5h.01" />
+    </BaseIcon>
+  );
+}
+
 export function PlusIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
       <path d="M12 5v14" />
       <path d="M5 12h14" />
+    </BaseIcon>
+  );
+}
+
+export function FilterIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 6h16l-6.2 7.1V19l-3.6 1.8v-7.7L4 6Z" />
     </BaseIcon>
   );
 }
@@ -235,6 +254,26 @@ export function FolderIcon(props: IconProps) {
     <BaseIcon {...props}>
       <path d="M4 7h6l2 2h8v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
       <path d="M4 7V5.5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2V9" />
+    </BaseIcon>
+  );
+}
+
+export function CollapseFoldersIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 7h6l2 2h8v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+      <path d="M4 7V5.5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2V9" />
+      <path d="m9 13 3 3 3-3" />
+    </BaseIcon>
+  );
+}
+
+export function ExpandFoldersIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 7h6l2 2h8v8.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+      <path d="M4 7V5.5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2V9" />
+      <path d="m9 16 3-3 3 3" />
     </BaseIcon>
   );
 }

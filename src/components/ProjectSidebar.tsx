@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
+import { useEffect, useState, type DragEvent } from "react";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CollapseFoldersIcon, CubeIcon, ExpandFoldersIcon, EyeIcon, EyeOffIcon, FilterIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -20,7 +20,6 @@ function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
   if (objectType === "cube") return <CubeIcon width={14} height={14} />;
   return <BeamIcon width={14} height={14} />;
 }
-
 function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancestorGroupId: string): boolean {
   let current = groups.find((group) => group.id === candidateGroupId);
   while (current?.parentGroupId) {
@@ -32,24 +31,41 @@ function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancest
 
 function MaterialPanel() {
   const project = useEditorStore((state) => state.project);
+  const globalMaterialLibrary = useEditorStore((state) => state.globalMaterialLibrary);
   const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
+  const selectedMaterialSource = useEditorStore((state) => state.selectedMaterialSource);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
-  const renameMaterial = useEditorStore((state) => state.renameMaterial);
-  const renameMaterialGroup = useEditorStore((state) => state.renameMaterialGroup);
-  const addMaterialGroup = useEditorStore((state) => state.addMaterialGroup);
-  const deleteMaterial = useEditorStore((state) => state.deleteMaterial);
-  const deleteMaterialGroup = useEditorStore((state) => state.deleteMaterialGroup);
+  const renameGlobalMaterial = useEditorStore((state) => state.renameGlobalMaterial);
+  const renameGlobalMaterialGroup = useEditorStore((state) => state.renameGlobalMaterialGroup);
+  const addGlobalMaterialGroup = useEditorStore((state) => state.addGlobalMaterialGroup);
+  const deleteGlobalMaterialGroup = useEditorStore((state) => state.deleteGlobalMaterialGroup);
+  const deleteGlobalMaterial = useEditorStore((state) => state.deleteGlobalMaterial);
 
+  const [filterMode, setFilterMode] = useState<"all" | "used">("all");
   const [editingItem, setEditingItem] = useState<EditingMaterialItem>(null);
   const [draftName, setDraftName] = useState("");
-  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set(project.materialGroups.map((g) => g.id)));
+  const activeLibrary = {
+    materialGroups: globalMaterialLibrary.materialGroups,
+    materials: filterMode === "all"
+      ? globalMaterialLibrary.materials
+      : globalMaterialLibrary.materials.filter((material) => project.parts.some((part) => part.materialId === material.id)),
+  };
+  const activeSource: "global" = "global";
+  const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set(activeLibrary.materialGroups.map((g) => g.id)));
+
+  useEffect(() => {
+    setExpandedGroupIds(new Set(activeLibrary.materialGroups.map((group) => group.id)));
+  }, [filterMode, activeLibrary.materialGroups]);
 
   function commitRename() {
     if (!editingItem) return;
     const name = draftName.trim();
     if (name) {
-      if (editingItem.kind === "material") renameMaterial(editingItem.id, name);
-      else renameMaterialGroup(editingItem.id, name);
+      if (editingItem.kind === "material") {
+        renameGlobalMaterial(editingItem.id, name);
+      } else {
+        renameGlobalMaterialGroup(editingItem.id, name);
+      }
     }
     setEditingItem(null);
     setDraftName("");
@@ -98,17 +114,17 @@ function MaterialPanel() {
   }
 
   function renderMaterial(material: MaterialNode, depth: number) {
-    const isSelected = material.id === selectedMaterialId;
+    const isSelected = material.id === selectedMaterialId && selectedMaterialSource === activeSource;
     const isUsed = project.parts.some((p) => p.materialId === material.id);
     return (
       <div
         key={material.id}
         className={`object-row ${isSelected ? "object-row--selected" : ""}`}
-        onClick={() => selectMaterial(isSelected ? null : material.id)}
+        onClick={() => selectMaterial(isSelected ? null : material.id, activeSource)}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            selectMaterial(isSelected ? null : material.id);
+            selectMaterial(isSelected ? null : material.id, activeSource);
           }
         }}
         role="button"
@@ -128,9 +144,9 @@ function MaterialPanel() {
             className="object-row__eye"
             onClick={(event) => {
               event.stopPropagation();
-              deleteMaterial(material.id);
+              deleteGlobalMaterial(material.id);
             }}
-            title="Delete unused material"
+            title="Delete material"
             type="button"
           >
             <TrashIcon width={12} height={12} />
@@ -141,18 +157,17 @@ function MaterialPanel() {
   }
 
   function renderMaterialGroup(group: MaterialGroupNode, depth: number) {
-    const children = project.materials.filter((m) => m.groupId === group.id);
-    const childGroups = project.materialGroups.filter((g) => g.parentGroupId === group.id);
+    const children = activeLibrary.materials.filter((m) => m.groupId === group.id);
+    const childGroups = activeLibrary.materialGroups.filter((g) => g.parentGroupId === group.id);
+    const hasChildren = children.length > 0 || childGroups.length > 0;
     const isExpanded = expandedGroupIds.has(group.id);
-    const isEmpty = children.length === 0 && childGroups.length === 0;
-
     return (
       <div className="object-tree__group" key={group.id}>
         <div
           className="object-row object-row--group"
           style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
         >
-          {children.length > 0 || childGroups.length > 0 ? (
+          {hasChildren ? (
             <button
               aria-label={isExpanded ? `Collapse ${group.name}` : `Expand ${group.name}`}
               className="object-row__disclosure"
@@ -170,13 +185,13 @@ function MaterialPanel() {
           <span className="object-row__content">
             {renderNameEditor("materialGroup", group.id, group.name)}
           </span>
-          {isEmpty ? (
+          {!hasChildren && filterMode === "all" ? (
             <button
-              aria-label={`Delete folder ${group.name}`}
+              aria-label={`Delete ${group.name}`}
               className="object-row__eye"
               onClick={(event) => {
                 event.stopPropagation();
-                deleteMaterialGroup(group.id);
+                deleteGlobalMaterialGroup(group.id);
               }}
               title="Delete empty folder"
               type="button"
@@ -195,8 +210,8 @@ function MaterialPanel() {
     );
   }
 
-  const rootGroups = project.materialGroups.filter((g) => g.parentGroupId === null);
-  const ungroupedMaterials = project.materials.filter((m) => m.groupId === null);
+  const rootGroups = activeLibrary.materialGroups.filter((g) => g.parentGroupId === null);
+  const ungroupedMaterials = activeLibrary.materials.filter((m) => m.groupId === null);
 
   return (
     <section className="panel-card browser-card">
@@ -204,18 +219,35 @@ function MaterialPanel() {
         <div>
           <span className="panel-card__title">Material</span>
           <p className="browser-card__subtitle">
-            {project.materials.length} materials · {project.materialGroups.length} groups
+            {filterMode === "all" ? `${globalMaterialLibrary.materials.length} global materials` : `${activeLibrary.materials.length} used in project`}
           </p>
         </div>
-        <button
-          aria-label="Create material group"
-          className="browser-card__header-action"
-          onClick={() => addMaterialGroup()}
-          title="Create material group"
-          type="button"
-        >
-          <FolderIcon width={16} height={16} />
-        </button>
+        <div className="browser-card__header-actions">
+          <button
+            aria-label="Create material folder"
+            className="browser-card__header-action"
+            onClick={() => {
+              setFilterMode("all");
+              addGlobalMaterialGroup();
+            }}
+            title="Create material folder"
+            type="button"
+          >
+            <FolderIcon width={16} height={16} />
+          </button>
+          <button
+            aria-label={filterMode === "all" ? "Show used materials" : "Show all materials"}
+            className={`browser-card__header-action ${filterMode === "used" ? "browser-card__header-action--active" : ""}`}
+            onClick={() => {
+              setEditingItem(null);
+              setFilterMode((mode) => (mode === "all" ? "used" : "all"));
+            }}
+            title={filterMode === "all" ? "Show only materials used in this project" : "Show global material library"}
+            type="button"
+          >
+            <FilterIcon width={16} height={16} />
+          </button>
+        </div>
       </div>
 
       <div className="object-browser">
@@ -225,7 +257,7 @@ function MaterialPanel() {
             {ungroupedMaterials.map((m) => renderMaterial(m, 0))}
           </>
         ) : (
-          <p className="panel-card__empty">No materials defined yet.</p>
+          <p className="panel-card__empty">{filterMode === "all" ? "No materials defined yet." : "No materials used in this project yet."}</p>
         )}
       </div>
     </section>
@@ -239,10 +271,10 @@ export function ProjectSidebar() {
   const [draggingItem, setDraggingItem] = useState<DraggedTreeItem | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
-  const knownGroupIdsRef = useRef<Set<string>>(new Set());
   const project = useEditorStore((state) => state.project);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
+  const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
   const selectPart = useEditorStore((state) => state.selectPart);
   const selectMeasurement = useEditorStore((state) => state.selectMeasurement);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
@@ -271,19 +303,21 @@ export function ProjectSidebar() {
   }, [editingItem, project.groups, project.measurements, project.parts]);
 
   useEffect(() => {
-    const nextKnownGroupIds = new Set(project.groups.map((group) => group.id));
+    if (selectedMaterialId) {
+      setActiveTab("material");
+    }
+  }, [selectedMaterialId]);
+
+  useEffect(() => {
     setExpandedGroupIds((current) => {
       const next = new Set(current);
       let changed = false;
-      project.groups.forEach((group) => {
-        if (!knownGroupIdsRef.current.has(group.id)) { next.add(group.id); changed = true; }
-      });
+      const existingGroupIds = new Set(project.groups.map((group) => group.id));
       Array.from(next).forEach((groupId) => {
-        if (!nextKnownGroupIds.has(groupId)) { next.delete(groupId); changed = true; }
+        if (!existingGroupIds.has(groupId)) { next.delete(groupId); changed = true; }
       });
       return changed ? next : current;
     });
-    knownGroupIdsRef.current = nextKnownGroupIds;
   }, [project.groups]);
 
   function beginRenamePart(partId: string, currentName: string) {
@@ -594,15 +628,35 @@ export function ProjectSidebar() {
                 {project.parts.length + project.measurements.length} objects · {project.groups.length} groups
               </p>
             </div>
-            <button
-              aria-label="Create group"
-              className="browser-card__header-action"
-              onClick={() => addGroup()}
-              title="Create group"
-              type="button"
-            >
-              <FolderIcon width={16} height={16} />
-            </button>
+            <div className="browser-card__header-actions">
+              <button
+                aria-label="Expand all groups"
+                className="browser-card__header-action"
+                onClick={() => setExpandedGroupIds(new Set(project.groups.map((group) => group.id)))}
+                title="Expand all groups"
+                type="button"
+              >
+                <ExpandFoldersIcon width={16} height={16} />
+              </button>
+              <button
+                aria-label="Collapse all groups"
+                className="browser-card__header-action"
+                onClick={() => setExpandedGroupIds(new Set())}
+                title="Collapse all groups"
+                type="button"
+              >
+                <CollapseFoldersIcon width={16} height={16} />
+              </button>
+              <button
+                aria-label="Create group"
+                className="browser-card__header-action"
+                onClick={() => addGroup()}
+                title="Create group"
+                type="button"
+              >
+                <FolderIcon width={16} height={16} />
+              </button>
+            </div>
           </div>
 
           <div

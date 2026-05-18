@@ -1,9 +1,11 @@
 import { deserializeProject, serializeProject } from "./serialization";
-import { summarizeProject } from "./project";
-import type { ProjectDocument, ProjectSummary } from "../types/model";
+import { createInitialMaterials, summarizeProject } from "./project";
+import type { MaterialLibraryDocument, ProjectDocument, ProjectSummary } from "../types/model";
 
 const DB_NAME = "web3d-designer";
 const STORE_NAME = "projects";
+const GLOBAL_MATERIAL_LIBRARY_STORE_NAME = "globalMaterialLibrary";
+const GLOBAL_MATERIAL_LIBRARY_KEY = "default";
 const LAST_PROJECT_KEY = "web3d:last-project-id";
 
 function openDatabase(): Promise<IDBDatabase> {
@@ -13,12 +15,15 @@ function openDatabase(): Promise<IDBDatabase> {
       return;
     }
 
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
 
     request.onupgradeneeded = () => {
       const database = request.result;
       if (!database.objectStoreNames.contains(STORE_NAME)) {
         database.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+      if (!database.objectStoreNames.contains(GLOBAL_MATERIAL_LIBRARY_STORE_NAME)) {
+        database.createObjectStore(GLOBAL_MATERIAL_LIBRARY_STORE_NAME, { keyPath: "id" });
       }
     };
 
@@ -28,14 +33,15 @@ function openDatabase(): Promise<IDBDatabase> {
 }
 
 async function withStore<T>(
+  storeName: string,
   mode: IDBTransactionMode,
   operation: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
   const database = await openDatabase();
 
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(STORE_NAME, mode);
-    const store = transaction.objectStore(STORE_NAME);
+    const transaction = database.transaction(storeName, mode);
+    const store = transaction.objectStore(storeName);
     const request = operation(store);
 
     request.onsuccess = () => resolve(request.result);
@@ -48,7 +54,7 @@ async function withStore<T>(
 
 export async function saveProjectDocument(project: ProjectDocument): Promise<void> {
   const serialized = serializeProject(project);
-  await withStore("readwrite", (store) =>
+  await withStore(STORE_NAME, "readwrite", (store) =>
     store.put({
       id: project.id,
       name: project.name,
@@ -64,7 +70,7 @@ export async function saveProjectDocument(project: ProjectDocument): Promise<voi
 }
 
 export async function deleteProjectDocument(projectId: string): Promise<void> {
-  await withStore("readwrite", (store) => store.delete(projectId));
+  await withStore(STORE_NAME, "readwrite", (store) => store.delete(projectId));
 
   if (typeof localStorage !== "undefined" && localStorage.getItem(LAST_PROJECT_KEY) === projectId) {
     localStorage.removeItem(LAST_PROJECT_KEY);
@@ -72,16 +78,46 @@ export async function deleteProjectDocument(projectId: string): Promise<void> {
 }
 
 export async function loadProjectDocument(projectId: string): Promise<ProjectDocument | null> {
-  const record = await withStore<{ serialized: string } | undefined>("readonly", (store) => store.get(projectId));
+  const record = await withStore<{ serialized: string } | undefined>(STORE_NAME, "readonly", (store) => store.get(projectId));
   return record ? deserializeProject(record.serialized) : null;
 }
 
 export async function listProjectSummaries(): Promise<ProjectSummary[]> {
-  const rows = await withStore<Array<{ serialized: string }>>("readonly", (store) => store.getAll());
+  const rows = await withStore<Array<{ serialized: string }>>(STORE_NAME, "readonly", (store) => store.getAll());
 
   return rows
     .map((row) => summarizeProject(deserializeProject(row.serialized)))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+}
+
+export function createDefaultGlobalMaterialLibrary(): MaterialLibraryDocument {
+  const { materialGroups, materials } = createInitialMaterials();
+  return { materialGroups, materials };
+}
+
+export async function saveGlobalMaterialLibrary(library: MaterialLibraryDocument): Promise<void> {
+  await withStore(GLOBAL_MATERIAL_LIBRARY_STORE_NAME, "readwrite", (store) =>
+    store.put({
+      id: GLOBAL_MATERIAL_LIBRARY_KEY,
+      serialized: JSON.stringify(library),
+    }),
+  );
+}
+
+export async function loadGlobalMaterialLibrary(): Promise<MaterialLibraryDocument> {
+  const record = await withStore<{ serialized: string } | undefined>(
+    GLOBAL_MATERIAL_LIBRARY_STORE_NAME,
+    "readonly",
+    (store) => store.get(GLOBAL_MATERIAL_LIBRARY_KEY),
+  );
+
+  if (record) {
+    return JSON.parse(record.serialized) as MaterialLibraryDocument;
+  }
+
+  const library = createDefaultGlobalMaterialLibrary();
+  await saveGlobalMaterialLibrary(library);
+  return library;
 }
 
 export async function getLastProjectId(): Promise<string | null> {

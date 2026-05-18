@@ -22,6 +22,15 @@ The "last used material per group" state is tracked locally in the `Viewport` co
 ### Material preview
 Selecting a material in the Material tab shows **only** that material at its default size, drawn at world origin `(0, 0, 0)`. The actual design parts and measurements are hidden while a material is selected — the preview is meant to show what a raw piece looks like, not to filter the scene. Deselecting the material restores the design.
 
+### Global vs project materials
+The browser stores one internal material library in IndexedDB. The Material tab defaults to **All**, which shows this internal library. Its filter button switches to **Used**, which shows only internal-library materials referenced by parts in the current project.
+
+Parts reference internal-library material IDs directly. There is no separate editable project material library during normal work, so renaming a library group or material is immediately reflected in the project tree, material inspector, and Parts List.
+
+Placed parts remain self-contained for geometry. Editing a material's default dimensions or fixed axes changes the library template and future parts, but it does not silently resize already placed parts. To change existing geometry, explicitly apply a different material to selected parts.
+
+`.web3d` export remains self-contained by embedding only the material definitions referenced by project parts. Import merges those embedded materials into the internal library, reuses duplicates when possible, and remaps imported part material IDs to the local internal-library IDs.
+
 ## Default Profiles
 
 - 100×100 mm structural timber has a default length of **2500 mm** (smallest stock length in the user's source).
@@ -41,6 +50,21 @@ The ground grid is configurable per project via `gridSettings`:
 - `originX` — distance in mm from the **left edge** of the grid to where the world origin `(0,0,0)` sits (default 0 → origin at the corner). Set to `size / 2` to centre the origin on the grid.
 - `originZ` — same as `originX` for the front edge.
 
+## Parts List / Cutting Plan
+
+The inspector's empty-selection view is the **Parts List**. It groups scene parts by project material.
+
+For linear materials (`timber` and `cladding`), the list creates a first-pass cut plan:
+
+- raw stock length is `material.defaultSize.x`
+- cut length is `part.size.x`
+- project-level saw kerf is `project.cutSettings.kerfMm` (default 3 mm)
+- cuts are packed longest-first into the fewest stock pieces using first-fit decreasing
+- kerf is subtracted between cuts on the same stock piece
+- parts longer than raw stock are flagged as oversize and are not split
+
+Area materials keep the existing area summary. Sheet nesting/board layout is intentionally not part of this first pass.
+
 These three fields are exposed in the **Settings** menu (top toolbar) below the snap settings. They are stored on the `ProjectDocument` and undo/redo-aware.
 
 ## Camera Presets
@@ -57,8 +81,8 @@ Exported `.web3d` files are prefixed with a `YYMMDDHHMM` timestamp, e.g. `260512
 
 The hardcoded profile catalog in `src/lib/profiles.ts` is the next architectural step to remove. Decision principles:
 
-- **Library material = creation-time template, not a live reference.** Editing a library entry (e.g. renaming "Timber 100×100" or changing its default cross-section) does NOT mutate existing parts. Existing parts retain the dimensions they were built with. Real woodworking projects depend on exact cross-sections — quietly updating placed parts would shift joints and stacking and silently break the design.
-- **Parts become self-contained.** `PartNode` keeps everything it needs to render and behave correctly: `size`, `position`, `rotation`, `color`, `objectType`. The cross-section lock currently computed via `applyProfileToSize` and `getProfileById` moves onto the part itself (e.g., `crossSectionWidthMm`/`crossSectionHeightMm` for timber, `thicknessMm` for sheet/glass). `profileId` is dropped from `PartNode`.
+- **Library material = one internal definition plus self-contained placed geometry.** Renaming a library entry updates project labels because parts reference the internal library ID. Editing default dimensions or fixed axes does NOT mutate existing parts; placed parts retain the dimensions they were built with. Real woodworking projects depend on exact cross-sections — quietly updating placed parts would shift joints and stacking and silently break the design.
+- **Parts become self-contained.** `PartNode` keeps everything it needs to render and behave correctly: `size`, `position`, `rotation`, `color`, `objectType`, and `lockedAxes`. The old `crossSectionWidthMm`/`crossSectionHeightMm`/`thicknessMm` fields are still populated for compatibility and fallback labels, but generic lock behavior now comes from `lockedAxes`.
 - **`materialId` stays as a tag.** It groups parts in the cut-list (the library material's *name* becomes the label). A part with no `materialId` falls back to a label generated from its own dimensions.
 - **Changing a part's cross-section becomes an explicit operation.** "Change Profile" on a selected part rewrites its locked dimensions, with a warning if the change would cause overlaps with neighbors.
 
@@ -80,17 +104,19 @@ Cleanest implementation will probably be a small helper layer (e.g. `axisLabels(
 
 ## Planned: Overlap / Collision Detection
 
-The app has no overlap detection today — two parts can occupy the same volume without any indication. Useful in several flows:
+The app has shared overlap detection in `src/lib/collision.ts`. It treats parts as oriented boxes using the same lower-corner origin and Euler rotation model as the viewport, and ignores face-touching as non-overlap. Flat zero-volume shapes are not treated as collisions.
+
+First consumer shipped: the part Material dropdown warns when a new material/cross-section would overlap neighboring parts, then lets the user cancel or apply anyway.
+
+Future consumers:
 
 - Cut-list / material summary could flag overlapping pieces (manufacturing bug).
 - Move/resize gizmos could warn during drag.
-- "Change Profile" (above) is the first real consumer of the warning.
-
-Treat as a shared service so each consumer doesn't reimplement the math.
+- "Change Profile" / explicit cross-section editing can reuse the same service once that workflow exists.
 
 ## Schema Versions
 
-Current `PROJECT_SCHEMA_VERSION` is **7**. Bumps must add a corresponding `migrateProjectVnToCurrent` function in `src/lib/serialization.ts` and chain it through any older migrations.
+Current `PROJECT_SCHEMA_VERSION` is **11**. Bumps must add a corresponding `migrateProjectVnToCurrent` function in `src/lib/serialization.ts` and chain it through any older migrations.
 
 | Version | Change |
 |---|---|
@@ -103,6 +129,8 @@ Current `PROJECT_SCHEMA_VERSION` is **7**. Bumps must add a corresponding `migra
 | 7 | Step 1 of profiles-out-of-code refactor: parts carry `crossSectionWidthMm` / `crossSectionHeightMm` / `thicknessMm` (additive, no behavior change yet) |
 | 8 | Step 4 of refactor: materials carry their own lock fields and a complete `defaultSize`; runtime no longer calls `getProfileById(material.profileId)` |
 | 9 | Step 5 of refactor: `profileId` dropped from `PartNode` and `MaterialNode`. Inspector dropdown switches from profiles → materials of same `objectType`. The hardcoded catalog is now seed-only. |
+| 10 | Materials and parts carry generic `lockedAxes`; the material inspector can edit X/Y/Z defaults and choose which axes are fixed for placed parts. |
+| 11 | Project-level cut settings (`cutSettings.kerfMm`) for the linear Parts List cutting plan. |
 
 ## Refactor progress (profiles-out-of-code)
 
@@ -111,4 +139,6 @@ Current `PROJECT_SCHEMA_VERSION` is **7**. Bumps must add a corresponding `migra
 - **Step 3** ✅ Cut-list groups by `materialId`. The material's `name` becomes the label; parts without a material (or pointing at a deleted one) fall back to a dimensions-derived label (e.g. `Timber 100 × 100 mm`, `Sheet 18 mm`). `getProfileById` is no longer used in `materialSummary.ts`. Items carry `partIds` so consumers don't recompute keys.
 - **Step 4** ✅ Materials carry their own lock fields and a complete `defaultSize`. v7→v8 migration populates both from each material's `profileId`. `addObjectFromMaterial`, `buildPreviewPart`, and `MaterialInspector` no longer call `getProfileById(material.profileId)`. The "Profile" readonly row in the material inspector (which duplicated the material's underlying type info) is gone.
 - **Step 5** ✅ `profileId` dropped from `PartNode` and `MaterialNode` (schema v9). `setPartProfile` renamed to `setPartMaterial`: the part inspector's dropdown now lists materials of the same `objectType` instead of catalog profiles. Selecting a different material rewrites the part's `materialId`, lock fields, and color, then normalizes the size against the new locks. The hardcoded catalog in `src/lib/profiles.ts` is now seed-only — read by `createInitialMaterials()` and `createObjectPart()`'s default-size lookup, never via stored part/material data. `getProfileById` no longer imported by `editorStore.ts` or `InspectorPanel.tsx`.
-- **Step 6** ⏭ "Change Cross-Section" warning when the user picks a new material whose dimensions would cause the part to overlap with neighbors. First consumer of the planned overlap-detection service.
+- **Step 6** ✅ Material-change warning uses `getPartMaterialChangeOverlaps()` to preview the selected material's lock fields and warn when the resulting part would overlap neighbors.
+- **Step 7** ✅ Schema v10: materials expose editable default X/Y/Z dimensions and generic fixed-axis choices (`lockedAxes`). Duplicating a material now supports creating a new standard size such as 120 × 80 timber without changing code.
+- **Step 8** ✅ Schema v11: Parts List computes linear stock counts and cut assignments from project material stock length plus configurable kerf.
