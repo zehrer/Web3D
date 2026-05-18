@@ -4,12 +4,34 @@ import { getMaterialUsageSummary } from "../lib/materialSummary";
 import { getObjectTypeLabel } from "../lib/profiles";
 import { formatLength, formatMeters, formatSquareMeters, fromDisplayUnits, toDisplayUnits, UNIT_DEFINITIONS } from "../lib/units";
 import { getSelectedMeasurement, getSelectedPart, updateVector, useEditorStore } from "../store/editorStore";
-import { PrintIcon } from "./Icons";
+import { PrintIcon, SaveIcon, SearchIcon } from "./Icons";
 import type { MaterialGroupNode, MaterialNode, ObjectType, PartNode, UnitPreference, Vector3Like } from "../types/model";
 
 function numericOrNull(value: string): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function nearlyEqual(a: number, b: number, toleranceMm = 0.5): boolean {
+  return Math.abs(a - b) <= toleranceMm;
+}
+
+function getCompatibilityAxes(material: MaterialNode): Array<keyof Vector3Like> {
+  if (material.lockedAxes && Object.values(material.lockedAxes).some(Boolean)) {
+    return (["x", "y", "z"] as Array<keyof Vector3Like>).filter((axis) => Boolean(material.lockedAxes?.[axis]));
+  }
+  if (material.objectType === "timber" || material.objectType === "cladding") return ["y", "z"];
+  if (material.objectType === "sheet" || material.objectType === "glass") return ["z"];
+  if (material.objectType === "rectangle") return ["x", "z"];
+  if (material.objectType === "circle") return ["x", "z"];
+  return ["x", "y", "z"];
+}
+
+function isPartCompatibleWithMaterial(part: PartNode, material: MaterialNode, toleranceMm: number): boolean {
+  if (part.objectType !== material.objectType) return false;
+  const fixedAxes = getCompatibilityAxes(material);
+  if (fixedAxes.length === 0) return true;
+  return fixedAxes.every((axis) => nearlyEqual(part.size[axis], material.defaultSize[axis], toleranceMm));
 }
 
 function FieldRow({
@@ -55,6 +77,7 @@ function VectorFields({
   convertFromMm = true,
   columns = 1,
   axes = ["x", "y", "z"],
+  disabledAxes = [],
   onChange,
 }: {
   label: string;
@@ -63,6 +86,7 @@ function VectorFields({
   convertFromMm?: boolean;
   columns?: 1 | 2 | 3;
   axes?: ReadonlyArray<keyof Vector3Like>;
+  disabledAxes?: ReadonlyArray<keyof Vector3Like>;
   onChange: (vector: Vector3Like) => void;
 }) {
   const suffix = convertFromMm ? UNIT_DEFINITIONS[unitPreference].shortLabel : "deg";
@@ -77,6 +101,7 @@ function VectorFields({
           <FieldRow
             key={axis}
             label={axis.toUpperCase()}
+            disabled={disabledAxes.includes(axis)}
             value={convertFromMm ? toDisplayUnits(vector[axis], unitPreference) : vector[axis]}
             onChange={(nextValue) =>
               onChange(
@@ -1102,6 +1127,7 @@ export function InspectorPanel() {
   const unitPreference = state.project.unitPreference;
   const setPartGeometry = state.setPartGeometry;
   const setPartMaterial = state.setPartMaterial;
+  const createGlobalMaterialFromPart = state.createGlobalMaterialFromPart;
   const updatePart = state.updatePart;
   const projectMaterials = state.globalMaterialLibrary.materials;
   const createCladdingPattern = state.createCladdingPattern;
@@ -1109,6 +1135,9 @@ export function InspectorPanel() {
   const [patternAxis, setPatternAxis] = useState<keyof Vector3Like>("y");
   const [patternCopies, setPatternCopies] = useState(5);
   const [patternGap, setPatternGap] = useState(12);
+  const [showMaterialMatcher, setShowMaterialMatcher] = useState(false);
+  const [matchToleranceMm, setMatchToleranceMm] = useState(0.5);
+  const [selectedCompatibleMaterialId, setSelectedCompatibleMaterialId] = useState<string | null>(null);
   const measurementLength = selectedMeasurement
     ? Math.hypot(
         selectedMeasurement.end.x - selectedMeasurement.start.x,
@@ -1138,6 +1167,16 @@ export function InspectorPanel() {
   const selectedPartMaterialGroupName = selectedPartMaterial
     ? getMaterialGroupName(selectedPartMaterial, state.globalMaterialLibrary.materialGroups)
     : null;
+  const isLockedAxis = (axis: keyof Vector3Like) => Boolean(selectedPart?.lockedAxes?.[axis]);
+  useEffect(() => {
+    setShowMaterialMatcher(false);
+    setSelectedCompatibleMaterialId(null);
+  }, [selectedPart?.id]);
+  const compatibleMaterials = useMemo(() => {
+    if (!selectedPart) return [];
+    return state.globalMaterialLibrary.materials
+      .filter((material) => isPartCompatibleWithMaterial(selectedPart, material, matchToleranceMm));
+  }, [matchToleranceMm, selectedPart, state.globalMaterialLibrary.materials]);
   const changePartMaterial = (part: PartNode, materialId: string): boolean => {
     const overlapCheck = getPartMaterialChangeOverlaps(state.project, state.globalMaterialLibrary.materials, part.id, materialId);
     if (overlapCheck && overlapCheck.overlaps.length > 0) {
@@ -1176,41 +1215,40 @@ export function InspectorPanel() {
 
         {selectedPart ? (
           <>
-            {!isFlatShapeObject(selectedPart.objectType) && selectedPart.objectType !== "cube" ? (
-              <label className="field inspector-field">
-                <span>Material</span>
-                <select
-                  className="field__input"
-                  value={selectedPart.materialId ?? ""}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    if (next && !changePartMaterial(selectedPart, next)) {
-                      event.currentTarget.value = selectedPart.materialId ?? "";
-                    }
-                  }}
-                >
-                  {selectedPart.materialId === null ? (
-                    <option value="" disabled>(no material)</option>
-                  ) : null}
-                  {selectedPart.materialId && !selectedPartMaterial ? (
-                    <option value={selectedPart.materialId} disabled>
-                      Missing material
+            <label className="field inspector-field">
+              <span>Material</span>
+              <select
+                className="field__input"
+                value={selectedPart.materialId ?? ""}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  if (next && !changePartMaterial(selectedPart, next)) {
+                    event.currentTarget.value = selectedPart.materialId ?? "";
+                  }
+                }}
+              >
+                {selectedPart.materialId === null ? (
+                  <option value="" disabled>(no material)</option>
+                ) : null}
+                {selectedPart.materialId && !selectedPartMaterial ? (
+                  <option value={selectedPart.materialId} disabled>
+                    Missing material
+                  </option>
+                ) : null}
+                {projectMaterials
+                  .filter((m) => m.objectType === selectedPart.objectType)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
                     </option>
-                  ) : null}
-                  {projectMaterials
-                    .filter((m) => m.objectType === selectedPart.objectType)
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            ) : null}
+                  ))}
+              </select>
+            </label>
 
             {selectedPart.objectType === "circle" ? (
               <FieldRow
                 label={`Diameter (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                disabled={isLockedAxis("x") || isLockedAxis("z")}
                 value={toDisplayUnits(selectedPart.size.x, unitPreference)}
                 onChange={(value) => {
                   const diameter = fromDisplayUnits(value, unitPreference);
@@ -1230,6 +1268,7 @@ export function InspectorPanel() {
                 unitPreference={unitPreference}
                 columns={1}
                 axes={["x", "z"]}
+                disabledAxes={(["x", "z"] as Array<keyof Vector3Like>).filter((axis) => isLockedAxis(axis))}
                 onChange={(vector) => setPartGeometry(selectedPart.id, { size: { ...vector, y: 0 } })}
               />
             ) : isPanelObject(selectedPart.objectType) ? (
@@ -1239,6 +1278,7 @@ export function InspectorPanel() {
                 unitPreference={unitPreference}
                 columns={1}
                 axes={["x", "y"]}
+                disabledAxes={(["x", "y"] as Array<keyof Vector3Like>).filter((axis) => isLockedAxis(axis))}
                 onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
               />
             ) : selectedPart.objectType === "cube" ? (
@@ -1247,11 +1287,13 @@ export function InspectorPanel() {
                 vector={selectedPart.size}
                 unitPreference={unitPreference}
                 columns={1}
+                disabledAxes={(["x", "y", "z"] as Array<keyof Vector3Like>).filter((axis) => isLockedAxis(axis))}
                 onChange={(vector) => setPartGeometry(selectedPart.id, { size: vector })}
               />
             ) : (
               <FieldRow
                 label={`Length (${UNIT_DEFINITIONS[unitPreference].shortLabel})`}
+                disabled={isLockedAxis("x")}
                 value={toDisplayUnits(selectedPart.size.x, unitPreference)}
                 onChange={(value) =>
                   setPartGeometry(selectedPart.id, {
@@ -1264,7 +1306,7 @@ export function InspectorPanel() {
               />
             )}
 
-            {isFlatShapeObject(selectedPart.objectType) || selectedPart.objectType === "cube" ? (
+            {(isFlatShapeObject(selectedPart.objectType) || selectedPart.objectType === "cube") && !selectedPart.materialId ? (
               <label className="field inspector-field">
                 <span>Color</span>
                 <input
@@ -1356,6 +1398,76 @@ export function InspectorPanel() {
                 >
                   Apply Pattern
                 </button>
+              </div>
+            ) : null}
+
+            <div className="inspector-action-row" aria-label="Object actions">
+              <button
+                aria-label="Save selected object as material"
+                className="inspector-action-icon-button"
+                onClick={() => createGlobalMaterialFromPart(selectedPart.id)}
+                title="Save selected object as material"
+                type="button"
+              >
+                <SaveIcon width={14} height={14} />
+              </button>
+              <button
+                aria-label="Find compatible materials"
+                className="inspector-action-icon-button"
+                disabled={Boolean(selectedPart.materialId)}
+                onClick={() => {
+                  setShowMaterialMatcher((current) => !current);
+                }}
+                title="Find compatible materials"
+                type="button"
+              >
+                <SearchIcon width={14} height={14} />
+              </button>
+            </div>
+            {showMaterialMatcher && selectedPart ? (
+              <div className="inspector-match-panel">
+                <span className="inspector-match-panel__title">Find compatible materials</span>
+                <FieldRow
+                  label="Tolerance (mm)"
+                  min={0}
+                  step="0.1"
+                  value={matchToleranceMm}
+                  onChange={(value) => setMatchToleranceMm(Math.max(0, value))}
+                />
+                <p className="inspector-note">
+                  {compatibleMaterials.length} compatible {compatibleMaterials.length === 1 ? "material" : "materials"} found.
+                </p>
+                <div className="inspector-match-list">
+                  {compatibleMaterials.length > 0 ? compatibleMaterials.map((material) => (
+                    <label className="inspector-match-list__item" key={material.id}>
+                      <input
+                        checked={selectedCompatibleMaterialId === material.id}
+                        onChange={() => setSelectedCompatibleMaterialId(material.id)}
+                        name="compatible-material"
+                        type="radio"
+                      />
+                      <span>{material.name}</span>
+                      <small>{formatPartDimensions({ ...selectedPart, size: material.defaultSize }, unitPreference)}</small>
+                    </label>
+                  )) : (
+                    <p className="panel-card__empty">No candidates with current filters.</p>
+                  )}
+                </div>
+                <div className="inspector-match-panel__actions">
+                  <button
+                    className="inspector-action-button inspector-action-button--compact"
+                    disabled={!selectedCompatibleMaterialId}
+                    onClick={() => {
+                      if (!selectedCompatibleMaterialId) return;
+                      setPartMaterial(selectedPart.id, selectedCompatibleMaterialId);
+                      setShowMaterialMatcher(false);
+                      setSelectedCompatibleMaterialId(null);
+                    }}
+                    type="button"
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
             ) : null}
           </>

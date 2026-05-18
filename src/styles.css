@@ -1018,6 +1018,12 @@ button {
   background: rgba(215, 221, 227, 0.98);
 }
 
+.inspector-action-button--compact {
+  width: auto;
+  min-width: 6.5rem;
+  justify-self: end;
+}
+
 .inspector-action-button--danger {
   color: #8b2020;
   border-color: rgba(139, 32, 32, 0.35);
@@ -1031,6 +1037,91 @@ button {
 .inspector-action-button--danger:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.inspector-action-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+}
+
+.inspector-action-icon-button {
+  border: 1px solid rgba(112, 124, 136, 0.55);
+  background: rgba(226, 231, 236, 0.9);
+  color: #22303c;
+  border-radius: 0;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inspector-action-icon-button:hover {
+  background: rgba(215, 221, 227, 0.98);
+}
+
+.inspector-action-icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.inspector-match-panel {
+  margin-top: 0.6rem;
+  border: 1px solid rgba(174, 182, 190, 0.45);
+  padding: 0.55rem;
+  background: rgba(244, 247, 250, 0.85);
+}
+
+.inspector-match-panel__title {
+  display: block;
+  font-size: 0.82rem;
+  color: #32404b;
+  margin-bottom: 0.45rem;
+}
+
+.inspector-match-panel__filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.inspector-match-panel__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: #42515d;
+}
+
+.inspector-match-list {
+  max-height: 7.5rem;
+  overflow: auto;
+  border: 1px solid rgba(174, 182, 190, 0.35);
+  background: #f8fafc;
+  padding: 0.35rem;
+}
+
+.inspector-match-list__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #32404b;
+  padding: 0.15rem 0;
+}
+
+.inspector-match-list__item small {
+  color: #65737f;
+}
+
+.inspector-match-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
 }
 
 .field-group__grid--1 {

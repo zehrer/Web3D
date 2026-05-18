@@ -95,13 +95,16 @@ export interface EditorActions {
   updateGlobalMaterialDefaultSize: (materialId: string, axis: keyof Vector3Like, valueMm: number) => void;
   updateGlobalMaterialAxisLock: (materialId: string, axis: keyof Vector3Like, locked: boolean) => void;
   addGlobalMaterialGroup: (parentGroupId?: string | null) => void;
+  deleteGlobalMaterialGroup: (groupId: string) => void;
   createGlobalMaterial: (objectType: ObjectType) => void;
+  createGlobalMaterialFromPart: (partId: string) => void;
   duplicateGlobalMaterial: (materialId: string) => void;
   deleteGlobalMaterial: (materialId: string) => void;
   deleteMaterialGroup: (groupId: string) => void;
   setPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   previewPartGeometry: (partId: string, geometry: Partial<Pick<PartNode, "size" | "position" | "rotation">>) => void;
   setPartMaterial: (partId: string, materialId: string) => void;
+  setPartsMaterial: (partIds: string[], materialId: string) => void;
   commitCameraState: (cameraState: CameraState) => void;
   finalizeTransientChange: (previousProject: ProjectDocument) => void;
   undo: () => void;
@@ -920,6 +923,20 @@ export function createEditorStore() {
         };
       }),
 
+    deleteGlobalMaterialGroup: (groupId) =>
+      set((state) => {
+        const hasMaterials = state.globalMaterialLibrary.materials.some((material) => material.groupId === groupId);
+        const hasChildGroups = state.globalMaterialLibrary.materialGroups.some((group) => group.parentGroupId === groupId);
+        if (hasMaterials || hasChildGroups) return state;
+
+        return {
+          globalMaterialLibrary: {
+            ...state.globalMaterialLibrary,
+            materialGroups: state.globalMaterialLibrary.materialGroups.filter((group) => group.id !== groupId),
+          },
+        };
+      }),
+
     createGlobalMaterial: (objectType) =>
       set((state) => {
         const profile = getProfileById(getDefaultProfileId(objectType));
@@ -956,6 +973,54 @@ export function createEditorStore() {
           selectedMaterialSource: "global",
           selectedPartId: null,
           selectedMeasurementId: null,
+        };
+      }),
+
+    createGlobalMaterialFromPart: (partId) =>
+      set((state) => {
+        const part = state.project.parts.find((item) => item.id === partId);
+        if (!part) return state;
+
+        let materialGroups = state.globalMaterialLibrary.materialGroups;
+        const sourceMaterial = part.materialId
+          ? state.globalMaterialLibrary.materials.find((material) => material.id === part.materialId)
+          : null;
+        let groupId = sourceMaterial?.groupId
+          ?? state.globalMaterialLibrary.materials.find((material) => material.objectType === part.objectType)?.groupId
+          ?? null;
+        if (!groupId) {
+          const group = {
+            id: randomId(),
+            name: getObjectTypeLabel(part.objectType),
+            parentGroupId: null,
+          };
+          materialGroups = [...materialGroups, group];
+          groupId = group.id;
+        }
+
+        const material: MaterialNode = {
+          id: randomId(),
+          name: part.name.trim() ? part.name : `New ${getObjectTypeLabel(part.objectType)}`,
+          groupId,
+          objectType: part.objectType,
+          color: part.color,
+          defaultSize: { ...part.size },
+          lockedAxes: { ...part.lockedAxes },
+          ...legacyLockFieldsFromSize(part.size, part.lockedAxes),
+        };
+
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            parts: replacePart(project.parts, partId, (current) => applyMaterialToPart(current, material)),
+          })),
+          globalMaterialLibrary: {
+            ...state.globalMaterialLibrary,
+            materialGroups,
+            materials: [...state.globalMaterialLibrary.materials, material],
+          },
+          selectedMaterialId: material.id,
+          selectedMaterialSource: "global",
         };
       }),
 
@@ -1024,6 +1089,22 @@ export function createEditorStore() {
           ...withProjectHistory(state, (project) => ({
             ...project,
             parts: replacePart(project.parts, partId, (part) => applyMaterialToPart(part, material)),
+          })),
+        };
+      }),
+
+    setPartsMaterial: (partIds, materialId) =>
+      set((state) => {
+        if (partIds.length === 0) return state;
+        const material = state.globalMaterialLibrary.materials.find((m) => m.id === materialId);
+        if (!material) return state;
+        const targetIds = new Set(partIds);
+        return {
+          ...withProjectHistory(state, (project) => ({
+            ...project,
+            parts: project.parts.map((part) => (
+              targetIds.has(part.id) ? applyMaterialToPart(part, material) : part
+            )),
           })),
         };
       }),

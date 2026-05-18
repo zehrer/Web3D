@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type DragEvent } from "react";
-import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CubeIcon, EyeIcon, EyeOffIcon, FilterIcon, FolderIcon, GlassIcon, PlusIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
+import { useEffect, useState, type DragEvent } from "react";
+import { BeamIcon, ChevronDownIcon, ChevronRightIcon, CircleIcon, CladdingIcon, CollapseFoldersIcon, CubeIcon, ExpandFoldersIcon, EyeIcon, EyeOffIcon, FilterIcon, FolderIcon, GlassIcon, RectangleIcon, RulerIcon, SheetIcon, TrashIcon } from "./Icons";
 import { useEditorStore } from "../store/editorStore";
 import type { GroupNode, MaterialGroupNode, MaterialNode, MeasurementNode, ObjectType, PartNode } from "../types/model";
 
@@ -10,7 +10,6 @@ type DraggedTreeItem = { kind: "part" | "group" | "measurement"; id: string };
 type DropTarget = "root" | string | null;
 
 const TREE_DRAG_MIME = "application/x-web3d-tree-item";
-const BASIC_MATERIAL_TYPES: ObjectType[] = ["timber", "sheet", "cladding", "glass", "cube", "rectangle", "circle"];
 
 function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
   if (objectType === "sheet") return <SheetIcon width={14} height={14} />;
@@ -21,7 +20,6 @@ function PartTypeIcon({ objectType }: { objectType: ObjectType }) {
   if (objectType === "cube") return <CubeIcon width={14} height={14} />;
   return <BeamIcon width={14} height={14} />;
 }
-
 function isGroupDescendant(groups: GroupNode[], candidateGroupId: string, ancestorGroupId: string): boolean {
   let current = groups.find((group) => group.id === candidateGroupId);
   while (current?.parentGroupId) {
@@ -40,7 +38,7 @@ function MaterialPanel() {
   const renameGlobalMaterial = useEditorStore((state) => state.renameGlobalMaterial);
   const renameGlobalMaterialGroup = useEditorStore((state) => state.renameGlobalMaterialGroup);
   const addGlobalMaterialGroup = useEditorStore((state) => state.addGlobalMaterialGroup);
-  const createGlobalMaterial = useEditorStore((state) => state.createGlobalMaterial);
+  const deleteGlobalMaterialGroup = useEditorStore((state) => state.deleteGlobalMaterialGroup);
   const deleteGlobalMaterial = useEditorStore((state) => state.deleteGlobalMaterial);
 
   const [filterMode, setFilterMode] = useState<"all" | "used">("all");
@@ -161,6 +159,7 @@ function MaterialPanel() {
   function renderMaterialGroup(group: MaterialGroupNode, depth: number) {
     const children = activeLibrary.materials.filter((m) => m.groupId === group.id);
     const childGroups = activeLibrary.materialGroups.filter((g) => g.parentGroupId === group.id);
+    const hasChildren = children.length > 0 || childGroups.length > 0;
     const isExpanded = expandedGroupIds.has(group.id);
     return (
       <div className="object-tree__group" key={group.id}>
@@ -168,7 +167,7 @@ function MaterialPanel() {
           className="object-row object-row--group"
           style={{ paddingLeft: `${0.88 + depth * 1.2}rem` }}
         >
-          {children.length > 0 || childGroups.length > 0 ? (
+          {hasChildren ? (
             <button
               aria-label={isExpanded ? `Collapse ${group.name}` : `Expand ${group.name}`}
               className="object-row__disclosure"
@@ -186,6 +185,20 @@ function MaterialPanel() {
           <span className="object-row__content">
             {renderNameEditor("materialGroup", group.id, group.name)}
           </span>
+          {!hasChildren && filterMode === "all" ? (
+            <button
+              aria-label={`Delete ${group.name}`}
+              className="object-row__eye"
+              onClick={(event) => {
+                event.stopPropagation();
+                deleteGlobalMaterialGroup(group.id);
+              }}
+              title="Delete empty folder"
+              type="button"
+            >
+              <TrashIcon width={12} height={12} />
+            </button>
+          ) : null}
         </div>
         {isExpanded ? (
           <>
@@ -237,26 +250,6 @@ function MaterialPanel() {
         </div>
       </div>
 
-      <div className="material-create-strip" aria-label="Create basic material">
-        <span className="material-create-strip__label">New</span>
-        {BASIC_MATERIAL_TYPES.map((objectType) => (
-          <button
-            aria-label={`Create ${objectType} material`}
-            className="material-create-strip__button"
-            key={objectType}
-            onClick={() => {
-              setFilterMode("all");
-              createGlobalMaterial(objectType);
-            }}
-            title={`Create ${objectType} material`}
-            type="button"
-          >
-            <PartTypeIcon objectType={objectType} />
-            <PlusIcon width={9} height={9} />
-          </button>
-        ))}
-      </div>
-
       <div className="object-browser">
         {rootGroups.length > 0 || ungroupedMaterials.length > 0 ? (
           <>
@@ -278,10 +271,10 @@ export function ProjectSidebar() {
   const [draggingItem, setDraggingItem] = useState<DraggedTreeItem | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget>(null);
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(() => new Set());
-  const knownGroupIdsRef = useRef<Set<string>>(new Set());
   const project = useEditorStore((state) => state.project);
   const selectedPartId = useEditorStore((state) => state.selectedPartId);
   const selectedMeasurementId = useEditorStore((state) => state.selectedMeasurementId);
+  const selectedMaterialId = useEditorStore((state) => state.selectedMaterialId);
   const selectPart = useEditorStore((state) => state.selectPart);
   const selectMeasurement = useEditorStore((state) => state.selectMeasurement);
   const selectMaterial = useEditorStore((state) => state.selectMaterial);
@@ -310,19 +303,21 @@ export function ProjectSidebar() {
   }, [editingItem, project.groups, project.measurements, project.parts]);
 
   useEffect(() => {
-    const nextKnownGroupIds = new Set(project.groups.map((group) => group.id));
+    if (selectedMaterialId) {
+      setActiveTab("material");
+    }
+  }, [selectedMaterialId]);
+
+  useEffect(() => {
     setExpandedGroupIds((current) => {
       const next = new Set(current);
       let changed = false;
-      project.groups.forEach((group) => {
-        if (!knownGroupIdsRef.current.has(group.id)) { next.add(group.id); changed = true; }
-      });
+      const existingGroupIds = new Set(project.groups.map((group) => group.id));
       Array.from(next).forEach((groupId) => {
-        if (!nextKnownGroupIds.has(groupId)) { next.delete(groupId); changed = true; }
+        if (!existingGroupIds.has(groupId)) { next.delete(groupId); changed = true; }
       });
       return changed ? next : current;
     });
-    knownGroupIdsRef.current = nextKnownGroupIds;
   }, [project.groups]);
 
   function beginRenamePart(partId: string, currentName: string) {
@@ -633,15 +628,35 @@ export function ProjectSidebar() {
                 {project.parts.length + project.measurements.length} objects · {project.groups.length} groups
               </p>
             </div>
-            <button
-              aria-label="Create group"
-              className="browser-card__header-action"
-              onClick={() => addGroup()}
-              title="Create group"
-              type="button"
-            >
-              <FolderIcon width={16} height={16} />
-            </button>
+            <div className="browser-card__header-actions">
+              <button
+                aria-label="Expand all groups"
+                className="browser-card__header-action"
+                onClick={() => setExpandedGroupIds(new Set(project.groups.map((group) => group.id)))}
+                title="Expand all groups"
+                type="button"
+              >
+                <ExpandFoldersIcon width={16} height={16} />
+              </button>
+              <button
+                aria-label="Collapse all groups"
+                className="browser-card__header-action"
+                onClick={() => setExpandedGroupIds(new Set())}
+                title="Collapse all groups"
+                type="button"
+              >
+                <CollapseFoldersIcon width={16} height={16} />
+              </button>
+              <button
+                aria-label="Create group"
+                className="browser-card__header-action"
+                onClick={() => addGroup()}
+                title="Create group"
+                type="button"
+              >
+                <FolderIcon width={16} height={16} />
+              </button>
+            </div>
           </div>
 
           <div
